@@ -19,6 +19,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 from duva_bench import __version__
@@ -35,8 +36,63 @@ def build_parser() -> argparse.ArgumentParser:
         description="Define, execute, and analyze controlled experiments over coding agents.",
     )
     parser.add_argument("--version", action="version", version=f"duva-bench {__version__}")
-    parser.add_subparsers(dest="command", metavar="<command>")
+    subcommands = parser.add_subparsers(dest="command", metavar="<command>")
+
+    validate = subcommands.add_parser("validate", help="Validate a study file")
+    validate.add_argument("study", type=Path)
+    validate.set_defaults(handler=_validate)
+
+    digest = subcommands.add_parser("digest", help="Print a study's canonical digest")
+    digest.add_argument("study", type=Path)
+    digest.add_argument(
+        "--part",
+        choices=("study", "pre-registration", "arms"),
+        default="study",
+        help="Which digest to print (default: the whole study)",
+    )
+    digest.set_defaults(handler=_digest)
+
     return parser
+
+
+# --- handlers ---------------------------------------------------------------
+
+
+def _validate(args: argparse.Namespace) -> int:
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    _print_json(
+        {
+            "ok": True,
+            "title": study.title,
+            "study_digest": study.study_digest,
+            "tasks": [task.id for task in study.tasks],
+            "arms": [arm.id for arm in study.arms],
+            "trials": study.trial_count,
+        }
+    )
+    return 0
+
+
+def _digest(args: argparse.Namespace) -> int:
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    if args.part == "study":
+        print(study.study_digest)
+    elif args.part == "pre-registration":
+        registration = study.pre_registration
+        _print_json(
+            {
+                "pre_registration_digest": registration.pre_registration_digest,
+                "original_digest": registration.original_digest,
+                "amended": registration.amended,
+            }
+        )
+    else:
+        _print_json({arm.id: arm.arm_digest for arm in study.arms})
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:

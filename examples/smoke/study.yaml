@@ -1,0 +1,88 @@
+# The smoke study: 2 tasks × 2 arms × 2 repetitions = 8 trials.
+#
+# It exists to exercise the pipeline, not to answer a question. The two arms
+# differ in exactly one factor — the toolset one of them gets is a semantic twin
+# of the other's — so a difference between them is either the instrument or
+# noise, and gate G2 is about being able to tell which.
+#
+# Numbers are written as strings wherever they would otherwise be parsed as
+# floats. See src/duva_bench/study/digest.py for why: a study digest that moves
+# when the YAML parser is upgraded certifies nothing.
+
+title: duva-bench smoke study
+
+adp:
+  owner: duva
+  repo: bench-smoke
+  orchestrator: duva-bench
+
+tasks:
+  - id: json-normalizer
+    path: tasks/json-normalizer
+    grader_path: graders/json-normalizer.py
+    grader_sha256: bf591ba22dd3aabcd8547d3423221bceeb37795295107d92c77b60b54789fa2b
+  - id: retry-backoff
+    path: tasks/retry-backoff
+    grader_path: graders/retry-backoff.py
+    grader_sha256: 5f87ff5c546a6edbf3dcbfc9bdd87cfdba130be51227f7a74b61408bc5520f62
+
+arms:
+  - id: standard
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      parameters:
+        temperature: "0"
+    harness:
+      agent: terminus-2
+      version: "0.20.0"
+    toolset:
+      name: standard
+      tools:
+        read_file: sha256:0000000000000000000000000000000000000000000000000000000000000001
+        write_file: sha256:0000000000000000000000000000000000000000000000000000000000000002
+        run_command: sha256:0000000000000000000000000000000000000000000000000000000000000003
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+
+  - id: twin
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      parameters:
+        temperature: "0"
+    harness:
+      agent: terminus-2
+      version: "0.20.0"
+    toolset:
+      name: standard-twin
+      twin_of: standard
+      twin_seed: smoke-1
+      tools:
+        read_file: sha256:0000000000000000000000000000000000000000000000000000000000000001
+        write_file: sha256:0000000000000000000000000000000000000000000000000000000000000002
+        run_command: sha256:0000000000000000000000000000000000000000000000000000000000000003
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+
+repetitions: 2
+budget_usd_cap: "5.00"
+concurrency: 2
+provider_rate_limits:
+  anthropic: 30
+
+pre_registration:
+  primary_metric: acceptance
+  secondary_metrics:
+    - robustness
+    - backoff_shape
+  repetitions: 2
+  control_arm: standard
+  exclusion_rules:
+    - A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.
+    - A trial whose grader crashed is unscored and is excluded from that axis, never scored zero.
+  metaprogramming_allowed: true
