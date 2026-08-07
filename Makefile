@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= python3
 
-.PHONY: help setup lint fmt types test test-contract check clean
+.PHONY: help setup lint fmt types test test-contract check clean sync-spec generate check-generated
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -11,11 +11,11 @@ setup: ## Editable install with dev extras
 	$(PY) -m pip install -e ".[dev]"
 
 lint: ## Lint with ruff
-	$(PY) -m ruff check src tests
+	$(PY) -m ruff check src tests tools
 
 fmt: ## Format with ruff
-	$(PY) -m ruff format src tests
-	$(PY) -m ruff check --fix src tests
+	$(PY) -m ruff format src tests tools
+	$(PY) -m ruff check --fix src tests tools
 
 types: ## Type-check with mypy
 	$(PY) -m mypy
@@ -32,7 +32,18 @@ test-contract: ## Run contract tests against a live ADP (needs DUVA_ADP_BASE_URL
 	@test -n "$$DUVA_ADP_GRADER_TOKEN" || { echo "DUVA_ADP_GRADER_TOKEN is not set"; exit 1; }
 	$(PY) -m pytest -m contract
 
-check: lint types test ## Lint, type-check, and test
+# Two stages, and only the first needs a YAML parser. See tools/sync_adp_spec.py.
+sync-spec: ## Re-vendor ADP's openapi.yaml as JSON (needs ADP_SPEC=path)
+	@test -n "$$ADP_SPEC" || { echo "ADP_SPEC is not set (path to ADP's spec/openapi.yaml)"; exit 1; }
+	$(PY) tools/sync_adp_spec.py --source "$$ADP_SPEC"
+
+generate: ## Regenerate the ADP client from the vendored spec
+	$(PY) tools/generate_adp_client.py
+
+check-generated: ## Fail if the generated client is stale against the vendored spec
+	$(PY) tools/generate_adp_client.py --check
+
+check: lint types check-generated test ## Lint, type-check, verify codegen, and test
 
 clean: ## Remove build and tool caches
 	rm -rf build dist .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage
