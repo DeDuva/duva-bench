@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why duva-bench exists — leaderboards got crowded, answers didn't</title>
+<meta name="description" content="duva-bench runs controlled experiments on coding agents: factorial arms over model × harness × toolset × task substrate, executed in Harbor containers, recorded as verifiable ADP trajectories, analyzed with pre-registered statistics. Why it exists, the prior art, and why it builds on Harbor and ADP.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0e10;--panel:#16181b;--panel2:#1d2024;--panel3:#131518;--line:#2a2e33;--fg:#e9e7e2;--sub:#b9bcc1;--dim:#8b9098;--cyan:#4fd1d9;--amber:#e0a458;--red:#e4695e;--green:#57d9a3;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',system-ui,sans-serif}
+html,body{margin:0;padding:0;background:var(--bg)}
+body{-webkit-font-smoothing:antialiased;color:var(--fg);font:400 17px/1.65 var(--sans);padding-bottom:140px}
+*{box-sizing:border-box}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(79,209,217,.35)}
+a:hover{color:#7fe3e9;border-bottom-color:#7fe3e9}
+.wrap{max-width:1120px;margin:0 auto;padding:110px 40px 0}
+.kick{font:500 12px/1 var(--mono);letter-spacing:.18em;margin-bottom:20px}
+.t{font:600 40px/1.15 var(--sans);letter-spacing:-.015em;margin:0 0 24px;color:var(--fg)}
+.b{color:var(--sub);margin:0 0 18px;max-width:68ch;text-wrap:pretty;font:400 17px/1.65 var(--sans)}
+.mono{font-family:var(--mono)}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:18px 20px;flex:1;min-width:210px}
+.chipv{font:500 30px var(--mono);letter-spacing:-.02em;margin-bottom:8px}
+.chipk{font:400 13px/1.5 var(--sans);color:var(--dim)}
+.argcard{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:26px 24px}
+.argk{font:500 12px var(--mono);letter-spacing:.12em;color:var(--cyan);margin-bottom:14px}
+.argb{font:400 15px/1.65 var(--sans);color:var(--sub);margin:0}
+.argb strong{color:var(--fg);font-weight:500}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:36px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:36px}
+.ref{border-bottom:none;font:500 11px var(--mono);color:var(--dim);vertical-align:super;margin-left:1px}
+.ref:hover{color:var(--cyan);border-bottom:none}
+.refs{margin:18px 0 0;padding-left:22px;font:400 13px/1.8 var(--mono);color:var(--dim)}
+.refs li{margin-bottom:6px}
+.fig{border:1px solid var(--line);background:var(--panel);border-radius:4px;overflow:hidden;margin-top:44px}
+.fighead{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel2);flex-wrap:wrap}
+.figlab{font:500 12px var(--mono);letter-spacing:.12em;color:var(--dim)}
+.figcap{padding:16px 20px;border-top:1px solid var(--line);background:var(--panel3);font:400 14px/1.5 var(--mono);color:var(--dim)}
+table.tbl{border-collapse:collapse;width:100%;font:400 14px/1.55 var(--sans)}
+.tbl th{font:500 11px var(--mono);letter-spacing:.1em;color:var(--dim);text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel2)}
+.tbl td{padding:12px 14px;border-bottom:1px solid var(--line);color:var(--sub);vertical-align:top}
+.tbl td:first-child{color:var(--fg);font-weight:500;white-space:nowrap}
+.tblwrap{overflow-x:auto}
+.pill{display:inline-block;font:500 11px var(--mono);letter-spacing:.08em;border:1px solid var(--line);border-radius:3px;padding:3px 8px;margin:0 6px 6px 0;color:var(--sub)}
+.rulecard{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:20px 22px}
+.rulek{font:500 13px var(--mono);color:var(--amber);margin-bottom:8px}
+.ruleb{font:400 14px/1.6 var(--sans);color:var(--sub)}
+.hero-stage{position:relative;height:300px;border:1px solid var(--line);border-radius:4px;background:linear-gradient(180deg,#101215 0%,#0e1013 100%);overflow:hidden;margin-top:60px}
+.hlab{position:absolute;font:500 11px var(--mono);letter-spacing:.12em;color:var(--dim)}
+.dot{position:absolute;width:9px;height:9px;border-radius:50%;left:-2%;top:var(--y0);background:var(--c);opacity:0;animation:flow var(--t,8s) linear infinite;animation-delay:var(--d)}
+@keyframes flow{
+0%{left:-2%;top:var(--y0);opacity:0;border-radius:50%;background:var(--c);box-shadow:none}
+6%{opacity:.95}
+50%{left:54%;top:var(--y0);background:var(--c);border-radius:50%}
+58%{left:62%;top:var(--y1);background:#57d9a3;border-radius:2px;box-shadow:0 0 10px rgba(87,217,163,.55)}
+93%{opacity:.95}
+100%{left:102%;top:var(--y1);background:#57d9a3;border-radius:2px;opacity:0}
+}
+.gate{position:absolute;left:58%;top:16%;height:68%;width:3px;background:var(--cyan);border-radius:2px;animation:gpulse 2.4s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 0 6px rgba(79,209,217,.35)}50%{box-shadow:0 0 20px rgba(79,209,217,.9)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none;opacity:0}.gate{animation:none}}
+@media (max-width:860px){.grid2,.grid3{grid-template-columns:1fr}.hero-stage{height:240px}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ HERO ══════════════════════ -->
+<header class="wrap" style="padding-top:100px">
+<div class="kick" style="color:var(--cyan)">DUVA-BENCH · CONTROLLED EXPERIMENTS FOR CODING AGENTS</div>
+<h1 style="font:600 64px/1.05 var(--sans);letter-spacing:-.02em;margin:0 0 28px;max-width:20ch">Leaderboards got crowded.<br>Answers didn't.</h1>
+<p style="font-size:21px;line-height:1.55;color:var(--sub);margin:0;max-width:64ch;text-wrap:pretty">Every published agent score is a joint product of a <em style="font-style:normal;color:var(--amber)">model</em>, a <em style="font-style:normal;color:var(--amber)">harness</em>, a <em style="font-style:normal;color:var(--amber)">toolset</em>, and how deeply the task's language and frameworks sit inside the model's training distribution. Benchmarks collapse that product into one number and rank it. When the number moves, nobody can say which factor moved it — and when a harness is subtly broken, the damage is read as a model deficiency and published as one.</p>
+<p style="font-size:21px;line-height:1.55;color:var(--sub);margin:18px 0 0;max-width:64ch;text-wrap:pretty">duva-bench runs the experiment instead of the leaderboard: <span class="mono" style="font-size:17px;color:var(--fg)">factorial arms → container-isolated trials → verifiable trajectories → pre-registered statistics</span>. Arms are attested, graders are separately authorized, and every result can be re-verified by a third party rather than taken on trust.</p>
+
+<div class="hero-stage">
+<span class="hlab" style="left:24px;top:18px;color:var(--amber)">ARMS — MODEL × HARNESS × TOOLSET × SUBSTRATE</span>
+<span class="hlab" style="left:50.5%;top:18px;color:var(--cyan)">EVIDENCE GATE — ADP /VERIFY</span>
+<span class="hlab" style="right:24px;bottom:14px;color:var(--green)">ATTESTED RECORD — RE-VERIFIABLE BY ANYONE</span>
+<div class="gate"></div>
+<div class="dot" style="--y0:28%;--y1:38%;--c:#e0a458;--d:0s"></div>
+<div class="dot" style="--y0:44%;--y1:46%;--c:#e0a458;--d:1.3s"></div>
+<div class="dot" style="--y0:60%;--y1:54%;--c:#4fd1d9;--d:2.4s"></div>
+<div class="dot" style="--y0:36%;--y1:42%;--c:#4fd1d9;--d:3.6s"></div>
+<div class="dot" style="--y0:68%;--y1:58%;--c:#e4695e;--d:4.7s"></div>
+<div class="dot" style="--y0:52%;--y1:50%;--c:#e4695e;--d:5.9s"></div>
+<div class="dot" style="--y0:24%;--y1:36%;--c:#4fd1d9;--d:7s"></div>
+</div>
+
+<div style="display:flex;gap:14px;margin-top:28px;flex-wrap:wrap">
+<div class="chip"><div class="chipv" style="color:var(--amber)">72×→5.9×</div><div class="chipk">a published-looking cross-vendor "efficiency gap" that collapsed when one harness flag was equalized — most of the gap was tooling, not intelligence</div></div>
+<div class="chip"><div class="chipv" style="color:var(--fg)">8–10×</div><div class="chipk">token-consumption swing from swapping only the agent loop, with correctness unmoved (&lt;1 sd on every cell) in an 80-run factorial pilot</div></div>
+<div class="chip"><div class="chipv" style="color:var(--cyan)">+4.5pp</div><div class="chipk">what curated skills buy on software-engineering tasks — against +51.9pp in other domains — in matched skills/no-skills trials<a class="ref" href="#ref-10">10</a></div></div>
+<div class="chip"><div class="chipv" style="color:var(--red)">4</div><div class="chipk">separate incidents in our own pilot line where a harness defect was initially read — and nearly reported — as a model deficiency</div></div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:28px;margin-top:44px;padding-top:24px;border-top:1px solid var(--line);font:400 13px var(--mono);color:var(--dim)">
+<span>Created by Dov Zimring, with lots of help from Claude</span>
+<a href="https://github.com/DeDuva/duva-bench">github.com/DeDuva/duva-bench</a>
+<a href="https://github.com/DeDuva/duva-bench/blob/main/LICENSE">Apache-2.0 licensed</a>
+</div>
+</header>
+
+<!-- ══════════════════════ 01 WHY ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--cyan)">01 · WHY</div>
+<h2 class="t" style="max-width:28ch">Agent measurement has a confound problem</h2>
+<p class="b">The field measures agents the way medicine measured drugs before the controlled trial: give the treatment, observe the outcome, publish the number. But an agent result is never one treatment. The model supplies capability; the harness supplies the loop, budgets, and prompts; the toolset supplies the interface; and the task substrate supplies — or withholds — the pretraining familiarity the model leans on. SWE-agent's authors showed the interface alone moves outcomes materially<a class="ref" href="#ref-16">16</a>; Terminal-Bench's authors run every agent through one harness precisely because cross-harness numbers don't compare<a class="ref" href="#ref-1">1</a>; and recent work treats model–harness fit as a first-class research object<a class="ref" href="#ref-12">12</a>.</p>
+<p class="b">Our own pilot line paid the tuition four times: a permission filter that left built-in tools reachable manufactured a 72× cross-vendor token gap that one flag reduced to 5.9×; a silent 10-round tool cap read as "a model that gave up"; a path-jail bug made one vendor "produce nothing" for five straight runs; a loop guard raced a budget. Every one of these was invisible from outside, and every one was initially read as a fact about a model. <strong style="color:var(--fg);font-weight:500">A harness defect is always paid by the provider with less margin</strong> — and no leaderboard can see it.</p>
+<p class="b">duva-bench exists to solve the problems that follow from taking this seriously — problems no benchmark harness, eval framework, or observability product currently solves together:</p>
+<div class="grid2">
+<div class="argcard"><div class="argk">ISOLATION</div><p class="argb">Vary <strong>one factor at a time</strong> across arms — model, harness, toolset, language, framework, docs quality — with everything else held constant and the constancy <strong>checkable</strong>: every arm carries a content digest of its harness, tools, and environment, and results refuse to rank across mismatched digests.</p></div>
+<div class="argcard"><div class="argk">VERIFIABILITY</div><p class="argb">Trajectories are hash-chained per event with drop detection; runs close into a signed attestation binding the arm labels to the trajectory digest and final git state. A reviewer doesn't trust the table — they call <span class="mono">GET /verify</span><a class="ref" href="#ref-19">19</a>.</p></div>
+<div class="argcard"><div class="argk">GRADING INTEGRITY</div><p class="argb">Graders run under a <strong>separate cryptographic identity</strong> with tokens stripped from the trial environment; the record shows <span class="mono">separately_authorized</span> per score. A run structurally cannot score itself. Unscored is unscored — never zero.</p></div>
+<div class="argcard"><div class="argk">STATISTICAL HONESTY</div><p class="argb">The analysis is <strong>pre-registered in the study spec</strong> — primary metric, repetitions, exclusion rules — and digested before the first trial runs. Repeats with a measured noise floor, paired tests, bootstrap CIs over tasks, multiplicity correction. A single-run delta is not a finding here; the pilot that taught us that returned a 3-way tie at n=1 that did not survive n=5.</p></div>
+</div>
+</section>
+
+<!-- ══════════════════════ 02 THE HYPOTHESIS ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--amber)">02 · THE FIRST PROGRAM</div>
+<h2 class="t" style="max-width:30ch">Does distribution familiarity beat tooling quality?</h2>
+<p class="b">duva-bench's founding study program tests one hypothesis: <strong style="color:var(--fg);font-weight:500">agents working with in-distribution languages, tools, and frameworks outperform agents working with proprietary equivalents, regardless of how good the corresponding skills or MCP tools are.</strong> Every enterprise with an internal framework, a house DSL, or a bespoke toolchain is betting real money on the answer.</p>
+<p class="b">The instrument is the <strong style="color:var(--fg);font-weight:500">semantic twin</strong>: proprietary arms are isomorphic renames of in-distribution ones — identical semantics, novel surface — so intrinsic difficulty is held constant by construction and the measured gap <em style="font-style:normal;color:var(--fg)">is</em> the familiarity effect. Twins are regenerated per study so they cannot leak into training data. A documentation-quality sub-axis (none / reference / rich examples, or a full skill) tests the "regardless of tooling quality" clause as a dose–response curve rather than a binary.</p>
+<div class="tblwrap" style="margin-top:36px"><table class="tbl">
+<tr><th>STUDY</th><th>AXIS</th><th>ARMS</th><th>PRIMARY SIGNAL</th></tr>
+<tr><td>A · Tools</td><td>Tool familiarity</td><td>standard tools vs. renamed twins vs. twins + graded docs</td><td>tool-error rate, hallucinated-call rate, retries, steps — process metrics that don't saturate on small tasks</td></tr>
+<tr><td>B · Languages</td><td>Language familiarity</td><td>Python/TS vs. isomorphic renamed language vs. natural low-resource gradient</td><td>pass rate, escape-to-metaprogramming rate<a class="ref" href="#ref-3">3</a></td></tr>
+<tr><td>C · Frameworks</td><td>Framework familiarity</td><td>Flask/Express vs. API-renamed clone vs. genuinely niche framework</td><td>pass rate, API-hallucination rate, doc-consultation behavior</td></tr>
+<tr><td>D · Compensation</td><td>Docs/skill quality</td><td>fixed proprietary substrate × graded documentation quality</td><td>the compensation curve — how much of the gap docs recover</td></tr>
+</table></div>
+<p class="b" style="margin-top:28px">Two findings from the literature already discipline the design. First, strong agents <strong style="color:var(--fg);font-weight:500">route around unfamiliarity</strong>: on esoteric languages, frontier agents write Python programs that generate target-language code, and forbidding this collapses their performance<a class="ref" href="#ref-3">3</a> — so whether metaprogramming is permitted is a pre-registered condition and escape rate is a primary outcome, not noise. Second, the familiarity×capability interaction is the headline, and it may run opposite to intuition: extra resources amplify strong agents' adaptation strategies while leaving weak agents flat<a class="ref" href="#ref-3">3</a>.</p>
+<p class="b">The platform outlives the program: any factorial question over agent arms — swarm vs. serial orchestration, provider parity, budget sensitivity — runs on the same machinery.</p>
+</section>
+
+<!-- ══════════════════════ 03 PRIOR ART ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--green)">03 · PRIOR ART</div>
+<h2 class="t" style="max-width:30ch">Standing on five research lines — and the gap between them</h2>
+<p class="b">None of this starts from zero. Five literatures each carry a piece of the question; duva-bench's contribution is the controlled, agentic, verifiable intersection none of them occupies.</p>
+
+<div class="grid2">
+<div class="argcard"><div class="argk">COUNTERFACTUAL &amp; PERTURBATION EVALUATION</div><p class="argb">Wu et al. showed models degrade sharply on counterfactual variants of familiar tasks — 1-indexed Python being the canonical example — separating reasoning from recitation<a class="ref" href="#ref-13">13</a>. ReCode systematized perturbation robustness for code models, including identifier and docstring renames<a class="ref" href="#ref-14">14</a>; GSM1k demonstrated benchmark-overfitting via careful re-instantiation<a class="ref" href="#ref-18">18</a>. <strong>Semantic twins are this paradigm, promoted to whole toolsets and frameworks in a multi-step agentic setting.</strong></p></div>
+<div class="argcard"><div class="argk">PRIVATE &amp; UNSEEN LIBRARIES</div><p class="argb">A multi-year line — TorchDataEval and its siblings<a class="ref" href="#ref-9">9</a>, ExploraCoder's multi-API exploration<a class="ref" href="#ref-8">8</a>, and 2026's "To See is Not to Master," which uses genuinely recent libraries to dodge contamination<a class="ref" href="#ref-7">7</a> — consistently finds models struggle with private APIs <strong>even when the API knowledge is provided in context</strong>. Direct single-shot support for the hypothesis; almost none of it is agentic.</p></div>
+<div class="argcard"><div class="argk">UNFAMILIAR LANGUAGES, AGENTIC</div><p class="argb">The newest and closest line: frontier agents on esoteric languages adapt by metaprogramming, and esoteric-language protocols spread agents that SWE-Bench and Terminal-Bench compress into narrow bands<a class="ref" href="#ref-3">3</a>; inference-time language acquisition is now studied directly<a class="ref" href="#ref-4">4</a>; language choice has been tested at scale<a class="ref" href="#ref-5">5</a>, and token-economics of language choice quantified<a class="ref" href="#ref-6">6</a>. <strong>What's missing: isomorphic controls that hold difficulty constant.</strong></p></div>
+<div class="argcard"><div class="argk">SKILLS &amp; DOCUMENTATION COMPENSATION</div><p class="argb">SkillsBench ran matched skills/no-skills conditions over 7,308 trajectories and 18 model–harness configurations: curated skills gain +16.6pp on average but only <strong>+4.5pp on software engineering</strong>, and self-generated skills gain nothing<a class="ref" href="#ref-10">10</a>; skill usage in realistic settings is now benchmarked separately<a class="ref" href="#ref-11">11</a>. Retrieval-based compensation goes back to Gorilla<a class="ref" href="#ref-17">17</a>. <strong>What's missing: a graded dose–response curve on a controlled substrate — Study D.</strong></p></div>
+</div>
+<div class="argcard" style="margin-top:14px"><div class="argk">HARNESS &amp; INTERFACE EFFECTS</div><p class="argb">SWE-agent established that agent–computer interface design moves outcomes independent of the model<a class="ref" href="#ref-16">16</a>; Terminal-Bench 2.0 holds the harness fixed across agents for exactly this reason<a class="ref" href="#ref-1">1</a>; HarnessBridge treats the model–harness boundary as a learnable object<a class="ref" href="#ref-12">12</a>; MultiPL-E's language-transfer results anchor the resource-level gradient<a class="ref" href="#ref-15">15</a>. <strong>What's missing everywhere: the harness as a controlled experimental factor with attested identity — and any notion of independently verifiable results.</strong> That intersection — twin-controlled substrates × factorial harness/model arms × tamper-evident trajectories × pre-registered analysis — is the ground duva-bench is built to hold.</p></div>
+</section>
+
+<!-- ══════════════════════ 04 WHY HARBOR + ADP ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--cyan)">04 · WHY HARBOR + ADP</div>
+<h2 class="t" style="max-width:28ch">Borrow the execution. Own the evidence.</h2>
+<p class="b">An experiment platform needs three layers: something that <em style="font-style:normal;color:var(--fg)">runs</em> agents, something that <em style="font-style:normal;color:var(--fg)">records</em> what happened, and something that <em style="font-style:normal;color:var(--fg)">defines and analyzes</em> the experiment. The discipline is to build only the layer nothing else provides.</p>
+<p class="b"><strong style="color:var(--fg);font-weight:500">Execution: Harbor.</strong> Harbor — the harness behind Terminal-Bench 2.0<a class="ref" href="#ref-1">1</a> — provisions a fresh container per trial, injects the agent, and collects execution traces. It already wraps the agents that matter as arms — Claude Code, Codex CLI, OpenHands, Mini-SWE-Agent — runs 32–100 containers in parallel, and defines a task format that 26 existing benchmarks have been adapted into<a class="ref" href="#ref-2">2</a>. We have been down the other road: our pilot line hand-built two in-process agent loops and spent four incident post-mortems learning that every bespoke loop is a source of confounds someone else isn't maintaining. Agent harnesses are treatment <em style="font-style:normal;color:var(--fg)">arms</em> here, not platform — wrapping real, maintained harnesses is both cheaper and more scientifically honest than running our own.</p>
+<p class="b"><strong style="color:var(--fg);font-weight:500">Recording: ADP.</strong> Observability products log trajectories; none make them evidence. ADP<a class="ref" href="#ref-19">19</a> records per-event hash chains with idempotent-retry and drop detection, closes each run into a DSSE-signed attestation that binds the arm labels to the trajectory digest and the final git sha, stores each score as signed gate evidence with a content-addressed spec and the reporter's identity, and exposes one endpoint — <span class="mono">GET /verify</span> — that recomputes all of it on demand. Its consumer contract is already hardened by a prior instrument, adp-replay<a class="ref" href="#ref-20">20</a>, whose live contract suite includes killing the recorder mid-run and tampering with a stored event to prove the verdict degrades to <span class="mono">ERROR</span>. <strong style="color:var(--fg);font-weight:500">No mature alternative offers tamper-evident, third-party-verifiable experiment records.</strong> This is the one layer worth owning.</p>
+<p class="b"><strong style="color:var(--fg);font-weight:500">And the reflexive argument.</strong> The founding hypothesis predicts that agents build best on in-distribution infrastructure. Harbor's stack — Docker, Python, standard task directories — is exactly that, and Harbor itself is becoming in-distribution as the field adopts it. A platform for testing this hypothesis that ignored the hypothesis in its own architecture would deserve the skepticism it got.</p>
+<div class="tblwrap" style="margin-top:36px"><table class="tbl">
+<tr><th>LAYER</th><th>PROVIDED BY</th><th>WHAT IT GIVES</th><th>WHAT DUVA-BENCH ADDS</th></tr>
+<tr><td>Execution</td><td>Harbor<a class="ref" href="#ref-2">2</a></td><td>container per trial, agent adapters, trace collection, parallelism, task registry</td><td>arm materialization (twin toolsets, doc bundles, env), trial scheduling over the factorial</td></tr>
+<tr><td>Record</td><td>ADP<a class="ref" href="#ref-19">19</a></td><td>hash-chained trajectories, attested run labels, multi-axis signed evals, /verify</td><td>the trace→trajectory bridge, arm digests as labels, evidence gating of verdicts</td></tr>
+<tr><td>Science</td><td><strong style="color:var(--fg)">duva-bench</strong></td><td>—</td><td>study specs with pre-registration, twin generators, paired statistics with multiplicity control, reports, CLI/API/web UX</td></tr>
+</table></div>
+</section>
+
+<!-- ══════════════════════ 05 WHAT IT IS ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--amber)">05 · WHAT DUVA-BENCH ADDS</div>
+<h2 class="t" style="max-width:28ch">A study is data. A result is a verifiable record.</h2>
+<p class="b">Everything is drivable three ways — <span class="mono" style="color:var(--fg)">CLI</span>, <span class="mono" style="color:var(--fg)">JSON API</span>, and a web UX for study definition, execution monitoring, and results analysis — and the UX is a client of the same API, never a second path. The pipeline:</p>
+<figure class="fig">
+<div class="fighead"><span class="figlab">FIG 01 · THE PIPELINE</span></div>
+<div style="padding:28px;overflow-x:auto"><pre class="mono" style="margin:0;font:400 13px/1.7 var(--mono);color:var(--sub)">study.yaml ─── digest ──▶ <span style="color:var(--fg)">pre-registered, content-addressed study spec</span>
+    │                       tasks × arms(model, harness, toolset, docs) × repetitions
+    ▼
+<span style="color:var(--cyan)">materialize</span> ──▶ per-arm task variants: twin toolsets, doc bundles, env pins
+    │
+    ▼
+<span style="color:var(--cyan)">execute</span> ─────▶ Harbor: container per trial, real agent CLIs, resumable schedule
+    │
+    ▼
+<span style="color:var(--cyan)">record</span> ──────▶ ADP: run per trial (labels = arm digest), hash-chained events,
+    │                separately-authorized multi-axis evals
+    ▼
+<span style="color:var(--cyan)">gate</span> ────────▶ /verify not ok ⇒ verdict ERROR — never pass, never fail
+    │
+    ▼
+<span style="color:var(--cyan)">analyze</span> ─────▶ per-cell tables · pooled-sd noise floor · paired tests ·
+                 bootstrap CIs over tasks · Holm correction · process metrics
+                 (tool-error, hallucinated-call, escape rate, tokens, cost)</pre></div>
+<figcaption class="figcap">The web UX and the CLI drive the same API; the report is a static artifact any reviewer can regenerate from the record.</figcaption>
+</figure>
+<p class="b" style="margin-top:36px">Design rules inherited from the projects that came before it — each one bought with a specific failure:</p>
+<div class="grid3">
+<div class="rulecard"><div class="rulek">Rank per axis, never blended</div><div class="ruleb">A composite score is an editorial, not a measurement. Axes stay separate all the way to the report.</div></div>
+<div class="rulecard"><div class="rulek">Unscored ≠ zero</div><div class="ruleb">A crashed grader leaves a trial unscored; an unpriced model renders unpriced. Nulls never masquerade as measurements.</div></div>
+<div class="rulecard"><div class="rulek">Digest mismatch ⇒ no comparison</div><div class="ruleb">Mid-study grader edits change the spec digest; the analysis refuses to rank across rubrics — or across harness digests.</div></div>
+<div class="rulecard"><div class="rulek">Amendments stay visible</div><div class="ruleb">Pre-registered choices can be amended, but the pre-amendment reading remains computable and every report prints both.</div></div>
+<div class="rulecard"><div class="rulek">Errors count against the majority</div><div class="ruleb">Repetition verdicts fold errors in, not out — a flaky arm can't launder failures into a smaller n.</div></div>
+<div class="rulecard"><div class="rulek">The record outlives the lab</div><div class="ruleb">duva-bench stores nothing ADP can answer. Results are reconstructed from the attested record, not from local state.</div></div>
+</div>
+</section>
+
+<!-- ══════════════════════ 06 ROADMAP ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--green)">06 · ROADMAP</div>
+<h2 class="t" style="max-width:26ch">Milestones, each with a hard gate</h2>
+<p class="b">The build is specified milestone-by-milestone in the <a href="https://github.com/DeDuva/duva-bench/blob/main/docs/execution-plan.md">execution plan</a>, written so each task states its deliverable and done-condition and can be executed without strategic context. In brief:</p>
+<div class="tblwrap" style="margin-top:24px"><table class="tbl">
+<tr><th>M</th><th>DELIVERS</th><th>GATE</th></tr>
+<tr><td>M0</td><td>scaffold, toolchain, CI, this page deploying via Pages</td><td>checks green in CI</td></tr>
+<tr><td>M1</td><td>study spec + canonical digest + pre-registration block</td><td>digest stability proven by test</td></tr>
+<tr><td>M2</td><td>ADP recording core: run lifecycle, labeled arms, chained events, verify gate</td><td>live contract suite green against pinned ADP</td></tr>
+<tr><td>M3</td><td>Harbor execution: one real agent trial → one verified ADP run</td><td><span style="color:var(--cyan)">G1</span> — end-to-end trial, /verify ok</td></tr>
+<tr><td>M4</td><td>arms &amp; twin instruments: digested arm specs, twin toolsets, doc bundles</td><td>twin isomorphism proven by test</td></tr>
+<tr><td>M5</td><td>factorial scheduler: repeats, resume, budget, concurrency, idempotent rejoin</td><td>kill-and-resume leaves no gap</td></tr>
+<tr><td>M6</td><td>analysis &amp; report: noise floor, paired stats, multiplicity, process metrics</td><td><span style="color:var(--cyan)">G2</span> — smoke study end-to-end, report reconciles with ADP</td></tr>
+<tr><td>M7</td><td>API server + web UX: define, monitor, analyze</td><td>browser walk of the full loop</td></tr>
+<tr><td>M8</td><td>Study A executed and written up</td><td><span style="color:var(--cyan)">G3</span> — pre-registration honored or amendments printed</td></tr>
+</table></div>
+</section>
+
+<!-- ══════════════════════ REFERENCES ══════════════════════ -->
+<section class="wrap">
+<div class="kick" style="color:var(--dim)">REFERENCES</div>
+<ol class="refs">
+<li id="ref-1">Terminal-Bench 2.0 (ICLR 2026) — <a href="https://openreview.net/pdf/417ac3236de7dbf3fc3414c51754dd239271663e.pdf">openreview.net</a></li>
+<li id="ref-2">Harbor — <a href="https://harbor-framework-harbor.mintlify.app/introduction">framework documentation</a></li>
+<li id="ref-3">Frontier Coding Agents Use Metaprogramming to Adapt to Unfamiliar Programming Languages — <a href="https://arxiv.org/abs/2606.10933">arXiv:2606.10933</a></li>
+<li id="ref-4">Bridging the Knowledge Void: Inference-time Acquisition of Unfamiliar Programming Languages — <a href="https://arxiv.org/abs/2602.06976">arXiv:2602.06976</a></li>
+<li id="ref-5">Do programming languages still matter to your AI coding agent teammate? Evidence at scale from chess engines — <a href="https://arxiv.org/abs/2606.13763">arXiv:2606.13763</a></li>
+<li id="ref-6">The Best Programming Language for Tokenmaxxing — <a href="https://arxiv.org/abs/2607.22807">arXiv:2607.22807</a></li>
+<li id="ref-7">To See is Not to Master: Teaching LLMs to Use Private Libraries for Code Generation — <a href="https://arxiv.org/abs/2603.15159">arXiv:2603.15159</a></li>
+<li id="ref-8">ExploraCoder: Advancing code generation for multiple unseen APIs — <a href="https://arxiv.org/abs/2412.05366">arXiv:2412.05366</a></li>
+<li id="ref-9">Zan et al., Private-Library-Oriented Code Generation with LLMs (TorchDataEval, MonkeyEval, BeatNumEval) — <a href="https://arxiv.org/abs/2307.15370">arXiv:2307.15370</a></li>
+<li id="ref-10">SkillsBench: Benchmarking How Well Agent Skills Work Across Diverse Tasks — <a href="https://arxiv.org/abs/2602.12670">arXiv:2602.12670</a></li>
+<li id="ref-11">How Well Do Agentic Skills Work in the Wild — <a href="https://arxiv.org/abs/2604.04323">arXiv:2604.04323</a></li>
+<li id="ref-12">HarnessBridge: Learnable Bidirectional Controller for LLM Agent Harness — <a href="https://arxiv.org/abs/2606.12882">arXiv:2606.12882</a></li>
+<li id="ref-13">Wu et al., Reasoning or Reciting? Exploring the Capabilities and Limitations of Language Models Through Counterfactual Tasks — <a href="https://arxiv.org/abs/2307.02477">arXiv:2307.02477</a></li>
+<li id="ref-14">ReCode: Robustness Evaluation of Code Generation Models — <a href="https://arxiv.org/abs/2212.10264">arXiv:2212.10264</a></li>
+<li id="ref-15">MultiPL-E: A Scalable and Extensible Approach to Benchmarking Neural Code Generation — <a href="https://arxiv.org/abs/2208.08227">arXiv:2208.08227</a></li>
+<li id="ref-16">SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering — <a href="https://arxiv.org/abs/2405.15793">arXiv:2405.15793</a></li>
+<li id="ref-17">Gorilla: Large Language Model Connected with Massive APIs — <a href="https://arxiv.org/abs/2305.15334">arXiv:2305.15334</a></li>
+<li id="ref-18">A Careful Examination of LLM Benchmark Contamination (GSM1k) — <a href="https://arxiv.org/abs/2405.00332">arXiv:2405.00332</a></li>
+<li id="ref-19">ADP — Agent Development-State Protocol — <a href="https://github.com/DeDuva/adp">github.com/DeDuva/adp</a></li>
+<li id="ref-20">adp-replay — record/replay instrument and ADP's first consumer — <a href="https://github.com/DeDuva/adp-replay">github.com/DeDuva/adp-replay</a></li>
+</ol>
+</section>
+
+</body>
+</html>
