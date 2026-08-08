@@ -7,7 +7,14 @@ with verifiable trajectories, separately-authorized scoring, and pre-registered 
 Benchmarks rank agents. duva-bench isolates *why* one arm beats another, and produces evidence a
 third party can re-verify rather than a number they have to trust.
 
-**Status: pre-M0.** The [execution plan](docs/execution-plan.md) is the plan of record; the
+**Status: pre-M0, and paused deliberately.** This repo is the **Harbor track**, one of two tracks
+meant to run in parallel; the **squad track** (`github.com/DeDuva/squad`, `packages/duva-bench`)
+has executed S0–S7 including a live pilot. This track is paused because its dependencies could not
+be configured from a remote session — it is **not abandoned**, and the parallel-track design has
+not been reversed. See [Track status](docs/execution-plan.md#track-status--2026-08-08) for why,
+what would resume it, and what is blocked on it.
+
+The [execution plan](docs/execution-plan.md) is the plan of record; the
 ["Why duva-bench" page](docs/html/index.html) (published via GitHub Pages) carries the full
 motivation, the prior-art survey, and the case for the architecture.
 
