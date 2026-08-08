@@ -82,6 +82,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     status.set_defaults(handler=_status)
 
+    report = subcommands.add_parser("report", help="Render a study's report from ADP")
+    report.add_argument("study", type=Path)
+    report.add_argument("--state-dir", type=Path, default=None)
+    report.add_argument(
+        "--out", type=Path, default=None, help="Output directory (default: <study>/report)"
+    )
+    report.set_defaults(handler=_report)
+
     twin = subcommands.add_parser("twin", help="Generate the semantic twin of a toolset")
     twin.add_argument("toolset", type=Path, help="JSON file holding a toolset definition")
     twin.add_argument("--seed", required=True)
@@ -202,6 +210,29 @@ def _status(args: argparse.Namespace) -> int:
             _print_json(study_status(study, state=state, client=client))
     else:
         _print_json(study_status(study, state=state))
+    return 0
+
+
+def _report(args: argparse.Namespace) -> int:
+    from duva_bench.report.build import build_report, write_report
+    from duva_bench.state import StateDir
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    state = StateDir.for_study(study, args.state_dir)
+    report = build_report(study, state=state)
+    destination = write_report(report, args.out or (args.study.parent / "report"))
+    payload = report.as_dict()
+    _print_json(
+        {
+            "report": str(destination),
+            "trials": payload["evidence"]["trials"],
+            "verified": payload["evidence"]["verified"],
+            "errors": payload["evidence"]["errors"],
+            "axes": sorted(payload["axes"]),
+            "warnings": payload["warnings"],
+        }
+    )
     return 0
 
 
