@@ -66,6 +66,18 @@ def build_parser() -> argparse.ArgumentParser:
     trial.add_argument("--state-dir", type=Path, default=None)
     trial.set_defaults(handler=_trial)
 
+    twin = subcommands.add_parser("twin", help="Generate the semantic twin of a toolset")
+    twin.add_argument("toolset", type=Path, help="JSON file holding a toolset definition")
+    twin.add_argument("--seed", required=True)
+    twin.add_argument("--out", type=Path, default=None)
+    twin.add_argument(
+        "--docs",
+        choices=("none", "reference", "rich"),
+        default=None,
+        help="Also render the twin's documentation bundle at this grade",
+    )
+    twin.set_defaults(handler=_twin)
+
     return parser
 
 
@@ -142,6 +154,36 @@ def _trial(args: argparse.Namespace) -> int:
     )
     _print_json(record.model_dump(mode="json"))
     return 0 if record.ok else 1
+
+
+def _twin(args: argparse.Namespace) -> int:
+    from duva_bench.arms.docs import render_docs
+    from duva_bench.arms.materialize import toolset_digests
+    from duva_bench.arms.twin import load_definition, twin_toolset
+
+    definition = load_definition(args.toolset)
+    twin = twin_toolset(definition, seed=args.seed)
+    payload: dict[str, Any] = {
+        "twin": twin.definition,
+        "rename_map": twin.rename_map,
+        "original_digest": twin.original_digest,
+        "twin_digest": twin.digest,
+        "tools": toolset_digests(twin.definition),
+    }
+    if args.docs is not None:
+        bundle = render_docs(twin.definition, args.docs)
+        payload["docs"] = {
+            "grade": bundle.grade,
+            "content_digest": bundle.content_digest,
+            "files": bundle.files,
+        }
+
+    if args.out is not None:
+        args.out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.out)
+    else:
+        _print_json(payload)
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
