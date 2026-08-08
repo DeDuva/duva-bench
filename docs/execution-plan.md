@@ -10,42 +10,84 @@ published "Why duva-bench" page). This document is only *how to build it*.
 
 ---
 
-## Track status — 2026-08-08
+## Track status — 2026-08-08 (updated: pause LIFTED)
 
-> **This track is paused, deliberately. Nothing here has been built yet, and that is a decision
-> rather than a lapse.**
+> **The pause is over. A probe on 2026-08-08 ran Harbor end to end on this
+> machine, twice, and nothing blocked.** Work on M0 can begin.
 
-duva-bench has **two tracks, meant to run in parallel**:
+duva-bench has **two tracks, meant to run in parallel** — bespoke infrastructure
+(squad) against in-distribution infrastructure (Harbor), on the same tasks,
+graders and statistics, so **the pair of tracks is itself an experiment**.
 
 | Track | Where | State |
 |---|---|---|
-| **Harbor** (this repo) | `github.com/DeDuva/duva-bench` | **Paused.** Bootstrap commit only — README, licence, docs site, this plan. M0–M8 not started. |
-| **squad** | `github.com/DeDuva/squad`, `packages/duva-bench/PLAN.md` | S0–S7 executed and merged; a live 24-trial pilot, $8.03, every run verified. |
+| **Harbor** (this repo) | `github.com/DeDuva/duva-bench` | **Unblocked, M0 not yet started.** |
+| **squad** | `github.com/DeDuva/squad`, `packages/duva-bench/PLAN.md` | S0–S7 executed; a live 24-trial pilot, $8.03, every run verified. |
 
-The parallelism is the point: bespoke infrastructure (squad) against in-distribution
-infrastructure (Harbor), on the same tasks, graders and statistics — so **the pair of tracks is
-itself an experiment**. Neither is the "real" one.
+### What was blocking, and why it no longer is
 
-**Why this track is paused:** its dependencies could not be configured from a remote session.
+This track was paused because its dependencies could not be configured from a
+remote session. That was a real constraint and the pause was the right call. It
+does not hold any more, and the reason is worth recording: the belief that
+nothing could be installed came from the **system** Python being 3.14 with no
+`ensurepip`, so `python3 -m venv` fails and the fix needs `sudo apt`. A
+uv-managed CPython 3.12 **with a working pip** was on disk the whole time.
 
-This note exists because a repository holding only a plan is indistinguishable from an abandoned
-one. A cross-project audit on 2026-08-08 read this track's state as evidence that the substrate
-decision had been silently reversed. It had not been. **If you are reading this repo and wondering
-why it is empty, that is the answer.**
+### The probe, 2026-08-08
 
-**What would resume it.** Probing on 2026-08-08 found that `terminal-bench` installs cleanly and
-Docker runs and pulls images on the machine in question, so the dependency picture may now be
-better than when the pause was taken. Harbor also wraps real agent CLIs, and only `claude` was
-present there (`codex` and `aider` absent), so the original obstacle may lie elsewhere. **The next
-step is one timeboxed probe of a single Harbor trial**, reporting exactly where it fails — not a
-restart of M0.
+Two runs against `terminal-bench-core` 0.1.1, task `sqlite-db-truncate`:
 
-**What is blocked on this track:** the squad track's cross-track memo. That gate has been split so
-the squad track can complete on its own evidence (SG3a) while the comparison (SG3b) stays deferred
-with this track's resumption as its stated precondition. The expected cross-track result is
-registered in advance in the squad track's
-`packages/duva-bench/studies/a-tool-familiarity-pilot/CROSS-TRACK.md`, so it cannot be fitted to
-the answer later.
+| Arm | Result | What it proves |
+|---|---|---|
+| `--agent oracle` | **resolved, 100%** | The whole container path works: image build, task setup, test execution, result recording. No model involved. |
+| `--agent claude-code --model anthropic/claude-sonnet-4-5` | unresolved, **but the agent completed** | A real agent CLI runs inside the container against a real model. |
+
+The second is the one that mattered, and its *failure* is the good news: the
+trial reports `terminal_reason: "completed"`, `subtype: "success"`,
+`api_error_status: null`, ran for 2m14s, and recorded genuine usage — 391k
+cache-read tokens, **$0.28**. The agent parsed the corrupt SQLite file by hand
+and wrote `/app/recover.json`. The task's own test then failed it for recovering
+`testword052` where it expected `testword05`.
+
+**That is a task outcome, not an infrastructure failure.** Nothing about auth,
+containers, image pulls or provider config stood in the way.
+
+### Reproducing it
+
+```sh
+# System python3 cannot build a venv here; use the uv-managed interpreter.
+~/.local/share/uv/python/cpython-3.12-linux-x86_64-gnu/bin/python3.12 -m venv .venv
+.venv/bin/python -m pip install terminal-bench
+
+# Pin the dataset version — bare `terminal-bench-core` resolves to `head`,
+# whose layout the registry client fails to unpack (FileNotFoundError: .../tasks).
+.venv/bin/tb datasets download -d terminal-bench-core==0.1.1 --output-dir ./tb-tasks
+
+set -a; . ~/.config/squad/anthropic.env; set +a
+.venv/bin/tb run --dataset-path ./tb-tasks --task-id sqlite-db-truncate \
+  --agent claude-code --model anthropic/claude-sonnet-4-5 \
+  --n-concurrent 1 --no-upload-results --output-path ./runs
+```
+
+### Two things to carry into M0–M2
+
+1. **Only `claude` is installed locally.** `codex` and `aider` are absent, so
+   multi-CLI arms need those installed first. Harbor names many more agents than
+   this machine can currently run.
+2. **`results.json` reported `total_input_tokens: 0` and `total_output_tokens: 0`**
+   while the agent's own log carried full usage and cost. Harbor's token
+   accounting does not populate for the `claude-code` agent. **M2 must take cost
+   and tokens from the agent log rather than the summary**, or every cost figure
+   on this track will read zero — the same class of defect as the squad track's
+   under-counted multi-call turns.
+
+### What this unblocks elsewhere
+
+The squad track's cross-track memo (gate SG3b) has this track reaching M8 with a
+shared task set as its stated precondition. That is now a matter of doing the
+work rather than of an environment nobody could configure. The expected result
+is registered in advance in the squad track's
+`packages/duva-bench/studies/a-tool-familiarity-pilot/CROSS-TRACK.md`.
 
 ---
 
