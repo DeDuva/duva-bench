@@ -66,6 +66,22 @@ def build_parser() -> argparse.ArgumentParser:
     trial.add_argument("--state-dir", type=Path, default=None)
     trial.set_defaults(handler=_trial)
 
+    run = subcommands.add_parser("run", help="Run the full factorial")
+    run.add_argument("study", type=Path)
+    run.add_argument("--state-dir", type=Path, default=None)
+    run.add_argument("--concurrency", type=int, default=None)
+    run.set_defaults(handler=_run)
+
+    status = subcommands.add_parser("status", help="Report how far a study has got")
+    status.add_argument("study", type=Path)
+    status.add_argument("--state-dir", type=Path, default=None)
+    status.add_argument(
+        "--check-adp",
+        action="store_true",
+        help="Also ask ADP which trials are done (needs credentials)",
+    )
+    status.set_defaults(handler=_status)
+
     twin = subcommands.add_parser("twin", help="Generate the semantic twin of a toolset")
     twin.add_argument("toolset", type=Path, help="JSON file holding a toolset definition")
     twin.add_argument("--seed", required=True)
@@ -154,6 +170,39 @@ def _trial(args: argparse.Namespace) -> int:
     )
     _print_json(record.model_dump(mode="json"))
     return 0 if record.ok else 1
+
+
+def _run(args: argparse.Namespace) -> int:
+    from duva_bench.exec.scheduler import run_study
+    from duva_bench.state import StateDir
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    outcome = run_study(
+        study,
+        state=StateDir.for_study(study, args.state_dir),
+        concurrency=args.concurrency,
+        study_dir=args.study.parent,
+    )
+    _print_json(outcome.summary())
+    return 0 if outcome.ok else 1
+
+
+def _status(args: argparse.Namespace) -> int:
+    from duva_bench.exec.scheduler import study_status
+    from duva_bench.state import StateDir
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    state = StateDir.for_study(study, args.state_dir)
+    if args.check_adp:
+        from duva_bench.env import adp_credentials
+
+        with adp_credentials().client() as client:
+            _print_json(study_status(study, state=state, client=client))
+    else:
+        _print_json(study_status(study, state=state))
+    return 0
 
 
 def _twin(args: argparse.Namespace) -> int:
