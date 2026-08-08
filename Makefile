@@ -11,11 +11,11 @@ setup: ## Editable install with dev extras
 	$(PY) -m pip install -e ".[dev]"
 
 lint: ## Lint with ruff
-	$(PY) -m ruff check src tests tools
+	$(PY) -m ruff check src tests tools scripts
 
 fmt: ## Format with ruff
-	$(PY) -m ruff format src tests tools
-	$(PY) -m ruff check --fix src tests tools
+	$(PY) -m ruff format src tests tools scripts
+	$(PY) -m ruff check --fix src tests tools scripts
 
 types: ## Type-check with mypy
 	$(PY) -m mypy

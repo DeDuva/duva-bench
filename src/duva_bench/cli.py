@@ -102,6 +102,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     twin.set_defaults(handler=_twin)
 
+    serve = subcommands.add_parser("serve", help="Serve the JSON API (needs the [server] extra)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--state-dir", type=Path, default=None)
+    serve.set_defaults(handler=_serve)
+
     return parser
 
 
@@ -264,6 +270,12 @@ def _twin(args: argparse.Namespace) -> int:
     else:
         _print_json(payload)
     return 0
+
+
+def _serve(args: argparse.Namespace) -> int:
+    from duva_bench.server.run import serve
+
+    return serve(host=args.host, port=args.port, state_dir=args.state_dir)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

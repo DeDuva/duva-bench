@@ -27,14 +27,42 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          python -m pip install -e ".[dev,server]"
       - name: Lint
-        run: python -m ruff check src tests tools
+        run: python -m ruff check src tests tools scripts
       - name: Format check
-        run: python -m ruff format --check src tests tools
+        run: python -m ruff format --check src tests tools scripts
       - name: Types
         run: python -m mypy
       - name: Generated client is current
         run: python tools/generate_adp_client.py --check
       - name: Test
         run: python -m pytest -m "not contract and not harbor"
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the API
+        run: python -m pip install -e ".[dev,server]"
+      - name: Install the UX
+        working-directory: web
+        run: npm ci
+      - name: Types and build
+        working-directory: web
+        run: npm run build
+      - name: The walk
+        working-directory: web
+        # Against scripts/dev-server.py's in-memory ADP: this proves the three
+        # views work, not that a real study runs. That is gate G1.
+        run: |
+          npx playwright install --with-deps chromium
+          npm run ui-check

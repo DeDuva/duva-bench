@@ -80,7 +80,12 @@ The response shapes here were read off `server/src/http-rest/runs.ts`, `core/run
 `core/evals.ts` and `core/trajectory.ts` at that commit, and `tests/fakes.py` reproduces what those
 files do. Both could be wrong in the same direction, and only a live server can say.
 
-## Playwright walk (M7) · **NOT RUN**
+## Playwright walk (M7) · **PASSES, against the ADP double**
 
-`web/` builds and the server's routes are covered by `tests/test_server.py` against FastAPI's test
-client. `npm run ui-check` needs `npm install` for the web package, which was not run here.
+`npm run ui-check` drives define → run → analyze in a real Chromium against a real server, and
+passes. What is behind that server is `scripts/dev-server.py`'s in-memory ADP and a recorded Harbor
+trial, so the walk is evidence that the three views work end to end — not evidence that a real study
+runs. That is gate G1, above.
+
+On a machine that cannot download a browser, `PLAYWRIGHT_CHROMIUM=/path/to/chrome` points Playwright
+at an existing one; that is how it was run here.
