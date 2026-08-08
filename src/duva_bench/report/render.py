@@ -257,21 +257,28 @@ def _contrasts(block: dict[str, Any]) -> str:
             )
             continue
         mcnemar = row["mcnemar"]
-        paired = (
-            mcnemar["both_pass"]
-            + mcnemar["both_fail"]
-            + mcnemar["control_only"]
-            + mcnemar["arm_only"]
-        )
+        # A rate has no discordance table — see build.py. The cell says so
+        # rather than showing a p-value the design did not earn.
+        if "unavailable" in mcnemar:
+            discordance = f'<span class="na">{esc(mcnemar["unavailable"])}</span>'
+            p_cell = '<span class="na">—</span>'
+        else:
+            paired = (
+                mcnemar["both_pass"]
+                + mcnemar["both_fail"]
+                + mcnemar["control_only"]
+                + mcnemar["arm_only"]
+            )
+            discordance = f"{mcnemar['control_only']}/{mcnemar['arm_only']} discordant of {paired}"
+            p_cell = _number(mcnemar["p"], digits=4)
         body += (
             f"<tr><td>{esc(arm)}</td>"
             f'<td class="num">{_number(row["delta"])}</td>'
             f'<td class="num">{_interval(row["ci"])}</td>'
             f'<td class="num">{_number(row["delta_in_sd"])}</td>'
-            f'<td class="num">{_number(mcnemar["p"], digits=4)}</td>'
+            f'<td class="num">{p_cell}</td>'
             f'<td class="num">{_number(row.get("holm_p"), digits=4)}</td>'
-            f'<td class="mono dim">{mcnemar["control_only"]}/{mcnemar["arm_only"]} '
-            f"discordant of {paired}</td></tr>"
+            f'<td class="mono dim">{discordance}</td></tr>'
         )
     return (
         "<h3>contrasts</h3>"

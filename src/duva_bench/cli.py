@@ -16,7 +16,10 @@ extra is not installed.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import os
+import signal
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -285,8 +288,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     if handler is None:
         parser.print_help()
         return 2
-    result: int = handler(args)
+    try:
+        result: int = handler(args)
+    except BrokenPipeError:
+        # `duva-bench digest ... | head` closes the pipe, which is a normal
+        # thing for a reader to do and not an error this program should shout
+        # about. 128 + SIGPIPE is what a shell expects to see.
+        _silence_broken_pipe()
+        return 128 + signal.SIGPIPE
     return result
+
+
+def _silence_broken_pipe() -> None:
+    """Keep the interpreter from printing its own message during shutdown."""
+    with contextlib.suppress(OSError):
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
 
 
 if __name__ == "__main__":  # pragma: no cover

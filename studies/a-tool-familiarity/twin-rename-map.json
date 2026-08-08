@@ -1,0 +1,41 @@
+{
+  "original_digest": "sha256:31fddccc4448fe36730d58499fb7710c30accfb69e1192c6ce1c0533c6b5a82a",
+  "parameters": {
+    "apply_patch": {
+      "patch": "vusez",
+      "reverse": "dekized"
+    },
+    "list_dir": {
+      "path": "raga",
+      "recursive": "zolemutul"
+    },
+    "read_file": {
+      "max_lines": "rimikehat",
+      "path": "dilu",
+      "start_line": "jinojekeko"
+    },
+    "run_command": {
+      "command": "makumiz",
+      "timeout_s": "holilipet"
+    },
+    "search_text": {
+      "max_results": "ronuridufem",
+      "path": "roso",
+      "pattern": "hoholal"
+    },
+    "write_file": {
+      "contents": "kelobosa",
+      "mode": "fahu",
+      "path": "pagu"
+    }
+  },
+  "seed": "study-a-2026",
+  "tools": {
+    "apply_patch": "bifefivizug",
+    "list_dir": "babizafa",
+    "read_file": "kanotuhim",
+    "run_command": "siduvozepir",
+    "search_text": "gofalidozuj",
+    "write_file": "lolovutuzu"
+  }
+}

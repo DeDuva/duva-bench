@@ -1,0 +1,334 @@
+adp:
+  orchestrator: duva-bench
+  owner: duva
+  repo: bench-study-a
+arms:
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: &id002
+    agent: terminus-2
+    version: 0.20.0
+  id: standard-sonnet-terminus
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard
+    tools: &id001
+      apply_patch: sha256:9ed1cf8d25794d4f6d067322b5e2f5c0288660cd5679261d811e4ebf8a9df8e5
+      list_dir: sha256:7d6ac1e32312fea42a28841a3148ddf711340f3790e5ea859792d8cc7393b52f
+      read_file: sha256:f9ec62b76b91a66c8aae7775207bf0c11ce786acee8b935a244fded96ca26e69
+      run_command: sha256:66710abf73371e7e3ab681d3ce66df4f281c03ae85ac9096a1fc311c4e6a98fe
+      search_text: sha256:7ae506d83150e1d653727e6c56eba07c31ca60acea93940669278c63664188b9
+      write_file: sha256:1ec641d06ffd3e142689c8e5a0ecba829d29b4e985a1422c63fc4d636c28e72d
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: &id003
+    agent: claude-code
+    version: 0.20.0
+  id: standard-sonnet-claudecode
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard
+    tools: *id001
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: standard-haiku-terminus
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard
+    tools: *id001
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: standard-haiku-claudecode
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard
+    tools: *id001
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-sonnet-terminus
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard-twin
+    tools: &id004
+      babizafa: sha256:80de6f7b3ad8e81abb57743311c5e50e4bce8cdc6304eb072c71312719819307
+      bifefivizug: sha256:f5417632b86343e0143b8f71dead13dd42fc9be120f0c26cd5c90469a07eec99
+      gofalidozuj: sha256:6f2179e909bd3b8e46b130a54f4cc8a68f760ad69fa1e71a64c3af170e60c5d0
+      kanotuhim: sha256:d8b3de02248204a8cda398dad02ab2d570487e13cf5d49ffdf5a0cc804f9bcc4
+      lolovutuzu: sha256:5dc34bb99c3f436b8916acd8269ce6048e4acfeea790a8fe2b0d908be37ef186
+      siduvozepir: sha256:846447e73f43243d016d930f0e05dbd20ab9db4448fee8a220ead91bf33a6ae0
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-sonnet-claudecode
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-haiku-terminus
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-haiku-claudecode
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: none
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-ref-sonnet-terminus
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: reference
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-ref-sonnet-claudecode
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: reference
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-ref-haiku-terminus
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: reference
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-ref-haiku-claudecode
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: reference
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-rich-sonnet-terminus
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: rich
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-rich-sonnet-claudecode
+  model:
+    model: claude-sonnet-4-5-20250929
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: rich
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id002
+  id: twin-rich-haiku-terminus
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: rich
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+- env:
+    LANG: C.UTF-8
+    PYTHONHASHSEED: '0'
+  harness: *id003
+  id: twin-rich-haiku-claudecode
+  model:
+    model: claude-haiku-4-5-20251001
+    parameters:
+      temperature: '0'
+    provider: anthropic
+  toolset:
+    docs_bundle:
+      grade: rich
+    name: standard-twin
+    tools: *id004
+    twin_of: standard
+    twin_seed: study-a-2026
+budget_usd_cap: '250.00'
+concurrency: 8
+pre_registration:
+  control_arm: standard-sonnet-terminus
+  exclusion_rules:
+  - 'A trial whose ADP /verify is not ok:true is ERROR: excluded from every statistic,
+    counted separately, never a failure.'
+  - A trial whose grader did not produce a result is unscored on that axis and enters
+    no cell; it is never scored zero.
+  - A repetition verdict is a majority over the cell's repetitions with ERROR trials
+    counting against, so an arm cannot improve its record by failing to produce evidence.
+  - No trial is excluded for its result. Only the two conditions above remove a trial
+    from a statistic.
+  metaprogramming_allowed: true
+  primary_metric: process:hallucinated_call_rate
+  repetitions: 5
+  secondary_metrics:
+  - acceptance
+  - process:tool_error_rate
+  - process:metaprogramming_rate
+provider_rate_limits:
+  anthropic: 20
+repetitions: 5
+tasks:
+- grader_path: graders/config-merge.py
+  grader_sha256: 879cdf1fe52fc563232fde1912a9d16014a012daa40dfab998327d35df8d7f7c
+  id: config-merge
+  path: tasks/config-merge
+- grader_path: graders/semver-compare.py
+  grader_sha256: 5604bde0e42dce5640e03fcf6075471a0649842688b3593a86f9e5eece024da5
+  id: semver-compare
+  path: tasks/semver-compare
+- grader_path: graders/safe-path.py
+  grader_sha256: 8cff07cdcad1fea985e6a4607c3cf6d401ac293780f88f01ade88997bc177b33
+  id: safe-path
+  path: tasks/safe-path
+- grader_path: graders/csv-dedupe.py
+  grader_sha256: 2cdd6cdaf874a4d74c7e2a4e4c287eb2655c2cca2b9e95dc3e70e6e42ce575ee
+  id: csv-dedupe
+  path: tasks/csv-dedupe
+- grader_path: graders/rate-window.py
+  grader_sha256: 97b247dfeaca8d73f201091484d5777548e71e7e9079c13f1000af58c478f71a
+  id: rate-window
+  path: tasks/rate-window
+- grader_path: graders/log-summary.py
+  grader_sha256: ba4b7d8fc489bfde477f4db2f00e7e6b292b0861a5da9926593ca6dd3126c0be
+  id: log-summary
+  path: tasks/log-summary
+title: Study A — tool familiarity

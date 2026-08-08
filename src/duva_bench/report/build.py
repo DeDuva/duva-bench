@@ -23,6 +23,7 @@ two passes and one non-pass, not two passes out of two.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,16 @@ from duva_bench.study.models import Study
 # Seeded, and the seed is printed in the report. An interval nobody can
 # reproduce is decoration.
 BOOTSTRAP_SEED = 20260807
+
+# Process metrics that are ranked like an axis. For Study A the first of these
+# is the *primary* metric, which is why they are first-class rather than a
+# footnote under the grader axes.
+PROCESS_AXES: tuple[str, ...] = (
+    "hallucinated_call_rate",
+    "tool_error_rate",
+    "metaprogramming_rate",
+    "retry_rate",
+)
 
 
 @dataclass
@@ -112,7 +123,29 @@ def build_report(
     report.trials = [_trial_row(trial, metrics[trial.run_id]) for trial in outcomes.trials]
 
     for axis in outcomes.axis_names():
-        report.axes[axis] = _axis_block(study, outcomes, axis, banded=axis in bands["split_axes"])
+        report.axes[axis] = _axis_block(
+            study,
+            outcomes,
+            axis,
+            banded=axis in bands["split_axes"],
+            value=_grader_score(axis),
+            binary=_grader_passed(axis),
+        )
+
+    # Process metrics are rankable axes too, and for Study A one of them is the
+    # *primary* metric. They are computed from trajectories rather than from a
+    # grader, so they carry no pass/fail outcome and no McNemar test — the
+    # interval is the inference, and the report says so rather than inventing a
+    # p-value for a rate.
+    for name in PROCESS_AXES:
+        report.axes[f"process:{name}"] = _axis_block(
+            study,
+            outcomes,
+            f"process:{name}",
+            banded=bool(bands["split_arms"]),
+            value=_process_value(name, metrics),
+            binary=None,
+        )
 
     report.process = _process_block(study, outcomes, metrics)
     report.cost = _cost_block(outcomes)
@@ -211,23 +244,61 @@ def _trial_row(trial: TrialOutcome, metrics: ProcessMetrics) -> dict[str, Any]:
     }
 
 
+def _grader_score(axis: str) -> Callable[[TrialOutcome], float | None]:
+    def value(trial: TrialOutcome) -> float | None:
+        result = trial.axis(axis)
+        return result.score if result is not None else None
+
+    return value
+
+
+def _grader_passed(axis: str) -> Callable[[TrialOutcome], bool | None]:
+    def outcome(trial: TrialOutcome) -> bool | None:
+        result = trial.axis(axis)
+        return result.passed if result is not None else None
+
+    return outcome
+
+
+def _process_value(
+    name: str, metrics: dict[str, ProcessMetrics]
+) -> Callable[[TrialOutcome], float | None]:
+    def value(trial: TrialOutcome) -> float | None:
+        found = metrics.get(trial.run_id)
+        # None when the rate is undefined — a trial with no tool calls has no
+        # tool-error rate — and None stays out of the numbers rather than
+        # entering them as a zero.
+        return getattr(found, name) if found is not None else None
+
+    return value
+
+
 def _axis_block(
-    study: Study, outcomes: StudyOutcomes, axis: str, *, banded: bool
+    study: Study,
+    outcomes: StudyOutcomes,
+    axis: str,
+    *,
+    banded: bool,
+    value: Callable[[TrialOutcome], float | None],
+    binary: Callable[[TrialOutcome], bool | None] | None,
 ) -> dict[str, Any]:
-    cells = outcomes.by_cell(axis)
     tasks = [task.id for task in study.tasks]
     arms = [arm.id for arm in study.arms]
 
+    cells: dict[tuple[str, str], list[TrialOutcome]] = {}
+    for trial in outcomes.included:
+        cells.setdefault((trial.task_id, trial.arm_id), []).append(trial)
+
     scored: dict[tuple[str, str], list[float]] = {}
-    unscored: dict[str, int] = {arm: 0 for arm in arms}
+    unscored: dict[str, int] = dict.fromkeys(arms, 0)
     for (task_id, arm_id), trials in cells.items():
         values: list[float] = []
         for trial in trials:
-            result = trial.axis(axis)
-            if result is None or result.score is None:
+            measurement = value(trial)
+            if measurement is None:
                 unscored[arm_id] = unscored.get(arm_id, 0) + 1
                 continue
-            values.append(result.score)
+            values.append(measurement)
         if values:
             scored[(task_id, arm_id)] = values
 
@@ -268,7 +339,9 @@ def _axis_block(
             "unavailable": "the pre-registration declares no control arm to contrast against"
         }
     else:
-        block["contrasts"] = _contrasts(study, outcomes, axis, tasks, control, scored, noise)
+        block["contrasts"] = _contrasts(
+            study, outcomes, axis, tasks, control, scored, noise, binary=binary
+        )
     return block
 
 
@@ -318,6 +391,8 @@ def _contrasts(
     control: str,
     scored: dict[tuple[str, str], list[float]],
     noise: NoiseFloor,
+    *,
+    binary: Callable[[TrialOutcome], bool | None] | None,
 ) -> dict[str, Any]:
     raw_p: dict[str, float] = {}
     rows: dict[str, dict[str, Any]] = {}
@@ -341,12 +416,6 @@ def _contrasts(
 
         low, high = paired_difference_ci(control_values, arm_values, seed=BOOTSTRAP_SEED)
 
-        control_pass = [_majority_pass(outcomes, task, control, axis) for task in paired_tasks]
-        arm_pass = [_majority_pass(outcomes, task, arm, axis) for task in paired_tasks]
-        both_pass, a_only, b_only, both_fail = discordance(control_pass, arm_pass)
-        p_value = mcnemar_exact(both_pass, a_only, b_only, both_fail)
-        raw_p[arm] = p_value
-
         rows[arm] = {
             "vs": control,
             "tasks": len(paired_tasks),
@@ -356,13 +425,31 @@ def _contrasts(
             # difference smaller than one noise floor is a difference the study
             # cannot distinguish from a rerun.
             "delta_in_sd": noise.in_sd_units(delta),
-            "mcnemar": {
-                "both_pass": both_pass,
-                "control_only": a_only,
-                "arm_only": b_only,
-                "both_fail": both_fail,
-                "p": p_value,
-            },
+        }
+
+        if binary is None:
+            # A rate has no pass/fail outcome to build a 2x2 table from, so
+            # there is no exact test to run. The interval above *is* the
+            # inference; a p-value here would be one this design did not earn.
+            rows[arm]["mcnemar"] = {
+                "unavailable": (
+                    "this metric is a rate rather than a pass/fail outcome, so there is no "
+                    "discordance table; read the interval"
+                )
+            }
+            continue
+
+        control_pass = [_majority_pass(outcomes, task, control, binary) for task in paired_tasks]
+        arm_pass = [_majority_pass(outcomes, task, arm, binary) for task in paired_tasks]
+        both_pass, a_only, b_only, both_fail = discordance(control_pass, arm_pass)
+        p_value = mcnemar_exact(both_pass, a_only, b_only, both_fail)
+        raw_p[arm] = p_value
+        rows[arm]["mcnemar"] = {
+            "both_pass": both_pass,
+            "control_only": a_only,
+            "arm_only": b_only,
+            "both_fail": both_fail,
+            "p": p_value,
         }
 
     for arm, adjusted in holm(raw_p).items():
@@ -370,7 +457,12 @@ def _contrasts(
     return {"control": control, "correction": "holm", "arms": rows}
 
 
-def _majority_pass(outcomes: StudyOutcomes, task: str, arm: str, axis: str) -> bool:
+def _majority_pass(
+    outcomes: StudyOutcomes,
+    task: str,
+    arm: str,
+    binary: Callable[[TrialOutcome], bool | None],
+) -> bool:
     """The repetition verdict for one cell: majority pass, errors counting against.
 
     An arm that solved a task twice and produced one unverifiable run has two
@@ -385,8 +477,7 @@ def _majority_pass(outcomes: StudyOutcomes, task: str, arm: str, axis: str) -> b
         total += 1
         if not trial.included:
             continue  # an ERROR is a non-pass, and it still counts in the total
-        result = trial.axis(axis)
-        if result is not None and result.passed:
+        if binary(trial):
             passes += 1
     return total > 0 and passes * 2 > total
 

@@ -1,0 +1,143 @@
+{
+  "description": "The standard filesystem-and-shell toolset every Harbor agent in this study is given. Study A twins it.",
+  "name": "standard",
+  "tools": [
+    {
+      "description": "Read a file from the workspace and return its contents.",
+      "name": "kanotuhim",
+      "parameters": {
+        "properties": {
+          "dilu": {
+            "description": "Absolute dilu of the file to read.",
+            "type": "string"
+          },
+          "jinojekeko": {
+            "description": "First line to return, 1-based.",
+            "type": "integer"
+          },
+          "rimikehat": {
+            "description": "Stop after this many lines.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dilu"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Write a file, creating it or replacing its kelobosa.",
+      "name": "lolovutuzu",
+      "parameters": {
+        "properties": {
+          "fahu": {
+            "description": "Whether to replace the file or add to the end of it.",
+            "enum": [
+              "overwrite",
+              "append"
+            ],
+            "type": "string"
+          },
+          "kelobosa": {
+            "description": "The new kelobosa of the file.",
+            "type": "string"
+          },
+          "pagu": {
+            "description": "Absolute pagu of the file to write.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pagu",
+          "kelobosa"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "List the entries of a directory.",
+      "name": "babizafa",
+      "parameters": {
+        "properties": {
+          "raga": {
+            "description": "Absolute raga of the directory.",
+            "type": "string"
+          },
+          "zolemutul": {
+            "description": "Descend into subdirectories.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "raga"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Search the workspace for lines matching a regular expression.",
+      "name": "gofalidozuj",
+      "parameters": {
+        "properties": {
+          "hoholal": {
+            "description": "The regular expression to match.",
+            "type": "string"
+          },
+          "ronuridufem": {
+            "description": "Stop after this many matches.",
+            "type": "integer"
+          },
+          "roso": {
+            "description": "Directory or file to search.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hoholal"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Run a shell makumiz in the workspace and return its output and exit status.",
+      "name": "siduvozepir",
+      "parameters": {
+        "properties": {
+          "holilipet": {
+            "description": "Give up after this many seconds.",
+            "type": "integer"
+          },
+          "makumiz": {
+            "description": "The makumiz line to run.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "makumiz"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "description": "Apply a unified diff to the workspace.",
+      "name": "bifefivizug",
+      "parameters": {
+        "properties": {
+          "dekized": {
+            "description": "Apply the vusez in dekized.",
+            "type": "boolean"
+          },
+          "vusez": {
+            "description": "The unified diff to apply.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vusez"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}
