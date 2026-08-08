@@ -10,6 +10,45 @@ published "Why duva-bench" page). This document is only *how to build it*.
 
 ---
 
+## Track status — 2026-08-08
+
+> **This track is paused, deliberately. Nothing here has been built yet, and that is a decision
+> rather than a lapse.**
+
+duva-bench has **two tracks, meant to run in parallel**:
+
+| Track | Where | State |
+|---|---|---|
+| **Harbor** (this repo) | `github.com/DeDuva/duva-bench` | **Paused.** Bootstrap commit only — README, licence, docs site, this plan. M0–M8 not started. |
+| **squad** | `github.com/DeDuva/squad`, `packages/duva-bench/PLAN.md` | S0–S7 executed and merged; a live 24-trial pilot, $8.03, every run verified. |
+
+The parallelism is the point: bespoke infrastructure (squad) against in-distribution
+infrastructure (Harbor), on the same tasks, graders and statistics — so **the pair of tracks is
+itself an experiment**. Neither is the "real" one.
+
+**Why this track is paused:** its dependencies could not be configured from a remote session.
+
+This note exists because a repository holding only a plan is indistinguishable from an abandoned
+one. A cross-project audit on 2026-08-08 read this track's state as evidence that the substrate
+decision had been silently reversed. It had not been. **If you are reading this repo and wondering
+why it is empty, that is the answer.**
+
+**What would resume it.** Probing on 2026-08-08 found that `terminal-bench` installs cleanly and
+Docker runs and pulls images on the machine in question, so the dependency picture may now be
+better than when the pause was taken. Harbor also wraps real agent CLIs, and only `claude` was
+present there (`codex` and `aider` absent), so the original obstacle may lie elsewhere. **The next
+step is one timeboxed probe of a single Harbor trial**, reporting exactly where it fails — not a
+restart of M0.
+
+**What is blocked on this track:** the squad track's cross-track memo. That gate has been split so
+the squad track can complete on its own evidence (SG3a) while the comparison (SG3b) stays deferred
+with this track's resumption as its stated precondition. The expected cross-track result is
+registered in advance in the squad track's
+`packages/duva-bench/studies/a-tool-familiarity-pilot/CROSS-TRACK.md`, so it cannot be fitted to
+the answer later.
+
+---
+
 ## 0. Rules for the executing agent
 
 1. **One milestone per branch, one PR per milestone.** Branch from `main`, name it
