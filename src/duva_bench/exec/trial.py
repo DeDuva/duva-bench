@@ -92,6 +92,11 @@ class TrialRecord(BaseModel):
     # Harbor's own verifier, kept because it is evidence about the environment
     # rather than a score: None when it did not run.
     harbor_verifier_passed: bool | None = None
+    # Which axes were scored — the *names*, never the numbers. The numbers live
+    # in ADP under the grader identity, and a local copy would be a second
+    # source of truth for the one thing this design exists to make singular.
+    scored_axes: tuple[str, ...] = ()
+    grader_error: str | None = None
     events_recorded: int = 0
     final_git_sha: str | None = None
     trial_dir: str | None = None
@@ -247,11 +252,24 @@ def run_trial(
                 reason=error or "the agent produced no result",
             )
 
+        # Grading comes after the run is closed and before the gate, in that
+        # order and for two reasons: an eval needs the commit the run was closed
+        # against, and the gate's answer includes whether the score was reported
+        # by somebody other than the runner.
+        scored_axes: tuple[str, ...] = ()
+        grader_error: str | None = None
+        if produced_work and harbor_trial is not None:
+            scored_axes, grader_error = _grade(
+                study, task, harbor_trial, client=client, run_id=run.id, root=root
+            )
+
         verdict: Verdict = verify_gate(client, study.adp.owner, study.adp.repo, run.id)
         record = TrialRecord(
             **record_kwargs,
             verdict=verdict.status,
             failures=verdict.failures,
+            scored_axes=scored_axes,
+            grader_error=grader_error,
             harbor_verifier_passed=(
                 harbor_trial.verifier_passed if harbor_trial is not None else None
             ),
@@ -267,6 +285,50 @@ def run_trial(
 
     state.write_json(state.trial_record(external_ref), record.model_dump(mode="json"))
     return record
+
+
+def _grade(
+    study: Study,
+    task: TaskRef,
+    harbor_trial: HarborTrial,
+    *,
+    client: AdpClient,
+    run_id: str,
+    root: Path,
+) -> tuple[tuple[str, ...], str | None]:
+    """Run the task's grader and post one eval per axis.
+
+    Returns the axis names that were recorded and the grader's error, if any.
+    **No scores come back**: they belong in ADP, under the grader identity, and
+    a copy here would be a second source of truth for the one number the whole
+    design is about.
+    """
+    from duva_bench.grading.runner import GraderError, GraderRunner, report_axes
+
+    grader = (root / task.grader_path).resolve()
+    runner = GraderRunner()
+    try:
+        result = runner.run(grader, harbor_trial.graded_dir, expected_sha256=task.grader_sha256)
+    except GraderError as failure:
+        # A grader that will not run leaves the trial unscored. Not zero, and
+        # not an ERROR either: the trajectory is still evidence about what the
+        # arm did; what is missing is the measurement.
+        logger.warning("grader for %s did not run: %s", task.id, failure)
+        return (), str(failure)
+
+    if not result.scored:
+        logger.warning("grader for %s produced no result: %s", task.id, result.error)
+        return (), result.error
+
+    posted = report_axes(
+        client,
+        study.adp.owner,
+        study.adp.repo,
+        run_id,
+        result,
+        git_sha=NULL_GIT_SHA,
+    )
+    return tuple(posted), None
 
 
 def _harbor_failure_event(reason: str) -> AdpEvent:

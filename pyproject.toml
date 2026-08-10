@@ -67,7 +67,12 @@ src = ["src", "tests"]
 # Machine-written, and carrying ADP's own prose in its summaries, which does not
 # wrap to our line length. Held to `make check-generated` instead — the same
 # reason mypy exempts it below.
-extend-exclude = ["src/duva_bench/adp/_generated"]
+extend-exclude = [
+  "src/duva_bench/adp/_generated",
+  # Fixtures are *inputs*: a grader that crashes, a solution that mishandles an
+  # error path. Linting them would mean fixing the flaws they exist to carry.
+  "tests/fixtures",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

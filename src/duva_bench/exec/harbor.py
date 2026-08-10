@@ -75,6 +75,22 @@ class HarborTrial:
         return isinstance(self.results.get("exception_info"), dict)
 
     @property
+    def graded_dir(self) -> Path:
+        """What the grader is pointed at.
+
+        Harbor collects files out of the container into ``<trial>/artifacts/``;
+        the workspace itself is gone by the time anything can be graded, because
+        the container is. So the artifacts directory *is* the work product, and
+        a task that wants something graded has to publish it there.
+
+        Falls back to the trial directory when nothing was collected, so a
+        grader reports "nothing was written" rather than crashing on a missing
+        path — an unscored trial and a broken grader must stay distinguishable.
+        """
+        artifacts = self.trial_dir / "artifacts"
+        return artifacts if artifacts.is_dir() else self.trial_dir
+
+    @property
     def verifier_passed(self) -> bool | None:
         """Harbor's own verdict, or None when it never ran.
 
