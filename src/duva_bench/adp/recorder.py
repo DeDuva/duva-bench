@@ -99,6 +99,10 @@ class Recorder:
         self.stats = RecorderStats()
         self._thread: threading.Thread | None = None
         self._stopping = threading.Event()
+        # Set whenever there is something to send. Without it the flush loop
+        # sits out its backoff — up to `max_backoff` — while events wait in the
+        # spool, which adds that much latency to every trial for nothing.
+        self._wake = threading.Event()
         self._idle = threading.Event()
         self._idle.set()
         self._fatal: BaseException | None = None
@@ -125,6 +129,7 @@ class Recorder:
         if self._thread is not None:
             return
         self._stopping.clear()
+        self._wake.clear()
         self._thread = threading.Thread(target=self._run, name="duva-bench-recorder", daemon=True)
         self._thread.start()
 
@@ -139,6 +144,7 @@ class Recorder:
             self.flush(timeout=timeout)
         finally:
             self._stopping.set()
+            self._wake.set()
             thread, self._thread = self._thread, None
             if thread is not None:
                 thread.join(timeout=timeout)
@@ -157,11 +163,13 @@ class Recorder:
             seq = self._spool.append({"kind": kind, **fields})
         self.stats.recorded += 1
         self._idle.clear()
+        self._wake.set()
         return seq
 
     def flush(self, timeout: float = 30.0) -> bool:
         """Block until the spool is empty. Returns False on timeout."""
         deadline = time.monotonic() + timeout
+        self._wake.set()
         while time.monotonic() < deadline:
             self.raise_if_failed()
             with self._lock:
@@ -205,7 +213,10 @@ class Recorder:
                 continue
 
             self._idle.set()
-            self._stopping.wait(timeout=backoff)
+            # Woken by `record` or `close`; the backoff is only the ceiling on
+            # how long an idle loop sleeps, not a delay every batch pays.
+            self._wake.wait(timeout=backoff)
+            self._wake.clear()
             backoff = min(backoff * 2, self._max_backoff)
 
     def _flush_once(self) -> int:
