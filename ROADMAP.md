@@ -61,11 +61,14 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** nothing in flight. Gate G1 closed on 2026-08-10.
-- **Next:** **gate G2** — the eight-trial smoke study end to end (`duva-bench run` then
-  `duva-bench report`), with every number in the report reconciled against a direct ADP
-  read by a test. G1's runbook ([`docs/g1-runbook.md`](docs/g1-runbook.md)) is now a
-  record of how the first trial was made to work and is the right model for G2's.
+- **Now:** nothing in flight. Gate G1 closed on 2026-08-10, and G2's three preconditions
+  were settled the same day — the eight-trial factorial has been rehearsed end to end with
+  oracle arms (`examples/smoke/study-oracle.yaml`), so what remains is running it with a
+  model.
+- **Next:** **gate G2** — the same eight trials against `examples/smoke/study.yaml`, with
+  every number in the report reconciled against a direct ADP read by a test. Expect roughly
+  **$0.45** at the $0.054 a G1 trial cost, well under the study's $5 cap. Settle the
+  `unpriced_trials` open decision below first; it changes what the report prints.
 - **Later:** G3 (Study A, 480 trials). Post-M8, squad-as-an-arm via a Harbor adapter.
 
 ## Blockers and open decisions
@@ -73,22 +76,33 @@ still marked *code landed* carries exactly that risk.
 - **None blocking G2.** Verified 2026-08-10 by closing G1 on this machine: Docker 29.1.3,
   `harbor==0.20.0`, a live ADP at contract `0.2.0`, provider credentials, a verified run
   with a signed attestation and a graded pair of axes.
-- **Study A's six tasks carry the same fixes as the smoke tasks and none of the
-  evidence.** The reward-file and artifact-publishing defects that stopped every trial
-  were fixed across all eight tasks, but only the two smoke tasks have actually been run.
-  Do not treat `studies/a-tool-familiarity/` as working until G2's machinery has executed
-  at least one of its tasks.
+- **~~Study A's six tasks are unverified~~ — settled 2026-08-10.** All eight tasks in the
+  repository now run through Harbor with the `oracle` agent and satisfy their own graders on
+  every axis: image builds, verifier reward file, artifact collection and grading, end to end.
+  Pinned by `tests/test_tasks_through_harbor.py` (marked `harbor`; no model spend). A task
+  that passes there can still be failed by a real agent — that is the study — but a *broken*
+  task can no longer be mistaken for a failing arm.
+- **~~Concurrency is unmeasured~~ — settled 2026-08-10.** The eight-trial factorial ran
+  through the real scheduler at concurrency 2 in 1m22s with 0 errors, using the oracle arms in
+  `examples/smoke/study-oracle.yaml`. **A trial is two containers, so concurrency N means 2N** —
+  Study A at concurrency 8 is 16 containers. Scheduler peak RSS 224 MB; 12.2 GB free throughout;
+  no measurable container-disk growth.
+- **~~Cost accounting unreconciled~~ — settled 2026-08-10.** `terminus-2` reports per-step usage
+  that sums exactly to the trajectory's own `final_metrics` (13,297 prompt / 2,126 completion /
+  $0.0521659), and ADP reports the same. Pinned by two tests in `tests/test_bridge.py`, one of
+  which asserts cached tokens are not double-counted into the prompt total — 8,384 of those
+  13,297 were cache reads, so getting it wrong would inflate input by 60% and worsen with
+  exactly the caching that makes long studies affordable. **This does not clear
+  `claude-code`**, whose zero-token defect started this; it clears the agent Study A uses.
 - **The ADP contract suite has never run in CI.** It passes locally against a live server;
   `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
   pinned by a suite one person runs by hand.
-- **`--n-concurrent 1` per trial is not the study's concurrency.** duva-bench schedules the
-  factorial itself, so G2 is the first time several Harbor jobs run at once on this
-  machine. Container and disk pressure at 8 trials is unmeasured, let alone at 480.
-- **Harbor token accounting was wrong for `claude-code`** (verified 2026-08-08:
-  `total_input_tokens: 0` in `results.json` while the agent log carried full usage).
-  Five `model_call` events bridged in G1's run, so `terminus-2` reports *something*;
-  whether the tokens and cost on them are right has **not** been reconciled against the
-  agent log. G2 is where that has to be checked, because every cost figure depends on it.
+- **Open decision — `total_usd: 0.0` prints beside `unpriced_trials: 8`.** In the oracle
+  rehearsal the report's cost block read `total_usd: 0.0` with all eight trials unpriced. For an
+  oracle that is true, since nothing was called. For a *model* whose price is unknown it would be
+  the failure execution-plan §0.6 forbids by name — an unpriced model rendering as zero rather
+  than as `unpriced`. Decide before G2 whether the total should refuse to render a number when
+  `unpriced_trials > 0`.
 - **Multi-CLI arms (M4+) need more agent CLIs.** Verified 2026-08-08: only `claude` is
   installed locally; `codex` and `aider` are absent. Install them before designing
   multi-CLI arms, or scope arms to what is present.

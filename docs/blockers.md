@@ -61,15 +61,45 @@ pinned by fixtures this project also wrote. That is the whole lesson of this gat
 against a recorded copy of its own output. The `harbor` marker had been declared since M0 and used
 by zero tests.
 
-## Gate G2 — the smoke study end to end · **BLOCKED**
+## Gate G2 — the smoke study end to end · **NOT RUN, and rehearsed**
 
-Downstream of G1: `duva-bench run` then `duva-bench report` needs eight real trials.
+Downstream of G1: `duva-bench run` then `duva-bench report` needs eight real trials with a model.
+That has not happened. What has, on 2026-08-10, is the same eight trials with the model taken out.
 
-What is proven without it: `tests/test_analysis.py` and `tests/test_report.py` run the whole
-`run → report` path against the in-memory ADP, including the reconciliation the gate asks for — every
-number in the report is re-derived from a direct ADP read and compared. What that cannot prove is
-that a real ADP answers the way the fake does; `tests/contract/` is the piece that would, and it has
-not been run either (below).
+### The dress rehearsal
+
+`examples/smoke/study-oracle.yaml` is `study.yaml`'s shape — two tasks, two arms, two repetitions,
+concurrency 2 — run by Harbor's **oracle** agent. Both arms are the same instrument, so it answers
+no question about any agent; it exercises the machinery for the cost of the containers.
+
+```
+duva-bench run    → planned 8, completed 8, errors 0, 1m22s wall clock
+duva-bench status → verified 8, remaining []
+duva-bench report → 8 trials, 8 verified, 7 axes, 0 warnings
+```
+
+Three of the things G2 was going to discover, discovered for nothing:
+
+* **Concurrency works and costs about what you would guess.** Two trials at a time held exactly
+  two trials at a time — and **four containers**, because a trial runs two. Scheduler peak RSS was
+  224 MB; 12.2 GB of memory stayed free throughout; container disk did not move measurably. The
+  number to carry forward is the multiplier: *concurrency N means 2N containers*, so Study A at
+  concurrency 8 is 16.
+* **The report renders `null`, not `0`, for a metric nothing supports.** The oracle makes no tool
+  calls, and `tool_error_rate` comes back `null` with `tool_calls: 0` beside it rather than a
+  flattering zero. That is execution-plan §0.6's unscored-is-not-zero rule holding at the only
+  place it can be observed.
+* **Both arms scored `acceptance` 1.0, CI [1.0, 1.0], 4 trials each, 0 unscored** — which is the
+  correct answer for two identical instruments, and would have been a red flag from a real study.
+
+### What the rehearsal cannot say
+
+It runs no model, so it says nothing about token accounting, provider rate limiting, or budget
+enforcement under real spend — `priced_trials` was 0 and the cap was never approached. G2 still has
+to be run.
+
+**And it surfaced one thing to decide before G2 runs** — see the open decision in `/ROADMAP.md`
+about `total_usd: 0.0` printing beside `unpriced_trials: 8`.
 
 ## Gate G3 — Study A executed · **BLOCKED**
 
