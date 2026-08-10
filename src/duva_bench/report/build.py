@@ -192,6 +192,8 @@ def _evidence_block(outcomes: StudyOutcomes, bands: dict[str, Any]) -> dict[str,
         "error_refs": [trial.external_ref or trial.run_id for trial in outcomes.errored],
         "missing_tasks": outcomes.missing_tasks,
         "read_errors": outcomes.read_errors,
+        "out_of_scope_runs": len(outcomes.out_of_scope),
+        "out_of_scope": outcomes.out_of_scope,
         "digests": bands,
     }
 

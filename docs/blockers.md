@@ -111,6 +111,55 @@ written against studies where everything was priced. It took running the machine
 whose trials genuinely have no cost — which is precisely what an oracle rehearsal is for, and an
 argument for keeping one around rather than treating it as scaffolding.
 
+## The arm materialization gap · **BLOCKS STUDY A, found 2026-08-10**
+
+**`arms/materialize.py` is never called by anything that runs a trial.** It is imported by
+`arms/__init__.py`, used by `cli.py` for `duva-bench twin`, and exercised by `tests/test_arms.py`.
+`exec/trial.py` hands Harbor the task directory as it sits on disk.
+
+So an arm's **toolset, its semantic twin, and its documentation bundle are digested, labelled, and
+never applied.** Two arms differing only in those factors are the same arm with two names, and the
+agent inside the container cannot tell them apart because nothing about the container differs.
+
+Gate G2's run is the demonstration. The smoke study's two arms differ *only* in toolset metadata —
+identical tool names, identical digests, one carrying `twin_of` and `twin_seed`. It reported:
+
+| axis | standard | twin |
+|---|---|---|
+| acceptance | 0.75 (n=4) | 1.00 (n=4) |
+| robustness | 0.50 (n=2) | 1.00 (n=2) |
+
+Read innocently, the twin arm won. In fact **those are two runs of one arm**, and the gap is the
+study's own noise — which is exactly what a smoke study of identical instruments should show, and
+exactly what nobody would have concluded from the numbers alone.
+
+### It also makes Study A's primary metric constant
+
+Study A pre-registers **hallucinated-call rate** as its primary metric: tool calls naming a tool the
+arm did not have. The smoke study declares `read_file`, `write_file`, `run_command` with placeholder
+digests. `terminus-2` actually calls `bash_command` and `mark_task_complete`. Every call is
+therefore outside the declared vocabulary and the rate is **1.0 in every arm**:
+
+```
+standard  tool_calls=53  tool_error_rate=0.019  hallucinated_call_rate=1.0
+twin      tool_calls=41  tool_error_rate=0.073  hallucinated_call_rate=1.0
+```
+
+A primary metric that is 1.0 by construction cannot separate anything. Note the tool-error rate
+beside it is sane and non-zero — that one is measuring something real.
+
+### What has to be decided
+
+The toolset factor presupposes giving an agent a chosen set of tools. **Harbor's `terminus-2` has
+its own fixed tools and no flag to replace them**, so this is not a wiring oversight to patch in an
+afternoon: it is a question about whether the toolset axis is executable on this harness at all, or
+needs a Harbor agent that accepts a tool definition. M4's deliverable was written as though the
+task variant carries the toolset; the seam where that variant would be handed to Harbor does not
+exist.
+
+Until it is settled, **Study A would produce four familiarity arms per cell that differ only in
+their labels**, and 480 trials of a factor that was never applied.
+
 ## Gate G3 — Study A executed · **BLOCKED**
 
 Downstream of G1 and G2, and additionally needs **480 trials** of real spend (16 arms × 6 tasks × 5

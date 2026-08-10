@@ -53,22 +53,24 @@ still marked *code landed* carries exactly that risk.
 | M1 — study spec and digest | code landed | `examples/smoke/study.yaml` validates; digest `sha256:d1a38ec0…` |
 | M2 — ADP recording core | code landed, **contract suite passes** | 13/13 against a live ADP at contract `0.2.0` (2026-08-10, first ever run — 5 failed initially). `adp/models.py` is hand-written from ADP's *source*; `tests/fakes.py` reproduced the same misreading and now enforces the server's rules |
 | M3 — one Harbor trial end to end | **gate G1 PASSED 2026-08-10** | Run `a5c20876-d5ff-41af-95b5-114c9a8fddb6`: `ok`, `envelope_verified`, `trajectory_digest_matches` all true; 13 labels round-trip; **17 bridged `tool_call` events**. Took seven real defects to get there — see [`docs/blockers.md`](docs/blockers.md) |
-| M4 — arms and twin instruments | code landed | Twin generator, doc bundles, grader runner with a stripped environment |
+| M4 — arms and twin instruments | code landed, **not wired into execution** | Twin generator, doc bundles and grader runner all exist and are tested. `arms/materialize.py` is **never called by anything that runs a trial**, so an arm's toolset, twin and docs are digested and labelled but never applied. Blocks G3 — see [`docs/blockers.md`](docs/blockers.md) |
 | M5 — factorial scheduler | code landed | Budget cap, per-provider pacing, resumable via `progress.jsonl` |
-| M6 — analysis and report | code landed, **gate G2 not run** | **The next milestone.** Reconciliation is proven against the in-memory ADP double, not a server |
+| M6 — analysis and report | **gate G2 run 2026-08-10** | The smoke study ran end to end against a live ADP: 8/8 trials, 0 errors, $0.44547, 5m07s at concurrency 2. `run` → `report` produced per-axis tables, CIs, process metrics and a cost ledger that matches the run's own to the micro-dollar. Unscored axes render unscored |
 | M7 — API server and web UX | code landed | Playwright walk passes against `scripts/dev-server.py`'s ADP double, not a real study |
 | M8 — Study A, for real | **defined, not executed** | `studies/a-tool-familiarity/` — 16 arms × 6 tasks × 5 reps = 480 trials, digest `sha256:5c83036c…`. **Gate G3.** Reaching it with a shared task set is the stated precondition of the squad track's cross-track memo (its gate SG3b) |
 
 ## Now / Next / Later
 
-- **Now:** nothing in flight. Gate G1 closed on 2026-08-10, and G2's three preconditions
-  were settled the same day — the eight-trial factorial has been rehearsed end to end with
-  oracle arms (`examples/smoke/study-oracle.yaml`), so what remains is running it with a
-  model.
-- **Next:** **gate G2** — the same eight trials against `examples/smoke/study.yaml`, with
-  every number in the report reconciled against a direct ADP read by a test. Expect roughly
-  **$0.45** at the $0.054 a G1 trial cost, well under the study's $5 cap.
-- **Later:** G3 (Study A, 480 trials). Post-M8, squad-as-an-arm via a Harbor adapter.
+- **Now:** nothing in flight. G1 closed and the smoke study has been executed end to end.
+- **Next:** **decide what to do about the arm materialization gap** before anything else.
+  `arms/materialize.py` is never called by the trial runner, so toolset, twin and docs are
+  labels with no effect on the container — and Study A's primary metric,
+  hallucinated-call rate, is 1.0 by construction because the declared vocabulary is not the
+  one `terminus-2` uses. This is not a patch: Harbor's `terminus-2` has fixed tools and no
+  flag to replace them, so the question is whether the toolset axis is executable on this
+  harness at all. `docs/blockers.md` has the evidence.
+- **Later:** G3 (Study A, 480 trials), once the arms differ in something an agent can see.
+  Post-M8, squad-as-an-arm via a Harbor adapter.
 
 ## Blockers and open decisions
 
