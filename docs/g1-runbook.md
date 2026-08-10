@@ -1,6 +1,15 @@
 # Gate G1 runbook — one real trial, end to end
 
-This is the next milestone, written to be executed step by step without strategic context.
+> **Gate G1 passed on 2026-08-10.** This file is kept as the record of how, because G2 needs
+> the same environment and will meet the same class of problem. What it predicted — that the
+> environment was fine and the code was not — held: every precondition below passed first
+> try, and it took **seven** defects in code with 325 passing tests to get one trial through.
+> [`docs/blockers.md`](blockers.md) lists them and names the run.
+>
+> Steps 0, 2 and 4 are still the way to stand this up on a machine. Step 1 is now history
+> rather than instruction — the `--env` defect it names is fixed, and six more like it were
+> found the same way.
+
 It closes **gate G1** of [`execution-plan.md`](execution-plan.md) §M3, the first hard stop
 on this track.
 
@@ -113,8 +122,11 @@ cd ~/dev/adp/server && npm run dev
 Confirm it answers before going further:
 
 ```sh
-curl -fsS http://localhost:3000/health && echo " — ADP is up"
+curl -fsS http://localhost:3000/healthz && echo " — ADP is up"
 ```
+
+`/healthz` and `/readyz`, not `/health` — the latter 404s, which looks exactly like a server
+that has not finished starting.
 
 > A stale `adp-test-*-postgres` container from an earlier session may already be running while
 > the server is not. `docker ps | grep adp-test` tells you; `make down && make up` in the ADP
@@ -150,12 +162,18 @@ than producing a study that scored itself.
 
 `examples/smoke/study.yaml` names `adp: {owner: duva, repo: bench-smoke}`. That repository has
 to exist on the instance before a run can open against it — creating it is ADP's business, not
-duva-bench's. Create it through ADP's compat plane or its CLI, then confirm:
+duva-bench's:
 
 ```sh
-curl -fsS -H "Authorization: Bearer $DUVA_ADP_RUNNER_TOKEN" \
-  "$DUVA_ADP_BASE_URL/api/v3/repos/duva/bench-smoke" | head -20
+curl -fsS -X POST "$DUVA_ADP_BASE_URL/api/v3/repos/duva" \
+  -H "Authorization: Bearer $DUVA_ADP_RUNNER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"bench-smoke"}'
 ```
+
+A freshly created repository has **no commits and no refs**, which matters more than it sounds:
+ADP will not close a run against a sha it cannot resolve, so duva-bench publishes each trial's
+artifacts as a commit and closes against that. See `src/duva_bench/adp/artifacts.py`.
 
 If ADP names repositories differently than the study expects, **change the study file, not the
 client** — the study is data and is meant to be edited; the client encodes a contract.
@@ -172,6 +190,13 @@ Both could be wrong in the same direction, and only a live server can say.
 ```sh
 cd ~/dev/duva-bench
 PY=.venv/bin/python make test-contract
+```
+
+The tamper test shells out to `psql`. Where Postgres runs in a container and the host has no
+client, point `DUVA_ADP_PSQL` at one and make `DUVA_ADP_DB_URL` reachable from inside it:
+
+```sh
+export DUVA_ADP_PSQL="docker exec -i $(docker ps --format '{{.Names}}' | grep adp-test) psql"
 ```
 
 **Expect failures here, and treat them as the point of the exercise, not as an obstacle.**

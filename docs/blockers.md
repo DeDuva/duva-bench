@@ -4,67 +4,62 @@ What is built and unproven, and exactly what it would take to prove it. Kept the
 documents its blocked tasks: a gate that cannot be run is recorded as blocked, never as passed.
 
 The rule this file exists to enforce is the plan's, from §0.4 — *a done-condition that says "proven
-by test" means the test exists and passes*. Everything below has code, and does not have the
-evidence its gate demands. Nothing here is a claim that the code works; it is a claim about what was
-possible to check.
+by test" means the test exists and passes*.
 
-Last updated with the M8 commit on this branch, after every milestone had landed.
+**Gate G1 passed on 2026-08-10** and its section below is now a record rather than a plan. G2 and G3
+still have code and not the evidence their gates demand; nothing about them here is a claim that the
+code works, only a claim about what was possible to check.
 
 ---
 
-## Gate G1 — one real trial through Harbor · **BLOCKED**
+## Gate G1 — one real trial through Harbor · **PASSED 2026-08-10**
 
-**What the gate asks for:** one trial — smoke task, one real agent via Harbor, one real model —
-producing an ADP run whose `/verify` returns `ok: true`, whose labels round-trip through
-`GET /runs/compare`, and whose event chain holds at least one `tool_call` bridged from the Harbor
-trace.
+**Run** `a5c20876-d5ff-41af-95b5-114c9a8fddb6` in `duva/bench-smoke`, external ref
+`d1a38ec0faef:standard:json-normalizer:r3`, arm `standard` (`terminus-2@0.20.0`,
+`anthropic/claude-sonnet-4-5-20250929`), against a live ADP at contract `0.2.0`.
 
-**What was missing when this was written, and what is true now.** All three gaps below
-described the *remote session the code was written in*. Re-checked on the development machine on
-2026-08-10, none of them still holds:
+The gate as tightened on the same day (execution-plan §M3) asks for three things and got them:
 
-| # | What was missing | Status on 2026-08-10 |
-|---|---|---|
-| 1 | **A container runtime.** No Docker daemon, and none could be started. | **Available** — Docker 29.1.3 |
-| 2 | **A model.** No provider credentials, and the network policy would not reach a provider. | **Available** — `~/.config/squad/anthropic.env`; the 2026-08-08 probe spent $0.28 |
-| 3 | **A live ADP.** `DUVA_ADP_BASE_URL` had nowhere to point. | **Available** — `~/dev/adp` at contract `0.2.0`, matching the vendored spec, with a `make up` stack |
+| Condition | Result |
+|---|---|
+| `GET /verify` → `ok` | `true` |
+| ...and `envelope_verified` | `true` |
+| ...and `trajectory_digest_matches` | `true` (`attested_subject_sha` == `final_git_sha` == `66c321b3…`) |
+| Labels round-trip through `GET /runs/compare` | 13 labels, including `arm_digest`, `model_digest`, `harness_digest`, `toolset_digest` |
+| ≥ 1 bridged `tool_call` | **17**, out of 35 events (6 `message`, 5 `model_call`, 6 `custom`, 1 `test_result`) |
 
-Harbor `0.20.0` also installs on that machine and reports its own version.
+Scored under the grader identity on two axes, `separately_authorized: true`, verified by
+`duva-bench preflight` before any spend.
 
-**So G1 is no longer blocked by its environment; it is unrun.** The plan for running it is
-[`g1-runbook.md`](g1-runbook.md).
+### What it took, and what that says
 
-**One defect found without spending anything**, by reading Harbor 0.20.0's `--help` rather than
-its docs: `HarborExecutor.command()` passes arm environment pins as `--env NAME=value`, but in
-0.20.0 `--env` selects the *environment type* (`docker`, `modal`, `e2b`, …) and `KEY=VALUE` goes
-to `--agent-env`. Both smoke arms set `LANG=C.UTF-8`, so every trial would have failed before a
-container started. It is step 1 of the runbook rather than a pre-emptive patch, so that closing
-the gate is what proves the fix.
+Nothing about the environment blocked this gate; the three blockers recorded here before
+2026-08-10 described the remote session the code was written in. What blocked it was **seven
+defects in code that had 325 passing tests**, each invisible to a fixture and obvious within one
+real run:
 
-**What *was* established, so the gap is as small as it can be without those three:**
+1. **`--env` instead of `--agent-env`.** Harbor's `--env` picks the container backend; `KEY=VALUE`
+   goes to `--agent-env`. Every arm with an environment pin died before a container started.
+2. **A relative `--jobs-dir`.** Harbor resolves it against its own cwd, so output landed in a
+   doubly-nested path nothing could find.
+3. **`results.json` vs `result.json`.** Harbor writes the singular. The fixtures used the plural,
+   so the fixtures and the code agreed with each other and with nothing else.
+4. **Job results mistaken for trial results.** Harbor writes `result.json` twice — once per job,
+   once per trial — and "the newest one" is the job summary, which has no trajectory beside it.
+   A trial verified perfectly with **zero** events bridged.
+5. **No reward file.** Harbor decides pass/fail by reading `/logs/verifier/reward.txt`, not by exit
+   status. No task in this repository wrote one, so every trial died in the verifier.
+6. **`verifier_result.reward` vs `.rewards.reward`.** Two modules read the flat key that Harbor does
+   not write, so "the verifier passed" always read as "the verifier did not run".
+7. **Artifacts never reached the grader.** The work product lives in `/app`, which dies with the
+   container, and Harbor mirrors `/logs/artifacts` to `artifacts/logs/artifacts` rather than
+   flattening it. Graders scored 0 "never written" on tasks their own verifier passed.
 
-- Harbor 0.20.0 installs and imports on Python 3.12 (`pip install 'duva-bench[harbor]'`). It requires
-  ≥ 3.12 while this package supports 3.11, which is why the extra carries a `python_version` marker.
-- The trace format is ATIF (Agent Trajectory Interchange Format) v1.7, written by the agent to
-  `<trial>/agent/trajectory.json`, alongside `<trial>/results.json` (a `TrialResult`). The bridge is
-  written against those two files.
-- `tests/fixtures/harbor/terminus-2-json-normalizer/agent/trajectory.json` was **validated against
-  Harbor 0.20.0's own `Trajectory` model** when it was created, so the bridge's fixtures are
-  documents Harbor would accept rather than documents only this bridge would.
-- `tests/test_trial.py` drives the entire trial path — intent, run, labels, bridged events, close or
-  abandon, evidence gate, local record — against the in-memory ADP in `tests/fakes.py` and a
-  recorded Harbor trial directory.
-
-**To close it:** on a machine with Docker, a provider key, and an ADP (see
-`tests/contract/README.md`), run
-
-```sh
-duva-bench preflight examples/smoke/study.yaml
-duva-bench trial examples/smoke/study.yaml --task json-normalizer --arm standard
-```
-
-and check the printed `run_id` with `GET /runs/{id}/verify` and `GET /runs/compare?intent_id=`.
-Then replace this section with the run id and the date.
+Six of the seven were assumptions about *another program's* interface, written from its docs and
+pinned by fixtures this project also wrote. That is the whole lesson of this gate, and it is why
+`tests/test_harbor_cli.py` now asserts the adapter's flags against `harbor run --help` instead of
+against a recorded copy of its own output. The `harbor` marker had been declared since M0 and used
+by zero tests.
 
 ## Gate G2 — the smoke study end to end · **BLOCKED**
 
@@ -96,17 +91,25 @@ Nothing in it has been executed. Its `report/` directory is deliberately absent:
 look like a study that produced nothing, and a populated one would have to be populated with
 something invented.
 
-## The live-ADP contract suite · **NOT RUN**
+## The live-ADP contract suite · **PASSES as of 2026-08-10**
 
-`tests/contract/` is written and has never executed: no ADP instance was reachable. Its
+All 13 tests in `tests/contract/` pass against a live ADP at contract `0.2.0`. They had never
+executed before that date, and the first run failed 5 of 13 — which was the point of writing them.
+
+`duva_bench/adp/models.py` is hand-written from ADP's *source* rather than from its spec, because the
+spec attaches no response schemas, and `tests/fakes.py` reproduced the same reading. Both being wrong
+in the same direction is exactly what happened: the double accepted any 40-hex `final_git_sha`, so
+325 unit tests agreed with a client that could not close a single real run (finding #5 in
+`adp-contract-findings.md`). The double now enforces the rule the server enforces.
+
+The tamper-evidence test needs `psql`. Where Postgres runs in a container and no client is installed
+on the host, point `DUVA_ADP_PSQL` at one — e.g.
+`DUVA_ADP_PSQL="docker exec -i <postgres-container> psql"`. It is not allowed to skip: a
+tamper-evidence test that quietly does not run on the machine where somebody is about to trust the
+evidence is worse than no test.
+
 `.github/workflows/adp-contract.yml` was written from ADP's own Makefile and `server/src/bootstrap.ts`
-at commit `b3a455e8`, and has not run either.
-
-This matters more than the usual "tests not run" line, because `duva_bench/adp/models.py` is
-hand-written from ADP's *source* rather than from its spec — the spec attaches no response schemas.
-The response shapes here were read off `server/src/http-rest/runs.ts`, `core/runs.ts`,
-`core/evals.ts` and `core/trajectory.ts` at that commit, and `tests/fakes.py` reproduces what those
-files do. Both could be wrong in the same direction, and only a live server can say.
+at commit `b3a455e8` and **has still not run in CI**.
 
 ## Playwright walk (M7) · **PASSES, against the ADP double**
 

@@ -280,3 +280,15 @@ class Issue(AdpModel):
     title: str | None = None
     intent_id: str
     html_url: str | None = None
+
+
+class GitObject(AdpModel):
+    """A blob, tree or commit that ADP's compat plane just wrote.
+
+    All four git-data writes answer with the sha of what they created, and that
+    sha is the only part duva-bench uses: the artifact commit exists so a run
+    has something resolvable to close against (see ``adp/artifacts.py``), not so
+    anything here can read git back out.
+    """
+
+    sha: str

@@ -23,6 +23,7 @@ true.
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import json
 import uuid
@@ -142,6 +143,15 @@ class FakeAdp:
     events: dict[str, list[FakeEvent]] = field(default_factory=dict)  # session id -> events
     seen_client_ids: dict[str, set[str]] = field(default_factory=dict)
     evals: list[FakeEval] = field(default_factory=list)
+    # Git data. `commits` is the set of shas this repository can resolve, and
+    # `_close` refuses anything outside it — the real server does exactly that,
+    # and a double that accepted any 40-hex string is what let a trial runner
+    # closing against the all-zero sha stay green through 325 tests while being
+    # unable to close a single real run.
+    blobs: dict[str, str] = field(default_factory=dict)
+    trees: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    commits: dict[str, dict[str, Any]] = field(default_factory=dict)
+    refs: dict[str, str] = field(default_factory=dict)
 
     requests: list[httpx.Request] = field(default_factory=list)
     # Set to a status code to make the next call fail, for retry paths.
@@ -153,6 +163,19 @@ class FakeAdp:
     @property
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self.handle)
+
+    def seed_commit(self, message: str = "seeded") -> str:
+        """Register a resolvable commit and return its sha.
+
+        For tests about something other than publishing: closing a run needs a
+        commit the repository can resolve, so a test that just wants a *closed*
+        run needs one commit and no opinion about its contents.
+        """
+        tree = _sha1_like("tree", message)
+        self.trees[tree] = []
+        sha = _sha1_like("commit", tree + message)
+        self.commits[sha] = {"tree": tree, "message": message}
+        return sha
 
     def tamper(self, run_id: str, *, at_seq: int = 2) -> None:
         """Edit a stored event, the way an attacker or a bug would."""
@@ -204,6 +227,10 @@ class FakeAdp:
             if method == "POST":
                 return self._create_issue(body)
             return self._json(200, self.issues)
+
+        # /api/v3/repos/{owner}/{repo}/git/{blobs,trees,commits,refs}
+        if segments[:2] == ["api", "v3"] and "git" in segments and method == "POST":
+            return self._git_write(segments[segments.index("git") + 1], body)
 
         if segments[:2] != ["api", "adp"]:
             raise _NotFound(f"/{'/'.join(segments)}")
@@ -393,10 +420,52 @@ class FakeAdp:
             },
         )
 
+    def _git_write(self, kind: str, body: dict[str, Any]) -> httpx.Response:
+        """Blobs, trees, commits and refs, addressed the way git addresses them.
+
+        Content-addressed rather than counter-addressed, so that writing the
+        same artifact twice yields the same sha and a test can assert on it.
+        """
+        if kind == "refs":
+            ref, sha = str(body["ref"]), str(body["sha"])
+            if sha not in self.commits:
+                return self._json(422, {"message": f"commit '{sha}' could not be resolved"})
+            self.refs[ref] = sha
+            return self._json(201, {"ref": ref, "object": {"sha": sha, "type": "commit"}})
+
+        if kind == "blobs":
+            content = str(body.get("content", ""))
+            sha = _sha1_like("blob", content)
+            self.blobs[sha] = content
+            return self._json(201, {"sha": sha})
+
+        if kind == "trees":
+            entries = list(body.get("tree", []))
+            sha = _sha1_like("tree", repr(sorted(str(e) for e in entries)))
+            self.trees[sha] = entries
+            return self._json(201, {"sha": sha})
+
+        if kind == "commits":
+            tree = str(body.get("tree", ""))
+            if tree not in self.trees:
+                return self._json(422, {"message": f"tree '{tree}' could not be resolved"})
+            sha = _sha1_like("commit", tree + str(body.get("message", "")))
+            self.commits[sha] = {"tree": tree, "message": body.get("message")}
+            return self._json(201, {"sha": sha})
+
+        raise _NotFound(f"git/{kind}")
+
     def _close(self, run_id: str, body: dict[str, Any]) -> httpx.Response:
         run = self.runs[run_id]
         if run.status == "abandoned":
             return self._json(409, {"message": "cannot close an abandoned run"})
+        final = str(body["final_git_sha"])
+        # The rule the real server enforces, and the reason this double has it:
+        # ADP will not attest a commit it cannot show anyone later.
+        if final not in self.commits:
+            return self._json(
+                422, {"message": f"commit '{final}' could not be resolved in this repository"}
+            )
         run.status = "closed"
         run.final_git_sha = str(body["final_git_sha"])
         run.closed_at = "2026-08-07T01:00:00.000Z"
@@ -633,6 +702,11 @@ def _comparison_eval(record: FakeEval) -> dict[str, Any]:
         "gateStatus": "success" if record.passed else "failure",
         "createdAt": record.created_at,
     }
+
+
+def _sha1_like(kind: str, payload: str) -> str:
+    """A 40-hex sha for a fake object. Not git\'s algorithm, just its shape."""
+    return hashlib.sha1(f"{kind}\0{payload}".encode()).hexdigest()
 
 
 def _digest(spec: Any) -> str:

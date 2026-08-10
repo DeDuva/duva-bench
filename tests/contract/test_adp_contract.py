@@ -8,6 +8,7 @@ remove is a workaround that outlives its bug.
 from __future__ import annotations
 
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -28,7 +29,27 @@ from duva_bench.adp.version import VERSION_HEADER, assert_api_version
 pytestmark = pytest.mark.contract
 
 NULL_SHA = "0" * 40
-FAKE_SHA = "b" * 40
+
+
+def _resolvable_sha(client: AdpClient, owner: str, repo: str) -> str:
+    """A commit this repository can actually resolve.
+
+    This used to be the constant ``FAKE_SHA = "b" * 40``, and every test that
+    closed a run with it failed the first time this suite met a live server:
+    ADP rejects a ``final_git_sha`` it cannot resolve, because it will not
+    attest a commit nobody can fetch later. A 40-hex string is the right
+    *shape* and the wrong *thing*, which is exactly the class of mistake a
+    hand-written double cannot catch — `tests/fakes.py` accepted any sha, so
+    325 unit tests agreed with a client that could not close a single run.
+    """
+    tree = client.create_tree(
+        owner,
+        repo,
+        entries=[
+            {"path": "contract.txt", "mode": "100644", "type": "blob", "content": uuid.uuid4().hex}
+        ],
+    )
+    return client.create_commit(owner, repo, message="contract suite", tree=tree, parents=[])
 
 
 def _open_run(client: AdpClient, owner: str, repo: str, intent_id: str) -> str:
@@ -70,10 +91,27 @@ def test_an_event_without_a_payload_is_accepted(
     assert receipt.appended == 1
 
 
-def test_a_payload_less_event_is_still_rejected_by_the_server(
+def test_the_server_now_accepts_a_payload_less_event_but_the_workaround_stays(
     client: AdpClient, owner: str, repo: str, intent_id: str, base_url: str
 ) -> None:
-    """The bug itself, asserted directly rather than through the workaround."""
+    """The bug is fixed server-side, and the workaround still has to stay.
+
+    This assertion used to read ``== 500``, as a canary that would fail the day
+    ADP fixed the column and tell us to drop `payload: {}`. It fired on
+    2026-08-10, and the instruction it carried turned out to be wrong.
+
+    ADP fixed the column in `3b4af01` on 2026-08-08 **without bumping the API
+    contract version** — it was 0.2.0 before and 0.2.0 after. So "the server
+    reports 0.2.0" does not tell a client whether payload-less events are
+    accepted, and there is no version a client could assert to find out. Two
+    deployments both honestly serving 0.2.0 can disagree about this, and the
+    only behaviour that works against both is to keep sending `payload: {}`.
+
+    The canary was right that the server changed and wrong that the workaround
+    could go. What it could not see is that a fix and a contract are different
+    things: this one is invisible from the wire, so a consumer has to keep
+    coding for the older behaviour until a version bump lets it stop.
+    """
     run_id = _open_run(client, owner, repo, intent_id)
     session = client.create_session(owner, repo, harness="duva-bench", run_id=run_id)
     response = httpx.post(
@@ -82,10 +120,15 @@ def test_a_payload_less_event_is_still_rejected_by_the_server(
         headers={"Authorization": f"Bearer {os.environ['DUVA_ADP_RUNNER_TOKEN']}"},
         timeout=30,
     )
-    assert response.status_code == 500, (
-        "ADP now accepts an event with no payload. Remove the workaround in "
-        "AdpClient.append_events and this test with it (docs/adp-contract-findings.md #1)."
+    assert response.status_code in (200, 201), (
+        f"expected this ADP to accept a payload-less event, got {response.status_code}. "
+        "Both behaviours ship as 0.2.0; see docs/adp-contract-findings.md #1."
     )
+
+    # The workaround is the actual subject here, so assert it is still in force
+    # rather than leaving it to a comment somebody deletes.
+    receipt = client.append_events(owner, repo, session.id, [{"kind": "message"}])
+    assert receipt.appended == 1
 
 
 # --- §3.2 the response shapes -----------------------------------------------
@@ -147,7 +190,8 @@ def test_compare_rows_are_camel_case_and_carry_labels_and_axes(
 ) -> None:
     """The naming split is real; so is `evals[]`, which analysis reads per axis."""
     run_id = _open_run(client, owner, repo, intent_id)
-    client.close_run(owner, repo, run_id, final_git_sha=FAKE_SHA)
+    sha = _resolvable_sha(client, owner, repo)
+    client.close_run(owner, repo, run_id, final_git_sha=sha)
     for axis in ("acceptance", "robustness"):
         client.report_eval(owner, repo, run_id, name=axis, passed=True, score=1.0)
 
@@ -156,7 +200,7 @@ def test_compare_rows_are_camel_case_and_carry_labels_and_axes(
 
     assert row.labels.get("suite") == "contract"
     assert {result.name for result in row.evals} == {"acceptance", "robustness"}
-    assert row.final_git_sha == FAKE_SHA
+    assert row.final_git_sha == sha
 
 
 # --- §3.3 intents, and identity separation ----------------------------------
@@ -188,7 +232,8 @@ def test_a_clean_run_verifies(client: AdpClient, owner: str, repo: str, intent_i
     client.append_events(
         owner, repo, session.id, [{"kind": "message", "payload": {"i": 1}, "producer_seq": 1}]
     )
-    client.close_run(owner, repo, run_id, final_git_sha=FAKE_SHA)
+    sha = _resolvable_sha(client, owner, repo)
+    client.close_run(owner, repo, run_id, final_git_sha=sha)
 
     verdict = verify_gate(client, owner, repo, run_id)
     assert verdict.ok, verdict.summary()
@@ -202,6 +247,16 @@ def test_a_tampered_event_makes_the_gate_return_error(
     Needs database access, because the whole claim is that the *API* offers no
     way to do this. `DUVA_ADP_DB_URL` points at the same Postgres ADP is using;
     `psql` does the edit.
+
+    `DUVA_ADP_PSQL` overrides how `psql` is reached, as a shell-style argument
+    list. It exists because the usual local setup runs Postgres in a container
+    and does not install a client on the host, e.g.
+
+        DUVA_ADP_PSQL="docker exec -i adp-test-xxxx-postgres-1 psql"
+
+    Deliberately not a skip. A tamper-evidence test that quietly does not run
+    on the machine where somebody is about to trust the evidence is worse than
+    no test, so a missing `psql` is a failure with instructions attached.
     """
     database = os.environ.get("DUVA_ADP_DB_URL")
     if not database:
@@ -221,12 +276,14 @@ def test_a_tampered_event_makes_the_gate_return_error(
             {"kind": "message", "payload": {"i": 2}, "producer_seq": 2},
         ],
     )
-    client.close_run(owner, repo, run_id, final_git_sha=FAKE_SHA)
+    sha = _resolvable_sha(client, owner, repo)
+    client.close_run(owner, repo, run_id, final_git_sha=sha)
     assert verify_gate(client, owner, repo, run_id).ok, "the run did not verify before tampering"
 
+    psql = shlex.split(os.environ.get("DUVA_ADP_PSQL", "psql"))
     edit = subprocess.run(
         [
-            "psql",
+            *psql,
             database,
             "-c",
             "update session_events set payload = '{\"i\": 99}'::jsonb "
@@ -236,7 +293,11 @@ def test_a_tampered_event_makes_the_gate_return_error(
         text=True,
         timeout=60,
     )
-    assert edit.returncode == 0, edit.stderr
+    assert edit.returncode == 0, (
+        f"{' '.join(psql)} failed: {edit.stderr}\n"
+        "If psql is not installed on this host, point DUVA_ADP_PSQL at one, e.g. "
+        '\'docker exec -i <postgres-container> psql\'.'
+    )
 
     verdict = verify_gate(client, owner, repo, run_id)
     assert verdict.status == "ERROR"
@@ -281,7 +342,8 @@ def test_a_sigkilled_recorder_resumes_gap_free_against_a_real_adp(
 
     with Recorder(client, owner, repo, session.id, Spool(tmp_path)) as recorder:
         recorder.flush(timeout=30)
-    client.close_run(owner, repo, run_id, final_git_sha=FAKE_SHA)
+    sha = _resolvable_sha(client, owner, repo)
+    client.close_run(owner, repo, run_id, final_git_sha=sha)
 
     verdict = verify_gate(client, owner, repo, run_id)
     assert verdict.ok, verdict.summary()

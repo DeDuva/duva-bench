@@ -46,44 +46,44 @@ a real model and a live ADP.
 | *Track pause* | *lifted 2026-08-08* | A probe ran Harbor end to end on the development machine twice (oracle + a real `claude-code` trial, $0.28) — see the plan's probe section |
 | M0 — scaffold | code landed | Package, CLI, `make check`, CI on 3.11 + 3.12 |
 | M1 — study spec and digest | code landed | `examples/smoke/study.yaml` validates; digest `sha256:d1a38ec0…` |
-| M2 — ADP recording core | code landed, **contract suite never run** | Client, spool, recorder, evidence gate, preflight. `adp/models.py` is hand-written from ADP's *source* — the OpenAPI document attaches no response schemas — and `tests/fakes.py` reproduces the same reading, so both could be wrong together. The 13 tests in `tests/contract/` have never met a live server |
-| M3 — one Harbor trial end to end | code landed, **gate G1 not run** | **The next milestone.** See [`docs/g1-runbook.md`](docs/g1-runbook.md) |
+| M2 — ADP recording core | code landed, **contract suite passes** | 13/13 against a live ADP at contract `0.2.0` (2026-08-10, first ever run — 5 failed initially). `adp/models.py` is hand-written from ADP's *source*; `tests/fakes.py` reproduced the same misreading and now enforces the server's rules |
+| M3 — one Harbor trial end to end | **gate G1 PASSED 2026-08-10** | Run `a5c20876-d5ff-41af-95b5-114c9a8fddb6`: `ok`, `envelope_verified`, `trajectory_digest_matches` all true; 13 labels round-trip; **17 bridged `tool_call` events**. Took seven real defects to get there — see [`docs/blockers.md`](docs/blockers.md) |
 | M4 — arms and twin instruments | code landed | Twin generator, doc bundles, grader runner with a stripped environment |
 | M5 — factorial scheduler | code landed | Budget cap, per-provider pacing, resumable via `progress.jsonl` |
-| M6 — analysis and report | code landed, **gate G2 not run** | Reconciliation is proven against the in-memory ADP double, not a server |
+| M6 — analysis and report | code landed, **gate G2 not run** | **The next milestone.** Reconciliation is proven against the in-memory ADP double, not a server |
 | M7 — API server and web UX | code landed | Playwright walk passes against `scripts/dev-server.py`'s ADP double, not a real study |
 | M8 — Study A, for real | **defined, not executed** | `studies/a-tool-familiarity/` — 16 arms × 6 tasks × 5 reps = 480 trials, digest `sha256:5c83036c…`. **Gate G3.** Reaching it with a shared task set is the stated precondition of the squad track's cross-track memo (its gate SG3b) |
 
 ## Now / Next / Later
 
-- **Now:** nothing in flight.
-- **Next:** **close gate G1** — one real trial, verified, with a bridged `tool_call`.
-  Branch `feat/g1-first-trial`, one PR. The step-by-step plan is
-  [`docs/g1-runbook.md`](docs/g1-runbook.md). Deliberately stops before G2.
-- **Later:** G2 (the eight-trial smoke study and a report that reconciles against a
-  direct ADP read), then G3 (Study A). Post-M8, squad-as-an-arm via a Harbor adapter.
+- **Now:** nothing in flight. Gate G1 closed on 2026-08-10.
+- **Next:** **gate G2** — the eight-trial smoke study end to end (`duva-bench run` then
+  `duva-bench report`), with every number in the report reconciled against a direct ADP
+  read by a test. G1's runbook ([`docs/g1-runbook.md`](docs/g1-runbook.md)) is now a
+  record of how the first trial was made to work and is the right model for G2's.
+- **Later:** G3 (Study A, 480 trials). Post-M8, squad-as-an-arm via a Harbor adapter.
 
 ## Blockers and open decisions
 
-- **G1's three recorded blockers are gone on the development machine.** Verified
-  2026-08-10: Docker 29.1.3 runs; `harbor==0.20.0` installs and reports its version;
-  `~/dev/adp` is checked out at contract **0.2.0**, matching the vendored spec, with a
-  `make up` stack; provider credentials are in `~/.config/squad/`. The blocker list that
-  said otherwise described the remote session the code was written in, not this machine.
-- **The Harbor `--env` flag is wrong in the adapter** (verified 2026-08-10 against
-  Harbor 0.20.0's own `--help`). `HarborExecutor.command()` passes arm environment pins
-  as `--env NAME=value`, but in 0.20.0 `--env` selects the *environment type* (`docker`,
-  `modal`, `e2b`, …); `KEY=VALUE` goes to `--agent-env`. Both smoke arms set
-  `LANG=C.UTF-8`, so **every trial would fail before a container started.** Fixed as
-  step 1 of the G1 runbook.
-- **No test exercises Harbor.** The `harbor` pytest marker is declared in
-  `pyproject.toml` and used by zero tests, so `make check` excluding it excludes nothing.
-  The whole Harbor seam is covered only by recorded fixtures. Closing G1 should leave at
-  least one marked test behind.
+- **None blocking G2.** Verified 2026-08-10 by closing G1 on this machine: Docker 29.1.3,
+  `harbor==0.20.0`, a live ADP at contract `0.2.0`, provider credentials, a verified run
+  with a signed attestation and a graded pair of axes.
+- **Study A's six tasks carry the same fixes as the smoke tasks and none of the
+  evidence.** The reward-file and artifact-publishing defects that stopped every trial
+  were fixed across all eight tasks, but only the two smoke tasks have actually been run.
+  Do not treat `studies/a-tool-familiarity/` as working until G2's machinery has executed
+  at least one of its tasks.
+- **The ADP contract suite has never run in CI.** It passes locally against a live server;
+  `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
+  pinned by a suite one person runs by hand.
+- **`--n-concurrent 1` per trial is not the study's concurrency.** duva-bench schedules the
+  factorial itself, so G2 is the first time several Harbor jobs run at once on this
+  machine. Container and disk pressure at 8 trials is unmeasured, let alone at 480.
 - **Harbor token accounting was wrong for `claude-code`** (verified 2026-08-08:
   `total_input_tokens: 0` in `results.json` while the agent log carried full usage).
-  Whether `terminus-2` behaves the same way is unknown and is checked in the G1 runbook.
-  Every cost figure on this track depends on the answer.
+  Five `model_call` events bridged in G1's run, so `terminus-2` reports *something*;
+  whether the tokens and cost on them are right has **not** been reconciled against the
+  agent log. G2 is where that has to be checked, because every cost figure depends on it.
 - **Multi-CLI arms (M4+) need more agent CLIs.** Verified 2026-08-08: only `claude` is
   installed locally; `codex` and `aider` are absent. Install them before designing
   multi-CLI arms, or scope arms to what is present.

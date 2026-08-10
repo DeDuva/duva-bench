@@ -23,18 +23,25 @@ This file only carries what that plan does not.
 
 ## State
 
-**Every milestone has code; no gate has been run.** M0–M8 landed as one branch written
-during the track pause, when no container, no model and no live ADP were reachable. The
-code is real and `make check` passes over it. What none of it has is the evidence its
-gates demand — nothing on this track has produced a result.
+**Gate G1 passed on 2026-08-10; G2 and G3 have not run.** One real trial went through
+Harbor to a live ADP with a signed attestation. No *study* has been executed, so nothing
+here is yet a result about any agent.
 
 The distinction the ledger draws, and that you must keep drawing: *code landed* is not
 *gate passed*. When you touch a milestone, do not describe it as done because its tests
 are green; `ROADMAP.md` says which of the two it is.
 
-**The next milestone is gate G1** — one real trial, verified, with a bridged `tool_call`.
-`docs/g1-runbook.md` is that plan, step by step, and it starts with a known defect in the
-Harbor adapter that will fail the first trial.
+**Read `docs/blockers.md` before writing anything that talks to Harbor or ADP.** Closing
+G1 took seven defects out of code that had 325 passing tests, and six of them were the
+same mistake: a plausible reading of another program's interface, pinned by a fixture
+written from the same reading. A fixture you wrote tests your reading, not the program.
+Where the counterpart is a program rather than a document, at least one test has to talk
+to it — `tests/test_harbor_cli.py` checks the adapter's flags against `harbor run --help`,
+and `tests/test_bridge.py` bridges a trajectory a real agent actually wrote.
+
+**The next milestone is gate G2** — the eight-trial smoke study, `run` then `report`, with
+every number reconciled against a direct ADP read. `docs/g1-runbook.md` is the record of
+how G1 was closed and is the model for doing G2.
 
 **This is the Harbor track, one of two.** The **squad track** lives in the squad fork at
 `packages/duva-bench` (`github.com/DeDuva/squad`, branch `dev`) and has already executed

@@ -1,0 +1,19 @@
+{
+  "id": "7d65e643-2bfa-4248-93fb-878eafc6f6e5",
+  "task_name": "json-normalizer",
+  "trial_name": "json-normalizer__2Q7BZYb",
+  "verifier_result": {
+    "rewards": {
+      "reward": 1.0
+    }
+  },
+  "agent_info": {
+    "name": "terminus-2",
+    "version": "2.0.0",
+    "model_info": {
+      "name": "claude-sonnet-4-5-20250929",
+      "provider": "anthropic"
+    }
+  },
+  "exception_info": null
+}

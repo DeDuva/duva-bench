@@ -49,7 +49,7 @@ def test_a_missing_token_is_refused() -> None:
 def test_evals_are_reported_under_the_grader_token(adp: FakeAdp, client: AdpClient) -> None:
     intent = client.mint_intent("duva", "bench", title="t")
     run = client.create_run("duva", "bench", intent_id=intent.intent_id, orchestrator="duva-bench")
-    client.close_run("duva", "bench", run.id, final_git_sha="a" * 40)
+    client.close_run("duva", "bench", run.id, final_git_sha=adp.seed_commit())
 
     recorded = client.report_eval(
         "duva", "bench", run.id, name="acceptance", passed=True, score=1.0
@@ -253,10 +253,10 @@ def test_an_error_response_carries_its_status(client: AdpClient) -> None:
 # --- the evidence gate ------------------------------------------------------
 
 
-def test_a_clean_verification_is_verified(client: AdpClient) -> None:
+def test_a_clean_verification_is_verified(adp: FakeAdp, client: AdpClient) -> None:
     intent = client.mint_intent("duva", "bench", title="t")
     run = client.create_run("duva", "bench", intent_id=intent.intent_id, orchestrator="duva-bench")
-    client.close_run("duva", "bench", run.id, final_git_sha="a" * 40)
+    client.close_run("duva", "bench", run.id, final_git_sha=adp.seed_commit())
 
     verdict = verify_gate(client, "duva", "bench", run.id)
 
@@ -426,12 +426,25 @@ def test_a_call_missing_a_required_field_is_a_programming_error(client: AdpClien
         )
 
 
-def test_only_one_compat_plane_path_is_generated() -> None:
-    """The compat plane is not a second door; it is one door, named."""
+def test_the_compat_plane_paths_are_exactly_the_named_ones() -> None:
+    """The compat plane is not a second door; it is a few doors, each named.
+
+    The point of pinning the set is that adding one has to be a deliberate edit
+    to `tools/generate_adp_client.py` with a reason attached, rather than a
+    prefix rule that quietly widens. Two reasons exist so far: intents have no
+    native endpoint, and closing a run needs a commit that resolves in the
+    repository — which a Harbor trial does not otherwise produce.
+    """
     from duva_bench.adp._generated import OPERATIONS
 
     compat = {op.path for op in OPERATIONS.values() if op.path.startswith("/api/v3")}
-    assert compat == {"/api/v3/repos/{owner}/{repo}/issues"}
+    assert compat == {
+        "/api/v3/repos/{owner}/{repo}/issues",
+        "/api/v3/repos/{owner}/{repo}/git/blobs",
+        "/api/v3/repos/{owner}/{repo}/git/trees",
+        "/api/v3/repos/{owner}/{repo}/git/commits",
+        "/api/v3/repos/{owner}/{repo}/git/refs",
+    }
 
 
 def _receipt(payload: dict[str, object]) -> object:

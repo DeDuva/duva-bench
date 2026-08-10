@@ -7,20 +7,19 @@ with verifiable trajectories, separately-authorized scoring, and pre-registered 
 Benchmarks rank agents. duva-bench isolates *why* one arm beats another, and produces evidence a
 third party can re-verify rather than a number they have to trust.
 
-**Status: M0–M8 built; gates G1, G2 and G3 unproven.** Every milestone of the
-[execution plan](docs/execution-plan.md) has code and tests, and `make check` passes. What none of
-it has is the evidence its gates demand: no trial has been executed against a real container, a
-real model and a live ADP, so **nothing here claims to have produced a result.**
-[`docs/blockers.md`](docs/blockers.md) says exactly what each gate is still missing.
+**Status: gate G1 passed 2026-08-10 — one real trial, verified end to end.** A smoke task ran in a
+container through Harbor with a real agent (`terminus-2`) and a real model, was recorded to a live
+ADP, and came back with `ok: true`, `envelope_verified: true` and `trajectory_digest_matches: true`
+— a signed attestation binding the arm's digests to the trajectory and to a commit holding the work
+product. 17 `tool_call` events were bridged from the real trace, and two axes were scored under a
+separate grader identity. [`docs/blockers.md`](docs/blockers.md) has the run id and the seven
+defects it took to get there, none of which the 325 passing unit tests could see.
+
+**Gates G2 and G3 are still unrun.** No study has been executed and no report produced, so nothing
+here is a result about any agent. [`ROADMAP.md`](ROADMAP.md) is the status ledger.
 
 This repo is the **Harbor track**, one of two tracks meant to run in parallel; the **squad track**
-(`github.com/DeDuva/squad`, `packages/duva-bench`) has executed S0–S7 including a live pilot. This
-track was paused because its dependencies could not be configured from a remote session, and all of
-the code above was written under that pause. **A probe on 2026-08-08 ran Harbor end to end on the
-development machine — container build, a real agent CLI, a real model, real cost — and nothing
-blocked.** See [Track status](docs/execution-plan.md#the-2026-08-08-probe--the-record-that-lifted-the-pause)
-for the probe, how to reproduce it, and two defects it surfaced.
-[`ROADMAP.md`](ROADMAP.md) is the status ledger.
+(`github.com/DeDuva/squad`, `packages/duva-bench`) has executed S0–S7 including a live pilot.
 
 The ["Why duva-bench" page](docs/html/index.html) (published via GitHub Pages) carries the full
 motivation, the prior-art survey, and the case for the architecture.
