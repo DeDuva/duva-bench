@@ -52,6 +52,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     digest.set_defaults(handler=_digest)
 
+    preflight = subcommands.add_parser(
+        "preflight", help="Check the ADP contract and the identity separation"
+    )
+    preflight.add_argument("study", type=Path)
+    preflight.set_defaults(handler=_preflight)
+
+    trial = subcommands.add_parser("trial", help="Run a single trial")
+    trial.add_argument("study", type=Path)
+    trial.add_argument("--task", required=True)
+    trial.add_argument("--arm", required=True)
+    trial.add_argument("--repetition", type=int, default=1)
+    trial.add_argument("--state-dir", type=Path, default=None)
+    trial.set_defaults(handler=_trial)
+
     return parser
 
 
@@ -93,6 +107,41 @@ def _digest(args: argparse.Namespace) -> int:
     else:
         _print_json({arm.id: arm.arm_digest for arm in study.arms})
     return 0
+
+
+def _preflight(args: argparse.Namespace) -> int:
+    from duva_bench.adp.preflight import preflight
+    from duva_bench.env import adp_credentials
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    with adp_credentials().client() as client:
+        result = preflight(client, study.adp.owner, study.adp.repo, strict=False)
+    _print_json(
+        {
+            "ok": result.ok,
+            "contract_version": result.contract_version,
+            "reporter_principal": result.reporter_principal,
+            "separately_authorized": result.separately_authorized,
+        }
+    )
+    return 0 if result.ok else 1
+
+
+def _trial(args: argparse.Namespace) -> int:
+    from duva_bench.exec.trial import Trial, run_trial
+    from duva_bench.state import StateDir
+    from duva_bench.study.load import load_study
+
+    study = load_study(args.study)
+    record = run_trial(
+        study,
+        Trial(task_id=args.task, arm_id=args.arm, repetition=args.repetition),
+        state=StateDir.for_study(study, args.state_dir),
+        study_dir=args.study.parent,
+    )
+    _print_json(record.model_dump(mode="json"))
+    return 0 if record.ok else 1
 
 
 def main(argv: Sequence[str] | None = None) -> int:
