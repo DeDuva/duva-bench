@@ -19,12 +19,27 @@ producing an ADP run whose `/verify` returns `ok: true`, whose labels round-trip
 `GET /runs/compare`, and whose event chain holds at least one `tool_call` bridged from the Harbor
 trace.
 
-**What is missing, precisely:**
+**What was missing when this was written, and what is true now.** All three gaps below
+described the *remote session the code was written in*. Re-checked on the development machine on
+2026-08-10, none of them still holds:
 
-1. **A container runtime.** Harbor runs one container per trial. The environment this was built in
-   has no Docker daemon and cannot start one.
-2. **A model.** No provider credentials, and the network policy would not reach a provider anyway.
-3. **A live ADP.** `DUVA_ADP_BASE_URL` has nowhere to point; no ADP instance and no Postgres.
+| # | What was missing | Status on 2026-08-10 |
+|---|---|---|
+| 1 | **A container runtime.** No Docker daemon, and none could be started. | **Available** — Docker 29.1.3 |
+| 2 | **A model.** No provider credentials, and the network policy would not reach a provider. | **Available** — `~/.config/squad/anthropic.env`; the 2026-08-08 probe spent $0.28 |
+| 3 | **A live ADP.** `DUVA_ADP_BASE_URL` had nowhere to point. | **Available** — `~/dev/adp` at contract `0.2.0`, matching the vendored spec, with a `make up` stack |
+
+Harbor `0.20.0` also installs on that machine and reports its own version.
+
+**So G1 is no longer blocked by its environment; it is unrun.** The plan for running it is
+[`g1-runbook.md`](g1-runbook.md).
+
+**One defect found without spending anything**, by reading Harbor 0.20.0's `--help` rather than
+its docs: `HarborExecutor.command()` passes arm environment pins as `--env NAME=value`, but in
+0.20.0 `--env` selects the *environment type* (`docker`, `modal`, `e2b`, …) and `KEY=VALUE` goes
+to `--agent-env`. Both smoke arms set `LANG=C.UTF-8`, so every trial would have failed before a
+container started. It is step 1 of the runbook rather than a pre-emptive patch, so that closing
+the gate is what proves the fix.
 
 **What *was* established, so the gap is as small as it can be without those three:**
 
