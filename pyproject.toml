@@ -71,6 +71,10 @@ extend-exclude = ["src/duva_bench/adp/_generated"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# The factorial is written `model × harness × toolset` in the plan, in the
+# README, and on the published page. Spelling it `x` in the code so a linter
+# stops flagging the multiplication sign would make the code the odd one out.
+ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.mypy]
 python_version = "3.11"
