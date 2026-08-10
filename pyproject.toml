@@ -40,6 +40,12 @@ dev = [
   "ruff>=0.5",
   "mypy>=1.10",
   "types-PyYAML",
+  # The server extra is a *runtime* option and a *development* requirement:
+  # `mypy --strict` cannot check duva_bench.server without FastAPI's types, and
+  # a type check that silently skips a package is a type check that passes by
+  # not looking. Harbor is not here for the same reason it is optional at all —
+  # it needs Python >= 3.12, and this package still supports 3.11.
+  "duva-bench[server]",
 ]
 
 [project.scripts]
