@@ -129,3 +129,28 @@ server listened on `::1` only while Playwright polled `http://127.0.0.1:4173`, s
 passes `--host 127.0.0.1` explicitly, pinning both ends to one address family. The lesson
 generalizes: "passes on my machine" and "passes in CI" differ by the whole environment, and a
 green local walk is not evidence until CI has run it once.
+
+## Where "it passes locally" stopped meaning anything (2026-08-10)
+
+Twice in one day, on this branch, a change passed every local check and failed CI — and
+neither failure was flaky. They are recorded together because they are the same shape: **the
+development machine has things CI does not, and the local gate silently tested a different
+world.**
+
+1. **The Playwright walk.** Vite's `preview` host defaults to the *name* `localhost`, which
+   Node 17+ resolves to `::1` first. On an IPv6 runner the server listened on `::1` only while
+   the probe polled `127.0.0.1`, and the job died at the webServer timeout with both suites
+   unrun — no failing test, no stack, just silence. Fixed by binding `--host 127.0.0.1`.
+2. **`HarborExecutor.command`.** Resolving the Harbor binary inside it made building an argv
+   depend on Harbor being *installed*. This machine has Harbor; CI does not; two unit tests
+   that only wanted to read the flags failed there and nowhere else.
+
+Two habits came out of it, both cheap:
+
+- **`make check` runs exactly what CI runs.** It ran `ruff check` while CI additionally ran
+  `ruff format --check`, so a branch could pass the gate and fail CI on formatting alone. A
+  gate that is not the same gate as CI is a gate people learn to ignore.
+- **A test for an optional dependency must fail where the dependency is present.** The purity
+  test names an executor that cannot exist, so it fails on every machine rather than only on
+  the ones missing Harbor. Writing it the other way round would have reproduced the bug: green
+  here, red in CI, and nobody the wiser until the next push.
