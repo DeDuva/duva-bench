@@ -1,17 +1,43 @@
-name: CI
+name: ci
 
-# There is no code here yet — M0 has not started — so this runs the one check that is
-# already meaningful: that CLAUDE.md's pointers into the plan of record still resolve.
-# It exists now rather than with M0 so that the first PR carrying code arrives to a
-# branch where CI is already a thing, instead of adding "and set up CI" to that PR.
 on:
   push:
-    branches: [main]
+    branches: ["main"]
   pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-      - run: make check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      # Predates the code and outlives it: CLAUDE.md is mostly pointers into the plan of
+      # record, and a pointer that has rotted sends the next agent to a section that no
+      # longer says what it is cited as saying.
+      - name: Docs
+        run: make check-docs
+      - name: Lint
+        run: python -m ruff check src tests
+      - name: Format check
+        run: python -m ruff format --check src tests
+      - name: Types
+        run: python -m mypy
+      - name: Test
+        run: python -m pytest -m "not contract and not harbor"
