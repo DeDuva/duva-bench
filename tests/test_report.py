@@ -384,3 +384,55 @@ def test_extraction_ignores_another_studys_runs_against_the_same_task(
 
     outcomes = extract(study, client=client, state=state)
     assert all(trial.arm_id != "theirs" for trial in outcomes.trials)
+
+
+# --- process metrics as rankable axes ---------------------------------------
+
+
+def test_a_process_metric_is_ranked_like_an_axis(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    """Study A's primary metric is the hallucinated-call rate, so it has to be
+    something the report ranks rather than a footnote under the grader axes."""
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+
+    block = report["axes"]["process:hallucinated_call_rate"]
+    assert {row["arm"] for row in block["arms"]} == {"standard", "twin"}
+    assert all(row["mean"] == pytest.approx(0.25) for row in block["arms"])
+    assert "pooled_sd" in block["noise_floor"]
+
+
+def test_a_rate_contrast_reports_an_interval_and_no_invented_p_value(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    """A rate has no pass/fail outcome, so there is no exact test to run."""
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+
+    contrast = report["axes"]["process:tool_error_rate"]["contrasts"]["arms"]["twin"]
+    assert "delta" in contrast and "ci" in contrast
+    assert "unavailable" in contrast["mcnemar"]
+    assert "holm_p" not in contrast
+
+
+def test_a_grader_axis_still_carries_its_exact_test(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+    contrast = report["axes"]["robustness"]["contrasts"]["arms"]["twin"]
+    assert "p" in contrast["mcnemar"]
+    assert "holm_p" in contrast
+
+
+def test_a_rate_that_is_undefined_stays_out_of_the_numbers(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    """A trial with no tool calls has no error rate, and is counted as unscored
+    on that axis rather than entering it as a zero."""
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+    block = report["axes"]["process:retry_rate"]
+    for cell in block["cells"].values():
+        assert all(isinstance(value, float) for value in cell["values"])

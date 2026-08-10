@@ -1,0 +1,85 @@
+{
+  "name": "standard",
+  "description": "The standard filesystem-and-shell toolset every Harbor agent in this study is given. Study A twins it.",
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read a file from the workspace and return its contents.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Absolute path of the file to read." },
+          "start_line": { "type": "integer", "description": "First line to return, 1-based." },
+          "max_lines": { "type": "integer", "description": "Stop after this many lines." }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Write a file, creating it or replacing its contents.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Absolute path of the file to write." },
+          "contents": { "type": "string", "description": "The new contents of the file." },
+          "mode": {
+            "type": "string",
+            "enum": ["overwrite", "append"],
+            "description": "Whether to replace the file or add to the end of it."
+          }
+        },
+        "required": ["path", "contents"]
+      }
+    },
+    {
+      "name": "list_dir",
+      "description": "List the entries of a directory.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Absolute path of the directory." },
+          "recursive": { "type": "boolean", "description": "Descend into subdirectories." }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "search_text",
+      "description": "Search the workspace for lines matching a regular expression.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": { "type": "string", "description": "The regular expression to match." },
+          "path": { "type": "string", "description": "Directory or file to search." },
+          "max_results": { "type": "integer", "description": "Stop after this many matches." }
+        },
+        "required": ["pattern"]
+      }
+    },
+    {
+      "name": "run_command",
+      "description": "Run a shell command in the workspace and return its output and exit status.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "command": { "type": "string", "description": "The command line to run." },
+          "timeout_s": { "type": "integer", "description": "Give up after this many seconds." }
+        },
+        "required": ["command"]
+      }
+    },
+    {
+      "name": "apply_patch",
+      "description": "Apply a unified diff to the workspace.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patch": { "type": "string", "description": "The unified diff to apply." },
+          "reverse": { "type": "boolean", "description": "Apply the patch in reverse." }
+        },
+        "required": ["patch"]
+      }
+    }
+  ]
+}

@@ -72,6 +72,12 @@ extend-exclude = [
   # Fixtures are *inputs*: a grader that crashes, a solution that mishandles an
   # error path. Linting them would mean fixing the flaws they exist to carry.
   "tests/fixtures",
+  # A study's graders and tasks are instruments pinned by sha256 in its
+  # study.yaml. Reformatting one changes the instrument without changing the
+  # study that claims to use it — so they are generated, checked in, and left
+  # alone. The generator itself is linted.
+  "studies/*/graders",
+  "studies/*/tasks",
 ]
 
 [tool.ruff.lint]
