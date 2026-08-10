@@ -246,15 +246,29 @@ class HarborExecutor:
             )
         return version
 
-    def command(self, task_dir: Path, arm: Arm, *, jobs_dir: Path, label: str) -> list[str]:
+    def command(
+        self,
+        task_dir: Path,
+        arm: Arm,
+        *,
+        jobs_dir: Path,
+        label: str,
+        harbor: str | None = None,
+    ) -> list[str]:
         """The argv for one trial. Pure, so a test can read it.
+
+        "Pure" is load-bearing and was briefly lost: resolving the Harbor binary
+        in here made building an argv require Harbor to be *installed*, so two
+        unit tests that only wanted to read the flags failed on any machine
+        without it. `execute` passes the resolved path in; everyone else gets
+        the configured name and no filesystem lookup.
 
         One task, one attempt, one concurrent trial: duva-bench schedules the
         factorial itself (M5) because the budget cap and the per-provider rate
         limits are study-level facts Harbor does not have.
         """
         argv = [
-            self.resolve(),
+            harbor or self.harbor,
             "run",
             "--path",
             str(task_dir),
@@ -298,7 +312,7 @@ class HarborExecutor:
         # `<work_dir>/<work_dir>/jobs/...` for exactly this reason.
         jobs_dir = (work_dir / "jobs").resolve()
         jobs_dir.mkdir(parents=True, exist_ok=True)
-        argv = self.command(task_dir, arm, jobs_dir=jobs_dir, label=label)
+        argv = self.command(task_dir, arm, jobs_dir=jobs_dir, label=label, harbor=self.resolve())
 
         environment = {
             # ADP credentials are stripped and provider keys are kept: see the

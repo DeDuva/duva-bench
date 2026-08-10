@@ -292,3 +292,25 @@ def test_the_trial_directory_is_found_by_its_results_file(tmp_path: Path) -> Non
 
     assert find_trial_dir(job) == nested
     assert find_trial_dir(tmp_path / "absent") is None
+
+
+def test_building_a_command_does_not_require_harbor_to_be_installed(
+    study: Study, tmp_path: Path
+) -> None:
+    """`command` is pure, and CI is where that gets tested.
+
+    Resolving the Harbor binary inside `command` made building an argv depend on
+    Harbor being installed. Every local check still passed — this machine has
+    Harbor — and CI, which does not, failed two tests that only wanted to read
+    the flags. The executor named here cannot exist, so the day resolution
+    creeps back in, this fails everywhere rather than only where it is absent.
+    """
+    executor = HarborExecutor(harbor="harbor-that-is-not-installed-anywhere")
+    argv = executor.command(
+        Path("/tasks/json-normalizer"),
+        study.arm("standard"),
+        jobs_dir=tmp_path,
+        label="pure",
+    )
+    assert argv[0] == "harbor-that-is-not-installed-anywhere"
+    assert argv[1] == "run"
