@@ -1,0 +1,17 @@
+name: CI
+
+# There is no code here yet — M0 has not started — so this runs the one check that is
+# already meaningful: that CLAUDE.md's pointers into the plan of record still resolve.
+# It exists now rather than with M0 so that the first PR carrying code arrives to a
+# branch where CI is already a thing, instead of adding "and set up CI" to that PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make check

@@ -34,6 +34,18 @@ are deliberately parallel, and neither is a rewrite of the other.
 All work lands on `main` through a pull request. Commit messages and PR bodies carry no
 AI attribution.
 
+`make check` is the gate — the same target name as in every repo in this line of work.
+Until M0 lands it runs only `make check-docs`, which asserts that the paths this file
+points at still exist; §2 of the plan says what `setup lint fmt types test` become when
+there is code to run them against.
+
+**Do not regenerate this file with `/init`.** It is a set of deliberate pointers into the
+plan of record, and a codebase scan — of a repo with no code — would replace it with
+nothing useful.
+
+`.claude/settings.json` is checked in and holds the shared permission allowlist. Personal
+overrides go in `.claude/settings.local.json`, which is ignored.
+
 ## Borrow, don't invent
 
 §0.5 is worth repeating because it is the fastest way to get this right: two sibling
