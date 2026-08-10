@@ -1,0 +1,254 @@
+/* The palette and typography of docs/html/index.html, so the UX, the published
+ * page and the rendered report look like one project. No CSS framework: the
+ * whole surface is three views and a table, and a framework would be more code
+ * than the thing it styled. */
+
+:root {
+  --bg: #0d0e10;
+  --panel: #16181b;
+  --panel2: #1d2024;
+  --line: #2a2e33;
+  --fg: #e9e7e2;
+  --sub: #b9bcc1;
+  --dim: #8b9098;
+  --cyan: #4fd1d9;
+  --amber: #e0a458;
+  --red: #e4695e;
+  --green: #57d9a3;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body {
+  color: var(--fg);
+  font: 400 15px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: 500 13px var(--sans);
+  color: var(--fg);
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+textarea {
+  width: 100%;
+  min-height: 58vh;
+  font: 400 13px/1.55 var(--mono);
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 28px 90px;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+  margin-bottom: 26px;
+}
+.brand {
+  font: 600 18px var(--sans);
+  letter-spacing: -0.01em;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.tab {
+  font: 500 12px var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: none;
+  border: 1px solid transparent;
+}
+.tab[aria-current="true"] {
+  color: var(--cyan);
+  border-color: var(--line);
+  background: var(--panel);
+}
+
+h2 {
+  font: 600 19px var(--sans);
+  margin: 26px 0 10px;
+}
+h3 {
+  font: 500 13px var(--mono);
+  letter-spacing: 0.05em;
+  color: var(--cyan);
+  margin: 22px 0 8px;
+}
+p {
+  color: var(--sub);
+  max-width: 76ch;
+}
+.mono {
+  font-family: var(--mono);
+}
+.dim {
+  color: var(--dim);
+}
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+
+.ok {
+  color: var(--green);
+}
+.bad {
+  color: var(--red);
+}
+.warn {
+  border: 1px solid var(--red);
+  border-left-width: 3px;
+  background: rgba(228, 105, 94, 0.07);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  color: var(--sub);
+}
+.band {
+  border: 1px solid var(--amber);
+  border-left-width: 3px;
+  background: rgba(224, 164, 88, 0.07);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  color: var(--sub);
+}
+.na {
+  color: var(--dim);
+  font-style: italic;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 7px 9px;
+  text-align: left;
+}
+th {
+  font: 500 11px var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+td.num,
+th.num {
+  text-align: right;
+  font-family: var(--mono);
+}
+.scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+}
+
+/* The trial grid: one cell per (task × arm × repetition), which is the shape of
+ * the factorial and therefore the shape of the thing being watched. */
+.grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+.cell {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 9px 11px;
+  font: 400 12px/1.45 var(--mono);
+}
+.cell.pending {
+  border-left-color: var(--dim);
+  color: var(--dim);
+}
+.cell.verified {
+  border-left-color: var(--green);
+}
+.cell.error {
+  border-left-color: var(--red);
+}
+.badge {
+  font: 500 10px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.badge.verified {
+  color: var(--green);
+}
+.badge.error {
+  color: var(--red);
+}
+.badge.pending {
+  color: var(--dim);
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(79, 209, 217, 0.35);
+}
