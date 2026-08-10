@@ -282,10 +282,20 @@ SIGKILL of the recorder leaves a resumable gap-free chain, tampered event ⇒ `v
 - CLI: `duva-bench trial <study.yaml> --task T --arm A` runs one trial.
 
 **Done when (GATE G1 — hard stop):** one real trial — smoke task, one real agent via Harbor, one
-real model — produces an ADP run whose `/verify` returns `ok: true`, whose labels round-trip
-through `GET /runs/compare`, and whose event chain contains ≥ 1 `tool_call` bridged from the
-Harbor trace. If Harbor cannot be installed in the environment, this gate **blocks**: record the
-blocker in the README exactly as adp-replay documents its blocked tasks, and stop.
+real model — produces an ADP run whose `/verify` returns **`ok: true` *and* `envelope_verified:
+true` *and* `trajectory_digest_matches: true`**, whose labels round-trip through
+`GET /runs/compare`, and whose event chain contains ≥ 1 `tool_call` bridged from the Harbor trace.
+If Harbor cannot be installed in the environment, this gate **blocks**: record the blocker in the
+README exactly as adp-replay documents its blocked tasks, and stop.
+
+> **Why the two extra conditions, added 2026-08-10.** `ok: true` alone is not evidence of an
+> attestation. An *abandoned* run also returns `ok: true`, with `envelope_verified` and
+> `trajectory_digest_matches` both `null` — "not applicable", because only `close` mints the
+> signed attestation. So a version of this gate that checked `ok` alone could be passed, in full
+> honesty, by a runner that abandoned every trial and never bound an arm label to a trajectory
+> digest at all. That is precisely the "a gate that reports itself passed" failure this plan's §0.6
+> exists to prevent, and it was found by running the gate rather than by reading it. Absent is not
+> passing; `null` is not `true`.
 
 ### M4 — Arms and twin instruments
 

@@ -18,8 +18,9 @@
     "cost_usd": 0.0182
   },
   "verifier_result": {
-    "reward": 1.0,
-    "status": "passed"
+    "rewards": {
+      "reward": 1.0
+    }
   },
   "started_at": "2026-08-07T10:00:00Z",
   "finished_at": "2026-08-07T10:04:12Z"

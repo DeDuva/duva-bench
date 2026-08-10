@@ -18,11 +18,16 @@ young. A subprocess boundary means a Harbor upgrade cannot break `import
 duva_bench`, and the command that was run is a string this project can record
 in the trial record and a human can paste into a shell.
 
-Output layout, as of Harbor 0.20.0: a job writes ``<jobs-dir>/<job-name>/`` and
-each trial lands in a subdirectory holding ``results.json`` (a ``TrialResult``)
-and ``agent/trajectory.json`` (an ATIF trajectory). The trial directory is found
-by searching for ``results.json`` rather than by rebuilding Harbor's naming,
-because the naming is Harbor's business and the file is the contract.
+Output layout, as of Harbor 0.20.0 and **as observed from a real run** rather
+than inferred: a job writes ``<jobs-dir>/<job-name>/`` and each trial lands in a
+subdirectory holding ``result.json`` (a ``TrialResult``) and
+``agent/trajectory.json`` (an ATIF trajectory). The trial directory is found by
+searching for ``result.json`` rather than by rebuilding Harbor's naming, because
+the naming is Harbor's business and the file is the contract.
+
+``--jobs-dir`` is passed as an absolute path. Harbor resolves it against its own
+working directory, and a relative one produced a doubly-nested output tree that
+neither this adapter nor a human could find.
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
@@ -43,8 +49,34 @@ from duva_bench.study.models import Arm, TaskRef
 # that failed to launch indistinguishable from an arm that failed the task.
 PINNED_HARBOR_VERSION = "0.20.0"
 
-RESULTS_FILE = "results.json"
+# Harbor 0.20.0 writes `result.json`, singular, one per trial directory. The
+# fixtures in this repository were built against `results.json` — a name Harbor
+# does not use — so `find_trial_dir` matched nothing on the first real run and
+# every trial reported "Harbor wrote no results". The fixtures agreed with the
+# code because both were written from the same guess; only a real trial could
+# say. See docs/blockers.md.
+RESULTS_FILE = "result.json"
 TRAJECTORY_FILE = Path("agent") / "trajectory.json"
+
+
+def verifier_reward(verifier: dict[str, Any]) -> float | bool | None:
+    """The reward out of a Harbor ``verifier_result``, whichever shape it is in.
+
+    Harbor 0.20.0 nests it: ``{"rewards": {"reward": 1.0}}``. This repository's
+    fixtures carried a flat ``{"reward": 1.0, "status": "passed"}`` that Harbor
+    does not write, so every reader of the flat key answered ``None`` on real
+    data — and there were two such readers, in different modules, disagreeing
+    with reality in the same way. One function now, so the next shape change is
+    one edit rather than a hunt.
+    """
+    rewards = verifier.get("rewards")
+    if isinstance(rewards, dict) and "reward" in rewards:
+        candidate = rewards["reward"]
+    else:
+        candidate = verifier.get("reward")
+    if isinstance(candidate, bool | int | float):
+        return candidate
+    return None
 
 
 class HarborUnavailable(RuntimeError):
@@ -86,9 +118,43 @@ class HarborTrial:
         Falls back to the trial directory when nothing was collected, so a
         grader reports "nothing was written" rather than crashing on a missing
         path — an unscored trial and a broken grader must stay distinguishable.
+
+        **Where the files actually are is read from Harbor's own manifest, not
+        assumed.** Harbor 0.20.0 collects the container's ``/logs/artifacts``
+        into ``<trial>/artifacts/logs/artifacts`` — it mirrors the source path
+        underneath the destination rather than flattening it. Pointing a grader
+        at ``<trial>/artifacts`` therefore hands it a directory containing one
+        subdirectory and ``manifest.json``, and every grader scores 0 "never
+        written" while the task's own verifier reports a pass. The manifest maps
+        source to destination, so it is the thing to believe.
         """
         artifacts = self.trial_dir / "artifacts"
-        return artifacts if artifacts.is_dir() else self.trial_dir
+        if not artifacts.is_dir():
+            return self.trial_dir
+        collected = self._collected_dir(artifacts)
+        return collected if collected is not None else artifacts
+
+    def _collected_dir(self, artifacts: Path) -> Path | None:
+        """The destination Harbor recorded for the container's artifacts dir."""
+        manifest = artifacts / "manifest.json"
+        try:
+            entries = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        if not isinstance(entries, list):
+            return None
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("source", "")).rstrip("/").endswith("/logs/artifacts"):
+                destination = entry.get("destination")
+                if not isinstance(destination, str):
+                    continue
+                # Recorded relative to the trial directory, not to `artifacts/`.
+                candidate = self.trial_dir / destination
+                if candidate.is_dir():
+                    return candidate
+        return None
 
     @property
     def verifier_passed(self) -> bool | None:
@@ -101,7 +167,14 @@ class HarborTrial:
         verifier = self.results.get("verifier_result")
         if not isinstance(verifier, dict):
             return None
-        reward = verifier.get("reward")
+        # Harbor 0.20.0 writes `{"rewards": {"reward": 1.0}}`. The fixtures in
+        # this repository carried a flat `{"reward": 1.0, "status": "passed"}`,
+        # which Harbor does not produce — so this property answered None for
+        # every real trial, and "the verifier did not run" is a very different
+        # claim from "the verifier passed". Both shapes are read, because the
+        # flat one is what a future Harbor might go back to and neither costs
+        # anything to support.
+        reward = verifier_reward(verifier)
         if isinstance(reward, bool):
             return reward
         if isinstance(reward, int | float):
@@ -136,16 +209,33 @@ class HarborExecutor:
     # write its own trajectory.
     env: dict[str, str] = field(default_factory=dict)
 
+    def resolve(self) -> str:
+        """Where Harbor actually is.
+
+        `shutil.which` first, then the directory holding the running
+        interpreter. The second lookup is not a nicety: Harbor is installed as a
+        console script into the same virtualenv as duva-bench, and running
+        `.venv/bin/duva-bench` without activating that virtualenv leaves
+        `.venv/bin` off PATH — so the executor would report Harbor missing while
+        standing next to it. Invoking the package by absolute path is the
+        documented way to run it, so it has to work.
+        """
+        found = shutil.which(self.harbor)
+        if found:
+            return found
+        sibling = Path(sys.executable).parent / self.harbor
+        if sibling.is_file():
+            return str(sibling)
+        raise HarborUnavailable(
+            f"{self.harbor!r} is not on PATH and is not next to {sys.executable}. "
+            "Install the extra with `pip install 'duva-bench[harbor]'` (Harbor requires "
+            "Python >= 3.12), and note that it needs a container runtime as well."
+        )
+
     def preflight(self) -> str:
         """Fail before a study starts rather than on its first trial."""
-        if shutil.which(self.harbor) is None:
-            raise HarborUnavailable(
-                f"{self.harbor!r} is not on PATH. Install the extra with "
-                "`pip install 'duva-bench[harbor]'` (Harbor requires Python >= 3.12), "
-                "and note that it needs a container runtime as well."
-            )
         completed = subprocess.run(
-            [self.harbor, "--version"], capture_output=True, text=True, timeout=120
+            [self.resolve(), "--version"], capture_output=True, text=True, timeout=120
         )
         version = (completed.stdout or completed.stderr).strip()
         if PINNED_HARBOR_VERSION not in version:
@@ -156,15 +246,29 @@ class HarborExecutor:
             )
         return version
 
-    def command(self, task_dir: Path, arm: Arm, *, jobs_dir: Path, label: str) -> list[str]:
+    def command(
+        self,
+        task_dir: Path,
+        arm: Arm,
+        *,
+        jobs_dir: Path,
+        label: str,
+        harbor: str | None = None,
+    ) -> list[str]:
         """The argv for one trial. Pure, so a test can read it.
+
+        "Pure" is load-bearing and was briefly lost: resolving the Harbor binary
+        in here made building an argv require Harbor to be *installed*, so two
+        unit tests that only wanted to read the flags failed on any machine
+        without it. `execute` passes the resolved path in; everyone else gets
+        the configured name and no filesystem lookup.
 
         One task, one attempt, one concurrent trial: duva-bench schedules the
         factorial itself (M5) because the budget cap and the per-provider rate
         limits are study-level facts Harbor does not have.
         """
         argv = [
-            self.harbor,
+            harbor or self.harbor,
             "run",
             "--path",
             str(task_dir),
@@ -185,7 +289,12 @@ class HarborExecutor:
         for name, value in sorted(arm.env.items()):
             # The arm's environment pins, passed to the container rather than
             # inherited from whatever the operator happened to have exported.
-            argv += ["--env", f"{name}={value}"]
+            #
+            # `--agent-env`, emphatically not `--env`: in Harbor 0.20.0 `--env`
+            # chooses the *environment type* (`docker`, `modal`, `e2b`, …) and
+            # would reject `LANG=C.UTF-8` as an unknown backend before building
+            # anything. The two flags read alike and fail nothing alike.
+            argv += ["--agent-env", f"{name}={value}"]
         for name, value in sorted(arm.model.parameters.items()):
             # Model parameters ride as agent kwargs. They are strings in the
             # study spec (floats are refused at the digest boundary), and this
@@ -196,9 +305,14 @@ class HarborExecutor:
     def execute(
         self, task: TaskRef, arm: Arm, *, task_dir: Path, work_dir: Path, label: str
     ) -> HarborTrial:
-        jobs_dir = work_dir / "jobs"
+        # Absolute, and that matters: Harbor resolves `--jobs-dir` against its
+        # own working directory, so a relative path lands somewhere neither this
+        # process nor a human looking for the output would think to check. The
+        # first real trial wrote its results to
+        # `<work_dir>/<work_dir>/jobs/...` for exactly this reason.
+        jobs_dir = (work_dir / "jobs").resolve()
         jobs_dir.mkdir(parents=True, exist_ok=True)
-        argv = self.command(task_dir, arm, jobs_dir=jobs_dir, label=label)
+        argv = self.command(task_dir, arm, jobs_dir=jobs_dir, label=label, harbor=self.resolve())
 
         environment = {
             # ADP credentials are stripped and provider keys are kept: see the
@@ -252,19 +366,42 @@ def _is_provider_key(name: str) -> bool:
     )
 
 
+# A trial's `result.json` carries these; a *job*'s does not. Harbor writes both
+# files under the same name, one per job and one per trial, so "the newest
+# result.json" picks the job summary — which has no `agent/trajectory.json`
+# beside it, so the bridge silently produced zero events while everything else
+# about the trial succeeded. Identify the file by what is in it, not by where it
+# sits: the layout is Harbor's business, but these keys are the contract.
+TRIAL_RESULT_KEYS = ("trial_name", "task_name")
+
+
+def _is_trial_result(path: Path) -> bool:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(payload, dict) and any(key in payload for key in TRIAL_RESULT_KEYS)
+
+
 def find_trial_dir(job_dir: Path) -> Path | None:
-    """The trial directory under ``job_dir``, found by its results file.
+    """The trial directory under ``job_dir``, found by its result file.
 
     Harbor's directory naming is Harbor's business and has changed between
-    releases; ``results.json`` is the contract. When a job wrote several (it
-    should not, at one attempt and one task), the newest wins and the caller
-    gets a directory rather than an exception, because a trial that ran is
-    worth recording even when the layout surprised us.
+    releases; ``result.json`` is the contract — but only the *trial* one. A job
+    writes its own summary under the same name, and picking that one yields a
+    directory with no trajectory in it.
+
+    When a job wrote several trial results (it should not, at one attempt and
+    one task), the newest wins and the caller gets a directory rather than an
+    exception, because a trial that ran is worth recording even when the layout
+    surprised us.
     """
     if not job_dir.exists():
         return None
-    candidates = sorted(job_dir.rglob(RESULTS_FILE), key=lambda path: path.stat().st_mtime)
-    return candidates[-1].parent if candidates else None
+    candidates = [path for path in job_dir.rglob(RESULTS_FILE) if _is_trial_result(path)]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: path.stat().st_mtime).parent
 
 
 def load_trial(

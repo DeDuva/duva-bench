@@ -28,7 +28,7 @@ def trajectory() -> dict[str, Any]:
 
 @pytest.fixture
 def results() -> dict[str, Any]:
-    path = FIXTURES / "terminus-2-json-normalizer" / "results.json"
+    path = FIXTURES / "terminus-2-json-normalizer" / "result.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -247,3 +247,60 @@ def test_the_whole_bridged_trace_is_stable(
         "test_result",
         "commit",
     ]
+
+
+# --- against a trajectory a real agent actually wrote ------------------------
+
+
+REAL = FIXTURES / "real-terminus-2-json-normalizer"
+
+
+def test_a_real_terminus_2_trajectory_bridges_without_inventing_failures() -> None:
+    """The fixture that closed gate G1, and the defect it caught.
+
+    Every other fixture in this directory was written by this project from
+    Harbor's documentation. This one was produced by Harbor 0.20.0 running
+    `terminus-2` against a real model, on the trial recorded in
+    `docs/blockers.md` — and it disagrees with the hand-written ones in a way
+    that mattered: its observation results carry only `content`, with no
+    `source_call_id` and no `tool_call_id`.
+
+    Correlating results to calls by id therefore found nothing, "no result
+    recorded" reads as `error`, and the first real trial reported **16 tool
+    calls and 16 tool failures** for a task whose own verifier passed. The
+    tool-error rate is a primary process metric for Study A, so a bridge that
+    marks every call failed does not produce a slightly wrong number — it
+    produces a study that cannot be read at all.
+    """
+    trajectory = json.loads((REAL / "agent" / "trajectory.json").read_text(encoding="utf-8"))
+    results = json.loads((REAL / "result.json").read_text(encoding="utf-8"))
+
+    events = bridge(trajectory, results, final_git_sha=None)
+    tool_calls = [event for event in events if event.kind == "tool_call"]
+
+    assert tool_calls, "a real trajectory that used tools bridged no tool_call events"
+    failed = [event for event in tool_calls if event.status != "success"]
+    assert not failed, (
+        f"{len(failed)} of {len(tool_calls)} tool calls bridged as failures from a "
+        "trajectory whose task passed its verifier"
+    )
+
+    # And the results really were correlated, not merely defaulted to success.
+    assert all("result" in (event.payload or {}) for event in tool_calls)
+
+
+def test_the_real_trajectory_carries_the_usage_harbor_summaries_lose() -> None:
+    """The 2026-08-08 probe found `claude-code` reporting zero tokens.
+
+    `terminus-2` does not: the per-step metrics carry usage, so `model_call`
+    events reach ADP with tokens and cost on them. Pinned because every cost
+    figure on this track depends on it, and because the failure mode is a
+    plausible-looking zero rather than an error.
+    """
+    trajectory = json.loads((REAL / "agent" / "trajectory.json").read_text(encoding="utf-8"))
+    results = json.loads((REAL / "result.json").read_text(encoding="utf-8"))
+
+    calls = [e for e in bridge(trajectory, results, final_git_sha=None) if e.kind == "model_call"]
+    assert calls, "no model_call events bridged from a real trajectory"
+    assert sum(c.tokens_in or 0 for c in calls) > 0, "every model_call reported zero input tokens"
+    assert sum(c.tokens_out or 0 for c in calls) > 0, "every model_call reported zero output tokens"

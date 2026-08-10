@@ -29,6 +29,7 @@ from duva_bench.adp._generated import Operation, operation
 from duva_bench.adp.models import (
     AppendReceipt,
     EvalRecord,
+    GitObject,
     Issue,
     Run,
     RunComparison,
@@ -168,6 +169,65 @@ class AdpClient:
             if isinstance(row, dict) and row.get("title") == title and row.get("intent_id"):
                 return Issue.model_validate(row)
         return None
+
+    # --- git data (compat plane) ----------------------------------------------
+    #
+    # Four writes, used for exactly one thing: giving a run a commit to close
+    # against. ADP will not close a run against a sha it cannot resolve in the
+    # repository, and a Harbor trial produces container artifacts rather than a
+    # commit — so duva-bench writes the artifacts in and closes against that.
+    # `adp/artifacts.py` is the only caller; nothing reads git back out.
+
+    def create_blob(self, owner: str, repo: str, *, content: str, encoding: str = "utf-8") -> str:
+        """POST .../git/blobs — returns the blob sha."""
+        return (
+            GitObject.model_validate(
+                self._call(
+                    operation("compat_post_repos_by_owner_by_repo_git_blobs"),
+                    {"owner": owner, "repo": repo},
+                    body={"content": content, "encoding": encoding},
+                )
+            )
+        ).sha
+
+    def create_tree(self, owner: str, repo: str, *, entries: list[dict[str, Any]]) -> str:
+        """POST .../git/trees — returns the tree sha."""
+        return (
+            GitObject.model_validate(
+                self._call(
+                    operation("compat_post_repos_by_owner_by_repo_git_trees"),
+                    {"owner": owner, "repo": repo},
+                    body={"tree": entries},
+                )
+            )
+        ).sha
+
+    def create_commit(
+        self, owner: str, repo: str, *, message: str, tree: str, parents: list[str] | None = None
+    ) -> str:
+        """POST .../git/commits — returns the commit sha."""
+        return (
+            GitObject.model_validate(
+                self._call(
+                    operation("compat_post_repos_by_owner_by_repo_git_commits"),
+                    {"owner": owner, "repo": repo},
+                    body={"message": message, "tree": tree, "parents": parents or []},
+                )
+            )
+        ).sha
+
+    def create_ref(self, owner: str, repo: str, *, ref: str, sha: str) -> None:
+        """POST .../git/refs — makes a commit reachable, so it survives gc.
+
+        A commit with no ref is dangling. ADP resolves it today and a future
+        `git gc` need not, and a run whose attested subject has been collected
+        is a run whose evidence evaporated.
+        """
+        self._call(
+            operation("compat_post_repos_by_owner_by_repo_git_refs"),
+            {"owner": owner, "repo": repo},
+            body={"ref": ref, "sha": sha},
+        )
 
     # --- runs and sessions ----------------------------------------------------
 

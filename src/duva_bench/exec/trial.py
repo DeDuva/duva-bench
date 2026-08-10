@@ -26,6 +26,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from duva_bench.adp.artifacts import MAX_FILE_BYTES, publish_trial_artifacts
 from duva_bench.adp.client import AdpClient
 from duva_bench.adp.gate import Verdict, verify_gate
 from duva_bench.adp.recorder import Recorder
@@ -37,10 +38,12 @@ from duva_bench.study.models import Study, TaskRef
 
 logger = logging.getLogger(__name__)
 
-# ADP's close endpoint wants a 40-hex final git sha. A Harbor task need not be a
-# git repository at all, and inventing a plausible-looking sha would put a
-# fiction into a signed attestation. The all-zero sha is the null commit: it
-# says "this run produced no commit" in a field that cannot be left empty.
+# The all-zero sha, kept only as the fallback for a grader that somehow runs
+# without a published commit. It is **not** what runs close against: ADP rejects
+# a sha it cannot resolve in the repository (422), so this value could never
+# close a run. What closes a run is the commit made by
+# `duva_bench.adp.artifacts.publish_trial_artifacts` out of the trial's own
+# artifacts. See that module for why.
 NULL_GIT_SHA = "0" * 40
 
 Outcome = Literal["VERIFIED", "ERROR"]
@@ -99,6 +102,9 @@ class TrialRecord(BaseModel):
     grader_error: str | None = None
     events_recorded: int = 0
     final_git_sha: str | None = None
+    # The git ref the trial's artifacts were published under, so a reader can
+    # fetch what the agent actually produced rather than infer it.
+    artifact_ref: str | None = None
     trial_dir: str | None = None
     harbor_command: tuple[str, ...] = ()
     error: str | None = None
@@ -241,9 +247,42 @@ def run_trial(
             recorder.flush(timeout=120)
 
         produced_work = harbor_trial is not None and not harbor_trial.failed_with_exception
-        final_git_sha = NULL_GIT_SHA if produced_work else None
-        if produced_work:
-            client.close_run(study.adp.owner, study.adp.repo, run.id, final_git_sha=NULL_GIT_SHA)
+        final_git_sha: str | None = None
+        if produced_work and harbor_trial is not None:
+            # ADP closes a run against a commit it can resolve, and a container
+            # that no longer exists is not one. Publishing what the trial
+            # collected gives the attestation a subject that can be fetched by
+            # sha for as long as the repository lives. See adp/artifacts.py.
+            published = publish_trial_artifacts(
+                client,
+                study.adp.owner,
+                study.adp.repo,
+                directory=harbor_trial.graded_dir,
+                manifest={
+                    "study_digest": study.study_digest,
+                    "arm_id": arm.id,
+                    "arm_digest": arm.arm_digest,
+                    "task_id": task.id,
+                    "repetition": trial.repetition,
+                    "external_ref": external_ref,
+                    "harbor_command": list(harbor_trial.command),
+                    "harbor_exit_code": harbor_trial.exit_code,
+                    "verifier_passed": harbor_trial.verifier_passed,
+                },
+                external_ref=external_ref,
+                message=f"duva-bench trial {external_ref}",
+            )
+            final_git_sha = published.commit_sha
+            record_kwargs["artifact_ref"] = published.ref
+            if published.skipped:
+                logger.warning(
+                    "%s: %d artifact(s) exceeded %d bytes and were recorded by name only: %s",
+                    external_ref,
+                    len(published.skipped),
+                    MAX_FILE_BYTES,
+                    ", ".join(published.skipped),
+                )
+            client.close_run(study.adp.owner, study.adp.repo, run.id, final_git_sha=final_git_sha)
         else:
             client.abandon_run(
                 study.adp.owner,
@@ -260,7 +299,17 @@ def run_trial(
         grader_error: str | None = None
         if produced_work and harbor_trial is not None:
             scored_axes, grader_error = _grade(
-                study, task, harbor_trial, client=client, run_id=run.id, root=root
+                study,
+                task,
+                harbor_trial,
+                client=client,
+                run_id=run.id,
+                root=root,
+                # The commit the run was closed against, so the score is bound
+                # to the same subject the attestation names. ADP will take the
+                # run's own final_git_sha if this is omitted; passing it makes
+                # the binding explicit rather than incidental.
+                git_sha=final_git_sha or NULL_GIT_SHA,
             )
 
         verdict: Verdict = verify_gate(client, study.adp.owner, study.adp.repo, run.id)
@@ -295,6 +344,7 @@ def _grade(
     client: AdpClient,
     run_id: str,
     root: Path,
+    git_sha: str,
 ) -> tuple[tuple[str, ...], str | None]:
     """Run the task's grader and post one eval per axis.
 
@@ -326,7 +376,7 @@ def _grade(
         study.adp.repo,
         run_id,
         result,
-        git_sha=NULL_GIT_SHA,
+        git_sha=git_sha,
     )
     return tuple(posted), None
 

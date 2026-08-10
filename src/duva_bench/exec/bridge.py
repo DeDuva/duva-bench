@@ -46,6 +46,8 @@ from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
+from duva_bench.exec.harbor import verifier_reward
+
 # ADP's event kinds, from the contract's enum. Anything this bridge cannot place
 # in one of the first six becomes `custom`.
 ADP_KINDS = ("message", "model_call", "tool_call", "handoff", "commit", "test_result", "custom")
@@ -237,15 +239,22 @@ def _bridge_step(step: dict[str, Any], default_model: str | None) -> list[AdpEve
             )
         )
 
+    calls = [call for call in (step.get("tool_calls") or [])]
     observations = _observations_by_call(step.get("observation"))
-    for call in step.get("tool_calls") or []:
+    positional = _observations_in_order(step.get("observation"))
+    correlated_positionally = not any(key is not None for key in observations)
+
+    for index, call in enumerate(calls):
         if not isinstance(call, dict):
             events.append(
                 AdpEvent(kind="custom", type="harbor.unreadable_tool_call", payload={"call": call})
             )
             continue
         call_id = call.get("tool_call_id")
-        result = observations.get(call_id)
+        if correlated_positionally:
+            result = _uncorrelated_result(positional, index, len(calls))
+        else:
+            result = observations.get(call_id)
         events.append(
             AdpEvent(
                 kind="tool_call",
@@ -262,7 +271,12 @@ def _bridge_step(step: dict[str, Any], default_model: str | None) -> list[AdpEve
             )
         )
 
-    unattributed = [result for key, result in observations.items() if key is None]
+    # Results consumed positionally above are tool results, not stray feedback.
+    unattributed = (
+        []
+        if correlated_positionally
+        else [result for key, result in observations.items() if key is None]
+    )
     for result in unattributed:
         # An observation with no source_call_id is environment feedback that did
         # not come from a call — a system event. It is not a tool result and
@@ -276,6 +290,46 @@ def _bridge_step(step: dict[str, Any], default_model: str | None) -> list[AdpEve
         )
 
     return events
+
+
+def _observations_in_order(observation: Any) -> list[dict[str, Any]]:
+    """The step's results as written, for producers that record no call ids."""
+    if not isinstance(observation, dict):
+        return []
+    return [result for result in observation.get("results") or [] if isinstance(result, dict)]
+
+
+def _uncorrelated_result(
+    results: list[dict[str, Any]], index: int, call_count: int
+) -> dict[str, Any] | None:
+    """The observation for one call, from a producer that records no call ids.
+
+    Harbor 0.20.0's `terminus-2` writes results carrying only `content`, and it
+    **batches**: a step issues several shell commands and the environment
+    answers with one observation holding the whole terminal output. So the
+    counts do not line up, and neither naive reading is right — matching by id
+    finds nothing, and matching by position leaves every call after the first
+    with no result.
+
+    Both readings produce the same wrong answer, because "no result recorded"
+    means `error`: the first real trial reported 16 tool calls and 16 tool
+    failures for a task its own verifier passed. The tool-error rate is a
+    primary process metric for Study A, so this is not a rounding problem.
+
+    The rule, in the order it is tried:
+
+    * counts match — the producer emitted one result per call, so pair by
+      position;
+    * fewer results than calls — the step's observation covers the batch, so
+      every call in it reads from that observation;
+    * no results at all — nothing is known, and `None` keeps the conservative
+      `error` reading rather than inventing a success.
+    """
+    if not results:
+        return None
+    if len(results) == call_count:
+        return results[index]
+    return results[-1]
 
 
 def _observations_by_call(observation: Any) -> dict[str | None, dict[str, Any]]:
@@ -301,7 +355,7 @@ def bridge_verifier(results: dict[str, Any]) -> list[AdpEvent]:
     if not isinstance(verifier, dict):
         return []
 
-    reward = verifier.get("reward")
+    reward = verifier_reward(verifier)
     passed = _passed(verifier)
     return [
         AdpEvent(
@@ -313,7 +367,7 @@ def bridge_verifier(results: dict[str, Any]) -> list[AdpEvent]:
                 "verifier": {
                     key: value
                     for key, value in verifier.items()
-                    if key in ("reward", "status", "error", "metadata")
+                    if key in ("reward", "rewards", "status", "error", "metadata")
                 },
             },
         )
@@ -321,7 +375,7 @@ def bridge_verifier(results: dict[str, Any]) -> list[AdpEvent]:
 
 
 def _passed(verifier: dict[str, Any]) -> bool:
-    reward = verifier.get("reward")
+    reward = verifier_reward(verifier)
     if isinstance(reward, bool):
         return reward
     if isinstance(reward, int | float):

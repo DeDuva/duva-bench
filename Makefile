@@ -10,8 +10,13 @@ help: ## Show this help
 setup: ## Editable install with dev extras
 	$(PY) -m pip install -e ".[dev]"
 
-lint: ## Lint with ruff
+# Both halves of what CI runs, in one target. They were split before — `check`
+# ran the linter and CI additionally ran `ruff format --check` — so a branch
+# could pass the local gate and fail CI on formatting alone. A gate that is not
+# the same gate as CI is a gate that teaches people to ignore it.
+lint: ## Lint and check formatting with ruff
 	$(PY) -m ruff check src tests tools scripts
+	$(PY) -m ruff format --check src tests tools scripts
 
 fmt: ## Format with ruff
 	$(PY) -m ruff format src tests tools scripts

@@ -64,7 +64,7 @@ class ExplodingExecutor:
     def execute(
         self, task: TaskRef, arm: Arm, *, task_dir: Path, work_dir: Path, label: str
     ) -> HarborTrial:
-        raise HarborFailed("harbor exited 1 and wrote no results.json")
+        raise HarborFailed("harbor exited 1 and wrote no result.json")
 
 
 def _run(
@@ -122,7 +122,19 @@ def test_a_completed_trial_verifies_and_is_closed(
     record = _run(study, client, StateDir(tmp_path), RecordedExecutor())
     assert record.verdict == "VERIFIED"
     assert adp.runs[record.run_id].status == "closed"
-    assert record.final_git_sha == NULL_GIT_SHA
+
+    # The run closes against a commit the repository can actually resolve, not
+    # against a sentinel. ADP refuses a sha it cannot show anyone later, so the
+    # all-zero "null commit" this used to assert could never have closed a real
+    # run — which is what four contract tests found the first time they met a
+    # live server.
+    assert record.final_git_sha is not None
+    assert record.final_git_sha != NULL_GIT_SHA
+    assert record.final_git_sha in adp.commits
+
+    # And it is reachable, so the attested subject survives a gc.
+    assert record.artifact_ref is not None
+    assert adp.refs[record.artifact_ref] == record.final_git_sha
 
 
 def test_the_local_record_holds_pointers_and_no_results(
@@ -193,7 +205,7 @@ def test_an_executor_failure_abandons_the_run_and_records_why(
     record = _run(study, client, StateDir(tmp_path), ExplodingExecutor())
 
     assert adp.runs[record.run_id].status == "abandoned"
-    assert record.error is not None and "results.json" in record.error
+    assert record.error is not None and "result.json" in record.error
     # The trajectory is kept: a failure that leaves no record is a failure
     # nobody can distinguish from a trial that never ran.
     events = adp.events_for_run(record.run_id)
@@ -240,17 +252,65 @@ def test_the_harbor_command_names_the_arm_exactly(study: Study, tmp_path: Path) 
     )
     assert "--agent" in argv and argv[argv.index("--agent") + 1] == "terminus-2"
     assert argv[argv.index("--model") + 1] == "anthropic/claude-sonnet-4-5-20250929"
-    assert "--env" in argv and "LANG=C.UTF-8" in argv
     assert "--agent-kwarg" in argv and "temperature=0" in argv
     assert argv[argv.index("--n-attempts") + 1] == "1"
 
 
+def test_arm_environment_pins_go_to_agent_env_not_env(study: Study, tmp_path: Path) -> None:
+    """`--env` is Harbor's *environment type*, not a variable.
+
+    In Harbor 0.20.0 `--env` selects the backend the container runs on — an enum
+    of `docker`, `modal`, `e2b` and friends — while `KEY=VALUE` belongs to
+    `--agent-env`. Passing an arm's environment pins as `--env LANG=C.UTF-8`
+    makes Harbor reject `LANG=C.UTF-8` as an unknown environment type before a
+    container is ever built, so every trial of an arm with env pins fails
+    identically and for a reason that looks nothing like its cause.
+    """
+    argv = HarborExecutor().command(
+        Path("/tasks/json-normalizer"), study.arm("standard"), jobs_dir=tmp_path, label="job-1"
+    )
+    assert "--agent-env" in argv
+    assert argv[argv.index("--agent-env") + 1] == "LANG=C.UTF-8"
+    # Not merely "the right flag is present": the wrong one must be absent, or a
+    # regression that adds it back keeps this test green.
+    assert "--env" not in argv
+
+
 def test_the_trial_directory_is_found_by_its_results_file(tmp_path: Path) -> None:
-    """Harbor's directory naming is Harbor's business; results.json is the contract."""
+    """Harbor's directory naming is Harbor's business; result.json is the contract."""
     from duva_bench.exec.harbor import find_trial_dir
 
-    nested = tmp_path / "job" / "task.1-of-1"
+    job = tmp_path / "job"
+    nested = job / "task.1-of-1"
     nested.mkdir(parents=True)
-    (nested / "results.json").write_text("{}", encoding="utf-8")
-    assert find_trial_dir(tmp_path / "job") == nested
+    (nested / "result.json").write_text('{"trial_name": "task.1-of-1"}', encoding="utf-8")
+
+    # Harbor writes a *job* summary under the same name, and it is written last.
+    # Picking it yields a directory with no trajectory beside it, which is how a
+    # trial came back fully verified and carrying zero bridged events.
+    (job / "result.json").write_text('{"n_total_trials": 1, "stats": {}}', encoding="utf-8")
+
+    assert find_trial_dir(job) == nested
     assert find_trial_dir(tmp_path / "absent") is None
+
+
+def test_building_a_command_does_not_require_harbor_to_be_installed(
+    study: Study, tmp_path: Path
+) -> None:
+    """`command` is pure, and CI is where that gets tested.
+
+    Resolving the Harbor binary inside `command` made building an argv depend on
+    Harbor being installed. Every local check still passed — this machine has
+    Harbor — and CI, which does not, failed two tests that only wanted to read
+    the flags. The executor named here cannot exist, so the day resolution
+    creeps back in, this fails everywhere rather than only where it is absent.
+    """
+    executor = HarborExecutor(harbor="harbor-that-is-not-installed-anywhere")
+    argv = executor.command(
+        Path("/tasks/json-normalizer"),
+        study.arm("standard"),
+        jobs_dir=tmp_path,
+        label="pure",
+    )
+    assert argv[0] == "harbor-that-is-not-installed-anywhere"
+    assert argv[1] == "run"

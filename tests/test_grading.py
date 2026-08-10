@@ -200,17 +200,17 @@ def test_a_grader_in_an_unknown_language_is_refused(tmp_path: Path) -> None:
 # --- reporting --------------------------------------------------------------
 
 
-def _closed_run(client: AdpClient) -> str:
+def _closed_run(client: AdpClient, adp: FakeAdp) -> str:
     intent = client.mint_intent("duva", "bench", title="t")
     run = client.create_run("duva", "bench", intent_id=intent.intent_id, orchestrator="duva-bench")
-    client.close_run("duva", "bench", run.id, final_git_sha="a" * 40)
+    client.close_run("duva", "bench", run.id, final_git_sha=adp.seed_commit())
     return run.id
 
 
 def test_one_eval_is_posted_per_axis_never_a_blend(
     adp: FakeAdp, client: AdpClient, tmp_path: Path
 ) -> None:
-    run_id = _closed_run(client)
+    run_id = _closed_run(client, adp)
     result = GraderRunner().run(SMOKE / "graders" / "json-normalizer.py", tmp_path)
 
     posted = report_axes(client, "duva", "bench", run_id, result)
@@ -225,7 +225,7 @@ def test_every_axis_carries_the_same_spec_digest(
     adp: FakeAdp, client: AdpClient, tmp_path: Path
 ) -> None:
     """One instrument, one identity — so a mismatch across arms is detectable."""
-    run_id = _closed_run(client)
+    run_id = _closed_run(client, adp)
     result = GraderRunner().run(SMOKE / "graders" / "json-normalizer.py", tmp_path)
     report_axes(client, "duva", "bench", run_id, result)
     assert {record.spec_digest for record in adp.evals} == {result.spec_digest}
@@ -233,7 +233,7 @@ def test_every_axis_carries_the_same_spec_digest(
 
 def test_an_unscored_result_posts_nothing(adp: FakeAdp, client: AdpClient, tmp_path: Path) -> None:
     """A trial with no eval renders as unscored. A zero would be a false claim."""
-    run_id = _closed_run(client)
+    run_id = _closed_run(client, adp)
     result = GraderRunner().run(GRADERS / "crasher.py", tmp_path)
 
     assert report_axes(client, "duva", "bench", run_id, result) == []
@@ -243,7 +243,7 @@ def test_an_unscored_result_posts_nothing(adp: FakeAdp, client: AdpClient, tmp_p
 def test_an_axis_with_no_score_still_records_its_pass_fail(
     adp: FakeAdp, client: AdpClient, tmp_path: Path
 ) -> None:
-    run_id = _closed_run(client)
+    run_id = _closed_run(client, adp)
     result = GraderRunner().run(GRADERS / "partial.py", tmp_path)
 
     report_axes(client, "duva", "bench", run_id, result)
