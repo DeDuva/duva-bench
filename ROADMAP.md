@@ -23,12 +23,12 @@ graders, and adp-replay's statistics library. The dependency map is ADP's
 
 ## Read this before the table
 
-**Code exists for every milestone; no gate has been run.** M0–M8 were written in one
-long branch during the track pause, when no container runtime, no model and no live ADP
+**Code exists for every milestone; one gate of three has been run.** M0–M8 were written in
+one long branch during the track pause, when no container runtime, no model and no live ADP
 were reachable from the session doing the work. That branch was rebased onto `main` and
-landed as a single PR rather than replayed as nine — the code is real and
-`make check` passes over it, but it was never held to the plan's one-milestone-per-branch
-rule and there is no milestone-by-milestone review history behind it.
+landed as a single PR rather than replayed as nine — the code is real and `make check` passes
+over it, but it was never held to the plan's one-milestone-per-branch rule and there is no
+milestone-by-milestone review history behind it.
 
 So the ledger below distinguishes two things the plan's done-conditions normally fuse:
 
@@ -36,8 +36,13 @@ So the ledger below distinguishes two things the plan's done-conditions normally
 - **gate passed** — the milestone's real-world done-condition has been demonstrated with
   evidence anyone can re-check.
 
-Nothing on this track has produced a result. No trial has run against a real container,
-a real model and a live ADP.
+The distinction is not pedantry. **Gate G1 passed on 2026-08-10, and closing it took seven
+defects out of code that had 325 passing tests** — six of them assumptions about another
+program's interface, pinned by fixtures written from the same assumptions. Every milestone
+still marked *code landed* carries exactly that risk.
+
+**No study has been executed.** One trial has run end to end; `duva-bench run` and
+`duva-bench report` have not, so nothing on this track is yet a result about any agent.
 
 ## Milestone ledger
 
@@ -96,10 +101,12 @@ a real model and a live ADP.
 - [`docs/execution-plan.md`](docs/execution-plan.md) — the plan of record: agent rules
   (§0), fixed toolchain decisions (§2), known ADP contract traps (§3), milestones
   M0–M8 with done-conditions and gates.
-- [`docs/g1-runbook.md`](docs/g1-runbook.md) — the next milestone, step by step.
-- [`docs/blockers.md`](docs/blockers.md) — what each unrun gate is still missing.
+- [`docs/g1-runbook.md`](docs/g1-runbook.md) — how gate G1 was closed, step by step; kept
+  as the model for G2, which needs the same environment.
+- [`docs/blockers.md`](docs/blockers.md) — G1's evidence and the seven defects it took;
+  what G2 and G3 are still missing.
 - [`docs/adp-contract-findings.md`](docs/adp-contract-findings.md) — how ADP's contract
-  actually behaves, as read from its source.
+  actually behaves, now confirmed against a live server rather than read from its source.
 - `docs/html/` — the published "Why duva-bench" page: motivation and prior art.
 - The squad track's plan: `packages/duva-bench/PLAN.md` on the squad fork's `dev`
   branch. The cross-track hypothesis is registered in that package's
