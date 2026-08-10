@@ -96,6 +96,12 @@ still marked *code landed* carries exactly that risk.
 - **The ADP contract suite has never run in CI.** It passes locally against a live server;
   `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
   pinned by a suite one person runs by hand.
+- **The local ADP is ephemeral, so a cited run id is reproducible rather than durable.**
+  G1's evidence lives in the `adp-test-*` stack that `make down` destroys, and this
+  machine's `/tmp` is cleared between sessions. Anyone re-checking a run id in
+  `docs/blockers.md` has to re-run the trial, not fetch the record. A durable instance
+  is what would make these claims independently verifiable, which is the whole point of
+  recording to ADP; worth solving before Study A's results are cited anywhere.
 - **~~`total_usd: 0.0` beside `unpriced_trials: 8`~~ — fixed 2026-08-10.** The oracle rehearsal
   printed exactly that. It was not an open decision but a §0.6 violation: the cost block summed
   every trial, folding unpriced ones in as zero, so a model whose price nobody had would have

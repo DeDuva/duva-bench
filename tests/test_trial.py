@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from duva_bench import ADAPTER_VERSION
 from duva_bench.adp.client import AdpClient
 from duva_bench.exec.harbor import HarborExecutor, HarborFailed, HarborTrial, load_trial
 from duva_bench.exec.trial import NULL_GIT_SHA, Trial, intent_title, run_trial
@@ -314,3 +315,83 @@ def test_building_a_command_does_not_require_harbor_to_be_installed(
     )
     assert argv[0] == "harbor-that-is-not-installed-anywhere"
     assert argv[1] == "run"
+
+
+def test_an_abandoned_cell_can_be_retried_as_a_new_attempt(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path
+) -> None:
+    """A cell that produced nothing must not be unfillable for ever.
+
+    ADP gives an `external_ref` one run and no reopening, which is right for a
+    result and wrong for a cell whose attempt died in the infrastructure. Over
+    Study A's 480 trials a single evicted container would otherwise leave a hole
+    nothing could repair by rerunning — and gate G1 left exactly one such hole
+    in this study while it was being debugged.
+    """
+    state = StateDir(tmp_path)
+    first = _run(study, client, state, ExplodingExecutor())
+    assert first.verdict == "ERROR" or first.error, "the first attempt was meant to fail"
+    assert adp.runs[first.run_id].status == "abandoned"
+
+    second = _run(study, client, StateDir(tmp_path / "again"), RecordedExecutor())
+
+    assert second.run_id != first.run_id
+    assert second.external_ref.endswith(":r1/a2"), (
+        f"a retry of an abandoned cell used {second.external_ref!r}"
+    )
+    assert second.verdict == "VERIFIED"
+    # The failed attempt stays on the record rather than being overwritten.
+    assert adp.runs[first.run_id].status == "abandoned"
+    # And both are the same cell to anything that reads labels rather than refs.
+    for run_id in (first.run_id, second.run_id):
+        labels = adp.runs[run_id].labels
+        assert (labels["task"], labels["arm"], labels["repetition"]) == (
+            "json-normalizer",
+            "standard",
+            "1",
+        )
+
+
+def test_a_closed_cell_is_not_quietly_duplicated(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path
+) -> None:
+    """The retry is for failures, not for finished work.
+
+    A closed run is evidence. Opening a second run beside it would put two
+    results in a cell the study says has one — the duplicate M5's resume design
+    exists to prevent — so this case is refused rather than forked.
+    """
+    state = StateDir(tmp_path)
+    first = _run(study, client, state, RecordedExecutor())
+    assert adp.runs[first.run_id].status == "closed"
+
+    with pytest.raises(Exception, match=r"409|closed"):
+        _run(study, client, StateDir(tmp_path / "again"), RecordedExecutor())
+
+    assert len(adp.runs) == 1
+
+
+def test_a_cell_closed_by_an_older_adapter_is_run_again(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path
+) -> None:
+    """A closed run from another instrument does not fill this study's cell.
+
+    This is the case that made the rule necessary. Gate G1 left one cell of this
+    very study closed by an adapter that recorded every tool call as a failure
+    and misread the verifier. Skipping it because "a closed run exists" would
+    have put two instruments in one report and called it an experiment; the band
+    in `digest_bands` would then have to explain a mixture nothing needed to
+    create.
+    """
+    state = StateDir(tmp_path)
+    stale = _run(study, client, state, RecordedExecutor())
+    # Rewrite history the way an older release would have left it.
+    adp.runs[stale.run_id].labels["adapter"] = "duva-bench/1"
+
+    fresh = _run(study, client, StateDir(tmp_path / "again"), RecordedExecutor())
+
+    assert fresh.run_id != stale.run_id
+    assert fresh.external_ref.endswith(":r1/a2")
+    assert adp.runs[fresh.run_id].labels["adapter"] == f"duva-bench/{ADAPTER_VERSION}"
+    # The older run is kept, not rewritten: it is still evidence of what it was.
+    assert adp.runs[stale.run_id].status == "closed"

@@ -226,9 +226,18 @@ def digest_bands(outcomes: StudyOutcomes) -> dict[str, Any]:
                 continue
             per_task_axis.setdefault((trial.task_id, axis.name), set()).add(axis.spec_digest)
             axis_digests.setdefault(axis.name, set()).add(axis.spec_digest)
+        # The harness identity is Harbor's *and ours*. A run says which agent
+        # and version it used; until 2026-08-10 it said nothing about the
+        # adapter that drove that agent and mapped its trace, so seven defects
+        # could be fixed in a day and the runs from either side of the fix
+        # ranked against each other without a word of warning. An arm whose
+        # trials were produced by two different instruments is not one arm.
         harness = trial.labels.get("harness_digest")
-        if harness:
-            harnesses.setdefault(trial.arm_id, set()).add(harness)
+        adapter = trial.labels.get("adapter")
+        if harness or adapter:
+            harnesses.setdefault(trial.arm_id, set()).add(
+                f"{harness or 'unknown'}+{adapter or 'adapter:unrecorded'}"
+            )
 
     split = sorted({axis for (_task, axis), values in per_task_axis.items() if len(values) > 1})
     return {

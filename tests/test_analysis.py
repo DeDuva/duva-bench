@@ -9,6 +9,7 @@ against its own output is a module that can only ever stay wrong.
 from __future__ import annotations
 
 from math import isclose, sqrt
+from typing import Any
 
 import pytest
 
@@ -279,3 +280,72 @@ def test_process_metrics_serialize_their_nones() -> None:
     payload = ProcessMetrics().as_dict()
     assert payload["tool_error_rate"] is None
     assert payload["tool_calls"] == 0
+
+
+def _outcomes_with_labels(labels: list[dict[str, str]]) -> Any:
+    """Trials of one arm, differing only in the labels under test."""
+    from duva_bench.analysis.extract import StudyOutcomes, TrialOutcome
+
+    return StudyOutcomes(
+        trials=[
+            TrialOutcome(
+                run_id=f"run-{i}",
+                external_ref=f"ref-{i}",
+                task_id="json-normalizer",
+                arm_id="standard",
+                repetition=i + 1,
+                labels=dict(label),
+                verdict="VERIFIED",
+                failures=(),
+                axes=(),
+                tokens_in=0,
+                tokens_out=0,
+                cost_micro_usd=0,
+                duration_ms=0,
+                tool_calls=0,
+                tool_failures=0,
+            )
+            for i, label in enumerate(labels)
+        ]
+    )
+
+
+def test_one_arm_run_by_two_adapter_versions_is_banded() -> None:
+    """The harness is Harbor's agent *and* the thing driving it.
+
+    Closing gate G1 fixed seven defects in the adapter and the bridge in a
+    single day — including one that recorded every tool call as a failure. Runs
+    from before and after were indistinguishable in ADP, because the only
+    harness identity on a run was Harbor's own agent and version. An arm whose
+    trials came from two versions of this project is not one arm, and ranking
+    across them is the comparison §0.6 says to refuse.
+    """
+    from duva_bench.analysis.extract import digest_bands
+
+    outcomes = _outcomes_with_labels(
+        [
+            {"harness_digest": "sha256:same", "adapter": "duva-bench/1"},
+            {"harness_digest": "sha256:same", "adapter": "duva-bench/2"},
+        ]
+    )
+
+    bands = digest_bands(outcomes)
+
+    assert "standard" in bands["split_arms"], (
+        "an arm whose trials were produced by two adapter versions was not banded"
+    )
+    assert len(bands["harness_digests"]["standard"]) == 2
+
+
+def test_one_adapter_version_and_one_harness_is_not_banded() -> None:
+    """The band has to stay quiet in the normal case, or it says nothing."""
+    from duva_bench.analysis.extract import digest_bands
+
+    outcomes = _outcomes_with_labels(
+        [
+            {"harness_digest": "sha256:same", "adapter": "duva-bench/2"},
+            {"harness_digest": "sha256:same", "adapter": "duva-bench/2"},
+        ]
+    )
+
+    assert digest_bands(outcomes)["split_arms"] == []

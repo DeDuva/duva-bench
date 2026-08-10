@@ -27,7 +27,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from duva_bench import ADAPTER_VERSION
 from duva_bench.adp.client import AdpClient, AdpError
+from duva_bench.adp.models import Run
 from duva_bench.exec.harbor import TrialExecutor
 from duva_bench.exec.ledger import BudgetExceeded, CostLedger, ProviderLimiter
 from duva_bench.exec.trial import Trial, TrialRecord, ensure_intent, run_trial
@@ -107,11 +109,27 @@ def adp_completed_refs(client: AdpClient, study: Study, state: StateDir) -> set[
     "every run in the experiment" would silently answer with a page. Intents this
     study has never minted are skipped rather than created — checking what has
     been done must not create anything.
+
+    **The local state directory is a cache here, not the source.** This used to
+    read intents only from ``.duva-bench/`` and give up on a miss.
+    :func:`run_study` happened to be immune, because it calls `ensure_intent`
+    for every task first and that repopulates the cache — but
+    :func:`study_status` does not, so `duva-bench status --check-adp` on a
+    checkout whose state directory was lost reported a finished study as
+    entirely unstarted while claiming it had consulted ADP. A wrong answer
+    labelled as authoritative is worse than the local-only answer beside it,
+    which at least says `adp_consulted: false`.
+
+    The whole design says a result is reconstructible from ADP rather than from
+    local state, so a cache miss falls back to looking the intent up by title,
+    exactly as `ensure_intent` does.
     """
     known = state.known_intents()
     refs: set[str] = set()
     for task in study.tasks:
         intent_id = known.get(task.id)
+        if intent_id is None:
+            intent_id = _intent_from_adp(client, study, task.id)
         if intent_id is None:
             continue
         try:
@@ -121,8 +139,43 @@ def adp_completed_refs(client: AdpClient, study: Study, state: StateDir) -> set[
         except AdpError as error:  # a read failure is not evidence of absence
             logger.warning("could not list runs for task %s: %s", task.id, error)
             continue
-        refs |= {run.external_ref for run in runs if run.external_ref}
+        refs |= {run.external_ref for run in runs if run.external_ref and _current_instrument(run)}
     return refs
+
+
+def _current_instrument(run: Run) -> bool:
+    """Whether this run was produced by the adapter now installed.
+
+    A closed run satisfies a cell only if the thing that produced it is the
+    thing that would produce it again. Gate G1 fixed seven defects in the
+    adapter and the bridge in one day — one of them recorded every tool call as
+    a failure — and without this check a study would skip those cells for ever,
+    quietly reporting a mix of two instruments as one experiment.
+
+    A run with no `adapter` label predates the label entirely, which is the same
+    answer: not this instrument. It gets re-run under a new attempt rather than
+    reused, and the old run stays on the record.
+    """
+    return run.labels.get("adapter") == f"duva-bench/{ADAPTER_VERSION}"
+
+
+def _intent_from_adp(client: AdpClient, study: Study, task_id: str) -> str | None:
+    """The task's intent, found by title. Never mints one.
+
+    `find_intent` and not `mint_intent`: asking what has already been done must
+    not create anything, or `status` on a fresh checkout would quietly file an
+    issue per task.
+    """
+    from duva_bench.exec.trial import intent_title
+
+    try:
+        issue = client.find_intent(
+            study.adp.owner, study.adp.repo, title=intent_title(study, task_id)
+        )
+    except AdpError as error:  # a read failure is not evidence of absence
+        logger.warning("could not look up the intent for task %s: %s", task_id, error)
+        return None
+    return issue.intent_id if issue else None
 
 
 def run_study(
@@ -316,14 +369,23 @@ def study_status(
         remote = adp_completed_refs(client, study, state)
 
     done = set(verified) | remote
+    # Intersected with the plan, not counted raw. ADP holds every run ever
+    # closed against this study's intents, including repetitions beyond the
+    # study's own and one-off `duva-bench trial` invocations — so the raw count
+    # produced `planned: 8, verified: 4, remaining: 7`, which is not a state any
+    # study can be in and tells a reader nothing except that something is wrong.
+    planned_refs = {trial.external_ref(study) for trial in planned}
+    done_in_plan = done & planned_refs
     return {
         "study": study.title,
         "study_digest": study.study_digest,
         "planned": len(planned),
-        "verified": len(done),
+        "verified": len(done_in_plan),
         "errors": len(errored),
         "remaining": [
-            trial.external_ref(study) for trial in planned if trial.external_ref(study) not in done
+            trial.external_ref(study)
+            for trial in planned
+            if trial.external_ref(study) not in done_in_plan
         ],
         "adp_consulted": client is not None,
     }

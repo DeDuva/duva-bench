@@ -117,6 +117,13 @@ is registered in advance in the squad track's
      `unpriced`; `null` never becomes `0`.
    - **Digest mismatch ⇒ no comparison.** The analysis refuses to rank across differing grader
      `spec_digest`s or differing harness digests; it emits a banded table with a warning instead.
+     **The harness is Harbor's agent *and* duva-bench's own adapter** (added 2026-08-10):
+     every run carries an `adapter` label, `duva_bench.ADAPTER_VERSION` is bumped when the
+     meaning of a recorded trial changes, and the band fires on either. Gate G1 fixed seven
+     defects in the adapter and the bridge in one day — one recorded every tool call as a
+     failure — and runs from either side of that were otherwise indistinguishable. A closed run
+     from a different adapter version does **not** satisfy a cell: it is re-run rather than
+     reused, so a study is never a mixture of two instruments.
    - **Evidence gating.** A trial whose ADP `/verify` is not `ok: true` gets verdict `ERROR`, never
      pass/fail. Errors count **against** the majority in repetition verdicts.
    - **Pre-registration.** The analysis block of a study is digested before execution; amendments
@@ -326,7 +333,12 @@ grader env-stripping is proven by a test grader that prints its env.
   each trial (mirror adp-replay's `CostLedger`); append-only `progress.jsonl` (one line per
   completed trial keyed by the trial's `external_ref`) making the whole study resumable.
 - Idempotent rejoin: rerunning a study skips trials whose `external_ref` already has a closed,
-  verified ADP run.
+  verified ADP run **from the current adapter version**.
+- **Retry under a new attempt.** ADP gives an `external_ref` one run and no reopening, so a cell
+  whose attempt was abandoned — or was closed by an older adapter — is re-run as `…:r1/a2`,
+  `…/a3`. Nothing downstream parses the ref (labels carry task, arm and repetition), the failed
+  attempt stays on the record, and a single evicted container no longer voids a cell of a
+  480-trial study for ever. A cell closed by the *current* adapter is never duplicated.
 - CLI: `duva-bench run <study.yaml>`, `duva-bench status <study.yaml>`.
 
 **Done when:** a test kills the scheduler mid-study (SIGKILL) and a rerun completes exactly the

@@ -26,8 +26,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from duva_bench import ADAPTER_VERSION
 from duva_bench.adp.artifacts import MAX_FILE_BYTES, publish_trial_artifacts
-from duva_bench.adp.client import AdpClient
+from duva_bench.adp.client import AdpClient, AdpError
 from duva_bench.adp.gate import Verdict, verify_gate
 from duva_bench.adp.recorder import Recorder
 from duva_bench.adp.spool import Spool
@@ -148,6 +149,102 @@ def ensure_intent(client: AdpClient, study: Study, task_id: str, state: StateDir
     return issue.intent_id
 
 
+MAX_ATTEMPTS = 20
+
+
+def _open_run(
+    client: AdpClient,
+    study: Study,
+    *,
+    intent_id: str,
+    external_ref: str,
+    labels: dict[str, str],
+) -> tuple[Any, str]:
+    """Open the run for this cell, retrying under a new attempt when it must.
+
+    ADP gives an ``external_ref`` one run for ever: a second `POST /runs` with a
+    ref whose run is closed or abandoned is a 409, and there is no reopening.
+    That is right for a *result* — a closed run is evidence and must not be
+    rewritten — and it makes a cell whose attempt died for an infrastructure
+    reason permanently unfillable. Over 480 trials, a single evicted container
+    would leave a hole nothing could repair by rerunning.
+
+    So a retry is a new **attempt** of the same cell: `…:r1` becomes `…:r1/a2`,
+    `…/a3`, and so on. Nothing downstream parses the ref — `Trial.external_ref`
+    says so, and analysis groups by the `task`, `arm` and `repetition` labels —
+    so the cell is still one cell to every reader that matters, while the failed
+    attempt stays on the record instead of being overwritten by the retry.
+
+    **Only an abandoned run earns a retry.** A *closed* run is a finished trial
+    and a piece of evidence; quietly opening a second one beside it would put
+    two results in a cell the study says has one, which is the duplicate M5
+    exists to prevent. That case re-raises, and the caller — the scheduler's
+    skip list, or a human who asked for it by hand — is told.
+
+    The attempt is not silent: it is returned so the trial record carries the ref
+    that was actually used, and a run list still shows both.
+    """
+    attempt = 1
+    ref = external_ref
+    while True:
+        try:
+            return client.create_run(
+                study.adp.owner,
+                study.adp.repo,
+                intent_id=intent_id,
+                orchestrator=study.adp.orchestrator,
+                external_ref=ref,
+                labels={**labels, "attempt": str(attempt)},
+            ), ref
+        except AdpError as conflict:
+            if conflict.status != 409 or attempt >= MAX_ATTEMPTS:
+                raise
+            if not _may_retry(client, study, intent_id=intent_id, external_ref=ref):
+                raise
+            attempt += 1
+            ref = f"{external_ref}/a{attempt}"
+            logger.info(
+                "%s was abandoned; retrying this cell as attempt %d (%s)",
+                external_ref,
+                attempt,
+                ref,
+            )
+
+
+def _may_retry(client: AdpClient, study: Study, *, intent_id: str, external_ref: str) -> bool:
+    """Whether the run occupying ``external_ref`` leaves this cell unfilled.
+
+    Two cases earn a retry, and they are the same case seen twice: the ref is
+    taken by a run that is not a result of *this* experiment.
+
+    * **Abandoned** — the attempt produced nothing.
+    * **Closed by a different adapter version** — it produced something, from an
+      instrument this checkout no longer is. Reusing it would put two
+      instruments in one study; refusing to retry would make the cell
+      permanently unfillable after any adapter change.
+
+    A read failure answers ``False``: not knowing why a ref is taken is not a
+    licence to open a second run beside whatever is already there.
+    """
+    from duva_bench import ADAPTER_VERSION
+
+    for status in ("abandoned", "closed"):
+        try:
+            runs = client.list_runs(
+                study.adp.owner, study.adp.repo, intent_id=intent_id, status=status
+            )
+        except AdpError as error:
+            logger.warning("could not check why %s is taken: %s", external_ref, error)
+            return False
+        for run in runs:
+            if run.external_ref != external_ref:
+                continue
+            if status == "abandoned":
+                return True
+            return run.labels.get("adapter") != f"duva-bench/{ADAPTER_VERSION}"
+    return False
+
+
 def run_trial(
     study: Study,
     trial: Trial,
@@ -177,13 +274,16 @@ def run_trial(
     external_ref = trial.external_ref(study)
     intent_id = ensure_intent(client, study, trial.task_id, state)
 
-    run = client.create_run(
-        study.adp.owner,
-        study.adp.repo,
+    run, external_ref = _open_run(
+        client,
+        study,
         intent_id=intent_id,
-        orchestrator=study.adp.orchestrator,
         external_ref=external_ref,
         labels={
+            # What produced this trial, not just what it ran. See
+            # duva_bench.ADAPTER_VERSION for why this is a label and not part of
+            # the arm's digest.
+            "adapter": f"duva-bench/{ADAPTER_VERSION}",
             "study": study.study_digest,
             "study_title": study.title,
             "task": task.id,
@@ -191,7 +291,6 @@ def run_trial(
             **arm.labels(),
         },
     )
-
     session = client.create_session(
         study.adp.owner,
         study.adp.repo,
