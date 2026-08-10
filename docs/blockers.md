@@ -117,3 +117,12 @@ runs. That is gate G1, above.
 
 On a machine that cannot download a browser, `PLAYWRIGHT_CHROMIUM=/path/to/chrome` points Playwright
 at an existing one; that is how it was run here.
+
+**It passed locally and failed the first time CI ran it** (2026-08-10), which is worth recording
+because the failure mode leaves no failing test behind. Vite's `preview` defaults its host to the
+*name* `localhost`, and Node 17+ resolves that to `::1` first. On a runner with IPv6 the preview
+server listened on `::1` only while Playwright polled `http://127.0.0.1:4173`, so the job died at
+`Timed out waiting 180000ms from config.webServer` with both suites unrun. `npm run preview` now
+passes `--host 127.0.0.1` explicitly, pinning both ends to one address family. The lesson
+generalizes: "passes on my machine" and "passes in CI" differ by the whole environment, and a
+green local walk is not evidence until CI has run it once.

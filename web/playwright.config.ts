@@ -36,6 +36,13 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
+      // `preview` passes `--host 127.0.0.1` rather than taking Vite's default,
+      // and that is load-bearing: the default host is the *name* `localhost`,
+      // which Node 17+ resolves to `::1` first. On a runner with IPv6 the
+      // preview server then listens on `::1` only, this probe polls
+      // `127.0.0.1` forever, and the job dies at the timeout below with no
+      // failing test to point at — which is exactly how this passed locally
+      // and failed in CI. Pin both ends to the same address family.
       command: "npm run build && npm run preview",
       url: "http://127.0.0.1:4173",
       reuseExistingServer: !process.env.CI,
