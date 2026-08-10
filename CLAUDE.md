@@ -5,6 +5,10 @@ task substrate — with verifiable trajectories, separately-authorized scoring, 
 pre-registered statistics. Execution is delegated to **Harbor** (a container per trial,
 real agent CLIs); recording and verification go to ADP.
 
+**`ROADMAP.md` is the single status ledger** — milestone states, blockers with
+verification dates, open decisions. A PR that changes milestone status updates it in
+the same PR.
+
 **Read `docs/execution-plan.md` before doing anything here.** It is the plan of record and
 it is prescriptive, not descriptive:
 

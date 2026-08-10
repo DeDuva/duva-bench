@@ -10,30 +10,24 @@ published "Why duva-bench" page). This document is only *how to build it*.
 
 ---
 
-## Track status — 2026-08-08 (updated: pause LIFTED)
+## The 2026-08-08 probe — the record that lifted the pause
 
-> **The pause is over. A probe on 2026-08-08 ran Harbor end to end on this
-> machine, twice, and nothing blocked.** Work on M0 can begin.
+> **Status lives in [`/ROADMAP.md`](../ROADMAP.md)** — the repo's single status ledger,
+> updated in the same PR as any status change. What follows here is the durable record
+> of the probe that lifted this track's pause, kept in the plan because M0–M2 build
+> directly on its findings.
 
 duva-bench has **two tracks, meant to run in parallel** — bespoke infrastructure
 (squad) against in-distribution infrastructure (Harbor), on the same tasks,
-graders and statistics, so **the pair of tracks is itself an experiment**.
+graders and statistics, so **the pair of tracks is itself an experiment**. This
+track was paused because its dependencies could not be configured from a remote
+session. That was a real constraint and the pause was the right call. It no
+longer holds, and the reason is worth recording: the belief that nothing could
+be installed came from the **system** Python being 3.14 with no `ensurepip`, so
+`python3 -m venv` fails and the fix needs `sudo apt`. A uv-managed CPython 3.12
+**with a working pip** was on disk the whole time.
 
-| Track | Where | State |
-|---|---|---|
-| **Harbor** (this repo) | `github.com/DeDuva/duva-bench` | **Unblocked, M0 not yet started.** |
-| **squad** | `github.com/DeDuva/squad`, `packages/duva-bench/PLAN.md` | S0–S7 executed; a live 24-trial pilot, $8.03, every run verified. |
-
-### What was blocking, and why it no longer is
-
-This track was paused because its dependencies could not be configured from a
-remote session. That was a real constraint and the pause was the right call. It
-does not hold any more, and the reason is worth recording: the belief that
-nothing could be installed came from the **system** Python being 3.14 with no
-`ensurepip`, so `python3 -m venv` fails and the fix needs `sudo apt`. A
-uv-managed CPython 3.12 **with a working pip** was on disk the whole time.
-
-### The probe, 2026-08-08
+### The probe
 
 Two runs against `terminal-bench-core` 0.1.1, task `sqlite-db-truncate`:
 
