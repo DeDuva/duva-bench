@@ -8,7 +8,7 @@ by test" means the test exists and passes*. Everything below has code, and does 
 evidence its gate demands. Nothing here is a claim that the code works; it is a claim about what was
 possible to check.
 
-Last updated with the M8 commit on this branch.
+Last updated with the M8 commit on this branch, after every milestone had landed.
 
 ---
 
@@ -63,10 +63,23 @@ not been run either (below).
 
 ## Gate G3 — Study A executed · **BLOCKED**
 
-Downstream of G1 and G2, and additionally needs ≥ 2 real models × ≥ 2 real harnesses × 6 tasks × 5
-repetitions ≈ 240 trials of real spend. `studies/a-tool-familiarity/` carries the study file and its
-pre-registration, digested and validated. Nothing in it has been executed, and its `report/`
-directory is deliberately absent rather than populated with anything simulated.
+Downstream of G1 and G2, and additionally needs **480 trials** of real spend (16 arms × 6 tasks × 5
+repetitions).
+
+`studies/a-tool-familiarity/` carries the whole design: six Harbor tasks with oracles and verifiers,
+six multi-axis graders, the standard toolset and its twin, the rename map, and a `study.yaml` that
+validates and digests to
+`sha256:5c83036cad205d76ffc7e021eabc36fd7c074d4d53d028bd4b83f7af0c668084`.
+
+What `tests/test_study_a.py` establishes without executing it: the factorial is the size the plan
+specifies; the four familiarity arms of one model × harness cell differ in exactly one factor; every
+twin arm shares one seed; every grader still hashes to its pin; **every oracle satisfies its own
+grader on every axis**, so a failing arm will be a failing arm rather than a broken task; and every
+grader answers about an empty workdir rather than crashing on it.
+
+Nothing in it has been executed. Its `report/` directory is deliberately absent: an empty one would
+look like a study that produced nothing, and a populated one would have to be populated with
+something invented.
 
 ## The live-ADP contract suite · **NOT RUN**
 
