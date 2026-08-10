@@ -512,13 +512,32 @@ def _process_block(
 
 
 def _cost_block(outcomes: StudyOutcomes) -> dict[str, Any]:
+    """The cost ledger, refusing to state a total it cannot stand behind.
+
+    ``total_usd`` used to sum every trial and report ``priced_trials`` beside
+    it, which meant an unpriced trial was added in **as zero** — the exact thing
+    execution-plan §0.6 forbids by name, and it was caught by the oracle
+    rehearsal printing `total_usd: 0.0` next to `unpriced_trials: 8`. For an
+    oracle that total is true; for a model whose price nobody has, a report
+    would have understated a study's cost silently and by an unknown amount.
+
+    So a total exists only when every trial is priced. The part that *is* known
+    stays computable as ``priced_micro_usd`` — refusing to answer is not the
+    same as withholding what you have.
+    """
     priced = [trial for trial in outcomes.trials if trial.cost_micro_usd]
+    unpriced = len(outcomes.trials) - len(priced)
+    priced_micro = sum(trial.cost_micro_usd for trial in priced)
     return {
-        "total_micro_usd": sum(trial.cost_micro_usd for trial in outcomes.trials),
-        "total_usd": sum(trial.cost_micro_usd for trial in outcomes.trials) / 1_000_000,
+        # None, not 0, when anything is unpriced. A consumer reading this has to
+        # decide what to do about it rather than be handed a plausible number.
+        "total_micro_usd": None if unpriced else priced_micro,
+        "total_usd": None if unpriced else priced_micro / 1_000_000,
+        "priced_micro_usd": priced_micro,
+        "priced_usd": priced_micro / 1_000_000,
         "priced_trials": len(priced),
         # Trials ADP reported no cost for. Not free trials.
-        "unpriced_trials": len(outcomes.trials) - len(priced),
+        "unpriced_trials": unpriced,
         "tokens_in": sum(trial.tokens_in for trial in outcomes.trials),
         "tokens_out": sum(trial.tokens_out for trial in outcomes.trials),
         "by_arm": _cost_by_arm(outcomes),
@@ -526,15 +545,34 @@ def _cost_block(outcomes: StudyOutcomes) -> dict[str, Any]:
 
 
 def _cost_by_arm(outcomes: StudyOutcomes) -> dict[str, Any]:
-    by_arm: dict[str, dict[str, int]] = {}
+    """Per-arm cost, under the same rule as the total.
+
+    Per arm rather than only in aggregate because an arm is what gets compared:
+    a cost column that is right for three arms and quietly short for the fourth
+    would put a thumb on exactly the scale this project exists to keep level.
+    """
+    by_arm: dict[str, dict[str, Any]] = {}
     for trial in outcomes.trials:
         bucket = by_arm.setdefault(
-            trial.arm_id, {"cost_micro_usd": 0, "tokens_in": 0, "tokens_out": 0, "trials": 0}
+            trial.arm_id,
+            {
+                "cost_micro_usd": 0,
+                "priced_micro_usd": 0,
+                "unpriced_trials": 0,
+                "tokens_in": 0,
+                "tokens_out": 0,
+                "trials": 0,
+            },
         )
-        bucket["cost_micro_usd"] += trial.cost_micro_usd
+        if trial.cost_micro_usd:
+            bucket["priced_micro_usd"] += trial.cost_micro_usd
+        else:
+            bucket["unpriced_trials"] += 1
         bucket["tokens_in"] += trial.tokens_in
         bucket["tokens_out"] += trial.tokens_out
         bucket["trials"] += 1
+    for bucket in by_arm.values():
+        bucket["cost_micro_usd"] = None if bucket["unpriced_trials"] else bucket["priced_micro_usd"]
     return by_arm
 
 

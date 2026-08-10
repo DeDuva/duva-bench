@@ -67,8 +67,7 @@ still marked *code landed* carries exactly that risk.
   model.
 - **Next:** **gate G2** — the same eight trials against `examples/smoke/study.yaml`, with
   every number in the report reconciled against a direct ADP read by a test. Expect roughly
-  **$0.45** at the $0.054 a G1 trial cost, well under the study's $5 cap. Settle the
-  `unpriced_trials` open decision below first; it changes what the report prints.
+  **$0.45** at the $0.054 a G1 trial cost, well under the study's $5 cap.
 - **Later:** G3 (Study A, 480 trials). Post-M8, squad-as-an-arm via a Harbor adapter.
 
 ## Blockers and open decisions
@@ -97,12 +96,18 @@ still marked *code landed* carries exactly that risk.
 - **The ADP contract suite has never run in CI.** It passes locally against a live server;
   `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
   pinned by a suite one person runs by hand.
-- **Open decision — `total_usd: 0.0` prints beside `unpriced_trials: 8`.** In the oracle
-  rehearsal the report's cost block read `total_usd: 0.0` with all eight trials unpriced. For an
-  oracle that is true, since nothing was called. For a *model* whose price is unknown it would be
-  the failure execution-plan §0.6 forbids by name — an unpriced model rendering as zero rather
-  than as `unpriced`. Decide before G2 whether the total should refuse to render a number when
-  `unpriced_trials > 0`.
+- **~~`total_usd: 0.0` beside `unpriced_trials: 8`~~ — fixed 2026-08-10.** The oracle rehearsal
+  printed exactly that. It was not an open decision but a §0.6 violation: the cost block summed
+  every trial, folding unpriced ones in as zero, so a model whose price nobody had would have
+  understated a study's cost silently and by an unknown amount. A total is now stated only when
+  every trial is priced — otherwise `total_usd` is `null` and `priced_usd` carries what is known.
+  Same rule per arm, because an arm is what gets compared. Three tests in `tests/test_report.py`.
+- **Residual: `cost_micro_usd` is typed `int`, so a genuine zero and "no cost reported" are the
+  same value.** "Unpriced" is currently inferred from falsiness. That is correct for everything
+  this project can produce today — a priced model call is never exactly zero — and wrong in
+  principle. Making it `int | None` reaches back through `analysis/extract.py` into the ADP
+  response models, and ADP itself may not distinguish the two. Worth doing before any arm runs on
+  a model whose pricing is unknown; not worth blocking G2 on.
 - **Multi-CLI arms (M4+) need more agent CLIs.** Verified 2026-08-08: only `claude` is
   installed locally; `codex` and `aider` are absent. Install them before designing
   multi-CLI arms, or scope arms to what is present.

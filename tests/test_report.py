@@ -436,3 +436,87 @@ def test_a_rate_that_is_undefined_stays_out_of_the_numbers(
     block = report["axes"]["process:retry_rate"]
     for cell in block["cells"].values():
         assert all(isinstance(value, float) for value in cell["values"])
+
+
+def _outcomes_with_costs(costs: list[int | None], arms: list[str] | None = None) -> Any:
+    """A minimal StudyOutcomes carrying just the cost fields under test.
+
+    ``None`` means unpriced. It is written as ``0`` on the outcome because
+    :class:`TrialOutcome` types ``cost_micro_usd`` as ``int`` — which is the
+    residual half of this defect: ADP reporting a genuine zero and ADP
+    reporting nothing are the same value here, so "unpriced" is currently
+    inferred from falsiness. That is right for every case this project can
+    produce today (a priced call is never exactly zero) and it is not right in
+    principle. See the ledger.
+    """
+    from duva_bench.analysis.extract import StudyOutcomes, TrialOutcome
+
+    names = arms or [f"arm-{i}" for i in range(len(costs))]
+    trials = [
+        TrialOutcome(
+            run_id=f"run-{i}",
+            external_ref=f"ref-{i}",
+            task_id="t",
+            arm_id=names[i],
+            repetition=1,
+            labels={},
+            verdict="VERIFIED",
+            failures=(),
+            axes=(),
+            tokens_in=0,
+            tokens_out=0,
+            cost_micro_usd=cost or 0,
+            duration_ms=0,
+            tool_calls=0,
+            tool_failures=0,
+        )
+        for i, cost in enumerate(costs)
+    ]
+    return StudyOutcomes(trials=trials)
+
+
+def test_an_unpriced_trial_leaves_the_total_unstated_rather_than_low(tmp_path: Path) -> None:
+    """§0.6: unpriced is not zero, and a total is a claim.
+
+    The cost block used to sum every trial and report `priced_trials` beside the
+    result, which added an unpriced trial in as zero. The oracle rehearsal on
+    2026-08-10 printed `total_usd: 0.0` next to `unpriced_trials: 8` — true for
+    an oracle that calls no model, and for a model whose price nobody has it
+    would understate a study's cost silently and by an unknown amount.
+
+    A report may decline to state a total. It may not state a wrong one.
+    """
+    from duva_bench.report.build import _cost_block
+
+    outcomes = _outcomes_with_costs([120_000, None, 80_000])
+
+    block = _cost_block(outcomes)
+
+    assert block["total_usd"] is None, "a total was stated over an unpriced trial"
+    assert block["total_micro_usd"] is None
+    # What is known stays available: refusing to answer is not withholding.
+    assert block["priced_micro_usd"] == 200_000
+    assert block["priced_trials"] == 2
+    assert block["unpriced_trials"] == 1
+
+
+def test_a_fully_priced_study_still_gets_a_total(tmp_path: Path) -> None:
+    """The refusal is conditional, or every report would be useless."""
+    from duva_bench.report.build import _cost_block
+
+    block = _cost_block(_outcomes_with_costs([120_000, 80_000]))
+
+    assert block["unpriced_trials"] == 0
+    assert block["total_micro_usd"] == 200_000
+    assert block["total_usd"] == pytest.approx(0.2)
+
+
+def test_an_arm_with_an_unpriced_trial_reports_no_arm_cost(tmp_path: Path) -> None:
+    """An arm is what gets compared, so a short column there is worse than none."""
+    from duva_bench.report.build import _cost_block
+
+    block = _cost_block(_outcomes_with_costs([120_000, None], arms=["a", "a"]))
+
+    assert block["by_arm"]["a"]["cost_micro_usd"] is None
+    assert block["by_arm"]["a"]["priced_micro_usd"] == 120_000
+    assert block["by_arm"]["a"]["unpriced_trials"] == 1

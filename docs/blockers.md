@@ -98,8 +98,18 @@ It runs no model, so it says nothing about token accounting, provider rate limit
 enforcement under real spend — `priced_trials` was 0 and the cap was never approached. G2 still has
 to be run.
 
-**And it surfaced one thing to decide before G2 runs** — see the open decision in `/ROADMAP.md`
-about `total_usd: 0.0` printing beside `unpriced_trials: 8`.
+### And it caught one thing that no test would have
+
+The report's cost block printed `total_usd: 0.0` beside `unpriced_trials: 8`. For an oracle that
+total is true — nothing was called. For a model whose price nobody has, it is the failure
+execution-plan §0.6 forbids by name: unpriced folded in as zero, understating a study's cost
+silently and by an unknown amount. Fixed in the same PR — a total is stated only when every trial
+is priced, and `priced_usd` carries what is known otherwise.
+
+Worth noting *how* it was caught. Every unit test of the cost block passed, because they were
+written against studies where everything was priced. It took running the machinery over a study
+whose trials genuinely have no cost — which is precisely what an oracle rehearsal is for, and an
+argument for keeping one around rather than treating it as scaffolding.
 
 ## Gate G3 — Study A executed · **BLOCKED**
 
