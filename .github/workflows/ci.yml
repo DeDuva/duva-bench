@@ -34,10 +34,12 @@ jobs:
       - name: Docs
         run: make check-docs
       - name: Lint
-        run: python -m ruff check src tests
+        run: python -m ruff check src tests tools
       - name: Format check
-        run: python -m ruff format --check src tests
+        run: python -m ruff format --check src tests tools
       - name: Types
         run: python -m mypy
+      - name: Generated client is current
+        run: python tools/generate_adp_client.py --check
       - name: Test
         run: python -m pytest -m "not contract and not harbor"
