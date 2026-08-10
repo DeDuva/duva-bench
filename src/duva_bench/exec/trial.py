@@ -282,9 +282,7 @@ def run_trial(
                     MAX_FILE_BYTES,
                     ", ".join(published.skipped),
                 )
-            client.close_run(
-                study.adp.owner, study.adp.repo, run.id, final_git_sha=final_git_sha
-            )
+            client.close_run(study.adp.owner, study.adp.repo, run.id, final_git_sha=final_git_sha)
         else:
             client.abandon_run(
                 study.adp.owner,

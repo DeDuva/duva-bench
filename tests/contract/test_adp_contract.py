@@ -296,7 +296,7 @@ def test_a_tampered_event_makes_the_gate_return_error(
     assert edit.returncode == 0, (
         f"{' '.join(psql)} failed: {edit.stderr}\n"
         "If psql is not installed on this host, point DUVA_ADP_PSQL at one, e.g. "
-        '\'docker exec -i <postgres-container> psql\'.'
+        "'docker exec -i <postgres-container> psql'."
     )
 
     verdict = verify_gate(client, owner, repo, run_id)

@@ -142,6 +142,5 @@ def test_the_graders_the_study_pins_still_hash_to_their_pin() -> None:
         grader = EXAMPLES / entry["grader_path"]
         digest = hashlib.sha256(grader.read_bytes()).hexdigest()
         assert digest == entry["grader_sha256"], (
-            f"{entry['id']}: {grader} hashes to {digest}, study.yaml pins "
-            f"{entry['grader_sha256']}"
+            f"{entry['id']}: {grader} hashes to {digest}, study.yaml pins {entry['grader_sha256']}"
         )
