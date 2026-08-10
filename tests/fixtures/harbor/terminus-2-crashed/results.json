@@ -1,0 +1,19 @@
+{
+  "task_name": "retry-backoff",
+  "trial_name": "retry-backoff.1-of-1",
+  "trial_uri": "file:///jobs/smoke/retry-backoff.1-of-1",
+  "task_checksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "agent_info": {
+    "name": "terminus-2",
+    "version": "0.20.0",
+    "model_info": { "name": "claude-sonnet-4-5-20250929", "provider": "anthropic" }
+  },
+  "exception_info": {
+    "exception_type": "AgentTimeoutError",
+    "exception_message": "agent exceeded its 300s budget",
+    "exception_traceback": "Traceback (most recent call last): ...",
+    "occurred_at": "2026-08-07T10:05:00Z"
+  },
+  "started_at": "2026-08-07T10:00:00Z",
+  "finished_at": "2026-08-07T10:05:00Z"
+}

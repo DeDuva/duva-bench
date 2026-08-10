@@ -1,0 +1,3223 @@
+{
+  "components": {
+    "parameters": {
+      "id": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "number": {
+        "in": "path",
+        "name": "number",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "owner": {
+        "in": "path",
+        "name": "owner",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "path": {
+        "description": "Matches the rest of the URL, including slashes.",
+        "in": "path",
+        "name": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "repo": {
+        "in": "path",
+        "name": "repo",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "runId": {
+        "in": "path",
+        "name": "runId",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "sha": {
+        "in": "path",
+        "name": "sha",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "CreateChangeRequest": {
+        "properties": {
+          "git_sha": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
+          },
+          "intent_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "git_sha"
+        ],
+        "type": "object"
+      },
+      "CreateCommentRequest": {
+        "properties": {
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
+      "CreateIssueRequest": {
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "CreateProposalRequest": {
+        "properties": {
+          "base": {
+            "description": "Branch name",
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "change_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "head": {
+            "description": "Branch name",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "head",
+          "base"
+        ],
+        "type": "object"
+      },
+      "CreateRepoRequest": {
+        "properties": {
+          "default_branch": {
+            "default": "main",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateReviewRequest": {
+        "properties": {
+          "annotations": {
+            "items": {
+              "properties": {
+                "body": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "file",
+                "line",
+                "body"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "body": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "approved",
+              "changes_requested",
+              "commented"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "ReportGateRequest": {
+        "properties": {
+          "git_sha": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "description": "Optional numeric score, carried into the signed predicate so a candidate set's `best_score` policy ranks on attested evidence. Deliberately one typed field rather than a general predicate passthrough — the predicate is what gets signed, and arbitrary caller-supplied content would make the attestation a claim ADP merely relayed.\n",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "success",
+              "failure",
+              "pending"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "git_sha",
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "UpdateIssueRequest": {
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateProposalRequest": {
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Native and compat-plane HTTP surface for ADP — see docs/pragmatic_mvp.md §2.4 for what is in scope and §2.5 for what is deliberately cut.\nTwo planes share this file. `/api/v3` is the GitHub-compatible surface, kept faithful enough that unmodified `gh` works against it. `/api/adp` is the native plane, which has no GitHub analogue: workspaces, candidate sets, sessions and checkpoints, the operation log, and evidence bundles.\nCompleteness is enforced, not aspirational: server/src/spec-coverage.test.ts enumerates the server's real route table and fails if this file and the implementation describe different APIs in either direction. Deliberate omissions are the git smart-HTTP wire protocol (specified by git itself and proxied verbatim), the loopback-only receive-path hook endpoints, and the inbound GitHub webhook receiver, whose payload contract is GitHub's.\n`info.version` above is the contract version, and every response carries it in an `ADP-API-Version` header — including 401s and 404s, so a generated client can pin before it authenticates. The git smart-HTTP routes are the exception: they are proxied verbatim and are not part of this contract. See docs/api-compatibility.md for what a version bump promises.\n",
+    "title": "ADP API",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/adp/repos/{owner}/{repo}/candidate-sets": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Candidate sets"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List candidate sets, newest first."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "intent_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "selection_policy": {
+                    "default": "manual",
+                    "enum": [
+                      "manual",
+                      "first_green",
+                      "best_score"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "intent_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Intent not found in this repository"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Open a candidate set against one intent — N proposals fanned out, one selected. The MVP feature GitHub structurally cannot express (§2.2). Proposals join by passing `candidate_set_id` at creation.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/candidate-sets/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Candidate set"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A candidate set with every candidate's head sha, score, and gate verdicts — the comparison view's read model.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/candidate-sets/{id}/resolve": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "proposal_id": {
+                    "description": "Resolve this candidate regardless of policy. Required for an unselected `manual` set.",
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resolved — the landed proposal and what was reclaimed"
+          },
+          "409": {
+            "description": "The base moved during the land; retry"
+          },
+          "422": {
+            "description": "No winner under the policy, the set is already resolved, or the winner failed land policy (the set stays open).\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Finish a fan-out: pick the winner by the set's selection policy, land it (squash — one landed change per set) through the ordinary land path, and reclaim the losers' workspaces. Losing proposals are closed and their branches deleted, but their rows and evidence are never removed: the discarded attempts stay queryable without polluting history. Land is serial — speculative batching is not implemented.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/candidate-sets/{id}/select": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "proposal_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "proposal_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "422": {
+            "description": "Not a candidate in this set"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Record which candidate won. This only records the choice — /resolve is what acts on it.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/evidence/{sha}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Evidence bundle"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The consolidated evidence bundle for a commit: its signed change plus every gate result's DSSE envelope. One read answers \"what landed, who produced it, and how was it verified\".\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/operations": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Operations, newest first"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The append-only operation log — every mutation, written in the same transaction as the state change it describes. Filterable by `verb`, `actor`, `path`, `since`, `until`, `limit`.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/operations/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Operation"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A single operation."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/operations/{id}/undo": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "responses": {
+          "200": {
+            "description": "The recorded undo operation"
+          },
+          "422": {
+            "description": "This operation is not undoable, or was already undone"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Undo an operation — operation-log undo with the causal record preserved, not revert-as-new-commit. The undo is itself an operation.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/runs": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "intent_id",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "enum": [
+                "open",
+                "closed",
+                "abandoned"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Runs"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Runs in this repository, newest first."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "external_ref": {
+                    "description": "The orchestrator's own id for the assignment.",
+                    "type": "string"
+                  },
+                  "intent_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "labels": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "What this run was — vendor, model, tier. Set at open and immutable: they are covered by the run attestation, so a label that could be edited afterwards would leave the envelope and the row disagreeing. There is no update route. Ranking consumers read these rather than parsing `external_ref`, whose format nothing enforces.\n",
+                    "type": "object"
+                  },
+                  "orchestrator": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "intent_id",
+                  "orchestrator"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Rejoined an open run with this external_ref"
+          },
+          "201": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "A run with this external_ref is already closed or abandoned"
+          },
+          "422": {
+            "description": "Intent not found in this repository"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Open a run — an orchestrator's unit of assigned work, spanning the sessions it spawns to do it. `orchestrator` is opaque in the way `harness` is. When `external_ref` names a run that already exists, the existing run is returned with 200 instead of a second run being created, so an orchestrator restarting after a crash rejoins rather than forking the trajectory in two.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/compare": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "intent_id",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Restrict the paired eval to this name.",
+            "in": "query",
+            "name": "eval",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One row per run, carrying its `labels`, the single latest `eval`, and `evals` — the latest result per eval *name*. A run scored on several axes has several results, and a consumer ranking per axis reads `evals`; `eval` alone would show whichever score was recorded last.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "N runs against one intent, each pairing its attested eval outcome with what the trajectory cost to produce it — the table eval-based optimization is read off. Ranked by score descending; unscored runs sort last, because unmeasured is not the same as scoring zero.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Run"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A run with its sessions, their chain heads, and its evals."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/abandon": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Abandoned"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Cannot abandon a closed run"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Abandon a run that produced no commit. The trajectory is kept — the discarded attempts staying queryable is the point — and the run's sessions are closed.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/close": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "final_git_sha": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "final_git_sha"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Closed, with the signed attestation"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Already closed against a different sha, or abandoned"
+          },
+          "422": {
+            "description": "The commit could not be resolved in this repository"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Close a run against the commit it produced, signing a DSSE attestation that binds that sha to every session's trajectory chain head. Any still-open session is closed here: the attestation names each chain head, so a session that could still append afterwards would leave an attestation that no longer describes the trajectory. Idempotent on the same sha; 409 on a different one.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/evals": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Evals"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The evals recorded against this run, newest first, each carrying `reporter_principal` and `separately_authorized`.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "gate_name": {
+                    "description": "Defaults to `eval:<name>`.",
+                    "type": "string"
+                  },
+                  "git_sha": {
+                    "description": "Defaults to the run's final_git_sha.",
+                    "type": "string"
+                  },
+                  "metrics": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "score": {
+                    "type": "number"
+                  },
+                  "spec": {
+                    "description": "The eval definition; digested to make the result identifiable."
+                  },
+                  "spec_digest": {
+                    "description": "Supply directly if the eval harness already content-addresses its suites.",
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "passed"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded, with the gate result it was reported as, plus `reporter_principal` and `separately_authorized` — the latter true when the identity reporting the score is not the one that opened the run, i.e. the score is not a self-report.\n"
+          },
+          "404": {
+            "description": "Run not found"
+          },
+          "422": {
+            "description": "The run has no final_git_sha and no git_sha was supplied"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Attach a deterministic eval result to a run, as gate evidence. The eval *is* a gate result — same signing, same table, same land policy and `gh pr checks` projection — and the signed predicate binds the score to the run, the commit, the trajectory digest, and the digest of the eval definition that produced it. Report under `gate_name: score` to feed a candidate set's `best_score` selection.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/stats": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Stats"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "What the run cost and what it spent it on: counts and tokens by event kind, per-tool call and failure counts, per-model spend, the handoff graph, and the commits the run produced.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/trajectory": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kinds",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The run's whole trajectory, merged across its sessions in the order things actually happened.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/runs/{runId}/verify": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Verification result. `chains_ok` says the events ADP holds were not edited; `emitters_ok` says ADP was given all of them, per session as `emitter_tracked`/`emitter_complete`/`emitter_first_gap` — two different guarantees, since a chain can verify perfectly and still be missing an event that never arrived. Top-level `ok` is false if either fails, or if the attestation does not check out. `evals` carries each score's `reporter_principal` and `separately_authorized`.\n"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Recompute every session's hash chain from the stored rows and check the run attestation against them. Tamper-evidence nobody can check is decoration; this is what makes the guarantee falsifiable by any holder of a read token. Reports where a chain first broke, by seq.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/runId"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "harness": {
+                    "type": "string"
+                  },
+                  "intent_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "run_id": {
+                    "description": "The orchestrator run this session belongs to. The session inherits the run's intent.\n",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "workspace_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "harness"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "The run is closed or abandoned"
+          },
+          "422": {
+            "description": "Intent, workspace, or run not found in this repository"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Start a session — a unit of agent work that outlives any one harness. `harness` is an opaque identifier ADP never branches on; that is what makes the protocol harness-neutral rather than harness-aware.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Session, lineage, and checkpoints"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A session with its checkpoints and its full resume lineage — the chain back to the session that started the work, however many harnesses it passed through.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ]
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions/{id}/checkpoints": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Checkpoints"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A session's checkpoints, in sequence order."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "git_sha": {
+                    "pattern": "^[0-9a-f]{40}$",
+                    "type": "string"
+                  },
+                  "harness": {
+                    "type": "string"
+                  },
+                  "state": {}
+                },
+                "required": [
+                  "git_sha"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "The session is closed"
+          },
+          "422": {
+            "description": "The commit could not be resolved in this repository"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Checkpoint a session at a commit, with opaque harness state. The response's `envelope` is a signed DSSE statement binding the commit and a SHA-256 digest of `state` — see spec/schemas/checkpoint.json. `state` is never parsed by ADP, so a harness storing its own format needs no protocol change.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions/{id}/close": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Closed"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Close a session. Idempotent."
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions/{id}/events": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Comma-separated event kinds.",
+            "in": "query",
+            "name": "kinds",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Return events after this seq.",
+            "in": "query",
+            "name": "since",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A session's trajectory in sequence order, with each event's chain hashes."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "events": {
+                    "items": {
+                      "properties": {
+                        "client_event_id": {
+                          "description": "The emitter's own id; a repeat is dropped rather than appended twice.",
+                          "type": "string"
+                        },
+                        "cost_micro_usd": {
+                          "type": "integer"
+                        },
+                        "duration_ms": {
+                          "type": "integer"
+                        },
+                        "git_sha": {
+                          "description": "Set on commit events; joins the trajectory to the change record.",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "enum": [
+                            "message",
+                            "model_call",
+                            "tool_call",
+                            "handoff",
+                            "commit",
+                            "test_result",
+                            "custom"
+                          ],
+                          "type": "string"
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "occurred_at": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "payload": {
+                          "description": "Opaque to ADP — never parsed, never validated beyond \"it is JSON\"."
+                        },
+                        "producer_seq": {
+                          "description": "The emitter's own contiguous counter for this session, starting at 1. `client_event_id` makes a retry harmless but cannot prove nothing was dropped — an event that never arrived has no id to deduplicate. This can: a batch that skips a number is rejected whole with 409 and `expected_next_seq`. Set it on every event of a batch or on none; an emitter that does not count is untracked, not incomplete.\n",
+                          "minimum": 1,
+                          "type": "integer"
+                        },
+                        "related_session_id": {
+                          "description": "Set on handoff events. This event on session A naming session B is the edge A→B.\n",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "success",
+                            "failure",
+                            "error",
+                            "rejected",
+                            "skipped"
+                          ],
+                          "type": "string"
+                        },
+                        "tokens_in": {
+                          "type": "integer"
+                        },
+                        "tokens_out": {
+                          "type": "integer"
+                        },
+                        "type": {
+                          "description": "The harness's own name within that kind. Never branched on.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "producer_id": {
+                    "description": "Who is counting — recorded on the events of this batch that carry a producer_seq. Batch-level rather than per-event because a chain has exactly one writer.\n",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "events"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Appended, with the new chain head, any duplicates that were skipped, and `accepted_through` — the highest producer_seq durably stored for this session, which is the mark an emitter trims its spool against (null when the session is untracked).\n"
+          },
+          "409": {
+            "description": "The session is closed, or the batch skips the emitter's numbering. In the latter case the body carries `expected_next_seq`, the producer_seq the session is waiting for, so a spool knows where to replay from rather than guessing.\n"
+          },
+          "422": {
+            "description": "Validation failed, related_session_id is not in this repository, or producer_seq was set on some events of the batch but not all.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Append to a session's trajectory — every message, model call, tool execution, handoff, commit, and test result. Events are hash-chained rather than individually signed: the chain head is what checkpoint and run attestations commit to, so recording stays cheap enough to always happen while tampering anywhere in the sequence stays detectable. Batched, and idempotent under retry when `client_event_id` is supplied.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/sessions/{id}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "checkpoint_id": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "harness": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "harness"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The new session, what it resumed from, and its workspace"
+          },
+          "404": {
+            "description": "Session not found"
+          },
+          "422": {
+            "description": "No checkpoint to resume from, or the checkpoint failed signature or state-digest verification.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Resume a session under a (possibly different) harness. Verifies the checkpoint's DSSE signature **and** re-derives its state digest before forking a workspace at the checkpointed commit — an unverified resume would make \"one continuous signed history\" false while looking true. Creates a new session linked by `resumed_from_session_id`, and records `session.resume` with `parentOp` pointing at the checkpoint's own operation. The old session is never mutated beyond its status. Defaults to the latest checkpoint.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/workspaces": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Workspaces"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List workspaces."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "base_ref": {
+                    "type": "string"
+                  },
+                  "ttl_hours": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "base_ref"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Base ref not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Fork a workspace from a base ref. A workspace is deliberately just a branch `adp/ws/<id>` with lifecycle metadata — no new storage mechanism, no VFS.\n"
+      }
+    },
+    "/api/adp/repos/{owner}/{repo}/workspaces/{id}": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Destroyed"
+          },
+          "422": {
+            "description": "Not found, or already destroyed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Destroy a workspace: deletes its branch and stamps `destroyedAt`. The row is kept so the operation log stays a complete history.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ]
+    },
+    "/api/graphql": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "operationName": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string"
+                  },
+                  "variables": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Always 200 per GraphQL convention — check the response body's `errors` array.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "GraphQL endpoint. GitHub's real public schema SDL (spec/graphql/github.graphql), loaded unmodified — that file, not this OpenAPI doc, is the source of truth for the GraphQL surface. Only a subset of fields have resolvers (docs/pragmatic_mvp.md §2.4 Tier 3); everything else is a valid query that fails as a resolver error, never a validation error. Currently backed: Query.repository, Query.node, Query.viewer, Repository.{owner,defaultBranchRef,issue, issues,pullRequest,pullRequests}, Issue.author, PullRequest.author.\n"
+      }
+    },
+    "/api/v3": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Identity root probe (gh auth status / Octokit clients)"
+      }
+    },
+    "/api/v3/": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "API root"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Same as /api/v3. Registered under both spellings deliberately: `gh auth status` probes the trailing-slash form, and the tidy fix (ignoreTrailingSlash) breaks the static UI's directory index.\n"
+      }
+    },
+    "/api/v3/orgs/{org}/repos": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "org",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Validation failed, or the repository already exists"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a repository owned by an org (GitHub-shaped)."
+      }
+    },
+    "/api/v3/rate_limit": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Rate limit status (stubbed; ADP does not rate-limit in the MVP)"
+      }
+    },
+    "/api/v3/repos/{owner}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Validation failed or repo already exists"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a repository"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get a repository"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/actions/runs": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Upstream response, relayed verbatim and never recorded"
+          },
+          "404": {
+            "description": "Not mirrored — body names the ADP equivalent"
+          },
+          "502": {
+            "description": "Upstream unreachable or rate-limited. Never a synthesized empty run list: an agent that believes CI passed because the proxy fabricated silence is the worst outcome available here.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Relayed upstream for a mirrored repo — a passthrough, not an implementation. ADP never executes workflow YAML (§2.5). Non-mirrored repos and mirrors that are disabled get a self-describing 404 naming the ADP equivalent; every write path (dispatch, re-run, cancel) stays 404 permanently.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/actions/runs/{runId}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Upstream response"
+          },
+          "404": {
+            "description": "Not mirrored"
+          },
+          "502": {
+            "description": "Upstream failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A single upstream workflow run, relayed. See /actions/runs."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "runId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/actions/runs/{runId}/jobs": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Upstream response"
+          },
+          "404": {
+            "description": "Not mirrored"
+          },
+          "502": {
+            "description": "Upstream failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Jobs for an upstream workflow run, relayed. See /actions/runs."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "runId",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/actions/workflows": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Upstream response"
+          },
+          "404": {
+            "description": "Not mirrored"
+          },
+          "502": {
+            "description": "Upstream failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Upstream workflow definitions, relayed. See /actions/runs."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/changes": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "404": {
+            "description": "Repository not found"
+          },
+          "422": {
+            "description": "git_sha is not a commit in this repo, or intent_id doesn't belong to it"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Record a typed change: an existing git commit plus intent and provenance, server-signed. No GitHub shape — native ADP metadata living beside the commit (docs/pragmatic_mvp.md §2.2). Recorded via explicit call; not yet triggered automatically by a git push.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/changes/{id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get a signed change record"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/commits": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Commits"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Commit list, newest first. `?sha=` selects the starting ref."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/commits/{sha}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Commit"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A single commit."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/commits/{sha}/gates": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Gate results, most recent per gate name"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Gate results reported against a commit. This is the ADP equivalent an agent is pointed at when it asks a non-mirrored repo for Actions runs.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/compare/{path}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Comparison"
+          },
+          "404": {
+            "description": "Either ref could not be resolved"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Compare two refs (`{base}...{head}`), GitHub-shaped."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/path"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/contents/{path}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "A file object, or an array of entries for a directory"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "File or directory contents at a ref (`?ref=`), GitHub-shaped."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/path"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/dependency-admission": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Verdict recorded"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Admission verdict for a lockfile diff — three-way `admit`/`quarantine`/ `block` per package, recorded as an ordinary gate result. `quarantine` reports gate status `pending`, which `gates_green` already treats as not-green, so a repo opts in by naming the gate in adp.yaml.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/gates": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportGateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Report a gate result against a commit. The server is the receiving and attestation end — it runs nothing. The response's `envelope` is a signed DSSE-wrapped in-toto Statement, and *is* the evidence; the other fields are a queryable projection of it.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/git/blobs": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "encoding": {
+                    "enum": [
+                      "utf-8",
+                      "base64"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a blob."
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/git/blobs/{sha}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Blob"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read a blob."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/git/commits": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  },
+                  "parents": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "tree": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "message",
+                  "tree",
+                  "parents"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a commit object."
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/git/commits/{sha}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Commit"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read a commit object."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/git/refs": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Refs"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "All refs. Paginated with `per_page`/`page`."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ref": {
+                    "type": "string"
+                  },
+                  "sha": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ref",
+                  "sha"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a ref."
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/git/refs/heads/{branch}": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a branch ref."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "branch",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/git/refs/{path}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Matching refs"
+          },
+          "404": {
+            "description": "No ref matches the prefix"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Refs matching a prefix — GitHub's own shape, so this returns an **array** even when the prefix names exactly one ref.\n"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/path"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/git/trees": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "base_tree": {
+                    "type": "string"
+                  },
+                  "tree": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "tree"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a tree. `base_tree` accepts any commit-ish, not only a tree sha — the server resolves it with `git ls-tree`.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/git/trees/{sha}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Tree"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read a tree."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/sha"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/hooks": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Hooks"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List outbound webhook subscriptions. The secret is never returned."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "config": {
+                    "properties": {
+                      "secret": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "format": "uri",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "url",
+                      "secret"
+                    ],
+                    "type": "object"
+                  },
+                  "events": {
+                    "items": {
+                      "enum": [
+                        "push",
+                        "pull_request",
+                        "gate_result"
+                      ],
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "config"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Subscribe to outbound events (`push`, `pull_request`, `gate_result`). Deliveries are HMAC-SHA256 signed with GitHub's `X-Hub-Signature-256` header shape. The secret is write-only, and encrypted at rest.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/hooks/{hookId}": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a webhook subscription."
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Hook"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "A single webhook subscription."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "hookId",
+          "required": true,
+          "schema": {
+            "format": "uuid",
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/issues": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Repository not found"
+          }
+        },
+        "summary": "List issues"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "404": {
+            "description": "Repository not found"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "File an issue (also creates an intent)"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/issues/{number}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get an issue"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "number",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update an issue (title, body, or state — open/closed)"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/issues/{number}/comments": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "List comments on an issue"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "in": "path",
+          "name": "number",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          }
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Comment on an issue"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/mirror": {
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not mirrored"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Stop mirroring."
+      },
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Mirror"
+          },
+          "404": {
+            "description": "Not mirrored"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The repository's mirror configuration and recent sync log."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "credential": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "enum": [
+                      "outbound",
+                      "inbound",
+                      "both"
+                    ],
+                    "type": "string"
+                  },
+                  "remote_url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "remote_url",
+                  "direction",
+                  "credential"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Validation failed, or the repository is already mirrored"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Configure mirroring against a GitHub remote. The credential and the inbound webhook secret are encrypted at rest; `webhook_secret` is returned exactly once, at creation.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/pulls": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Repository not found"
+          }
+        },
+        "summary": "List proposals"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "404": {
+            "description": "Repository not found"
+          },
+          "422": {
+            "description": "head/base branch not found, or change_id doesn't belong to this repo"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Open a proposal (PR-shaped). Numbered independently from issues — real GitHub shares one sequence across both; a known fidelity gap, not yet closed.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/pulls/{number}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get a proposal"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/number"
+        }
+      ],
+      "patch": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProposalRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation failed, or proposal is already merged"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update a proposal (title, body, or state — open/closed)"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/pulls/{number}/files": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Changed files"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Files changed by a proposal."
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/number"
+        }
+      ]
+    },
+    "/api/v3/repos/{owner}/{repo}/pulls/{number}/merge": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/number"
+        }
+      ],
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "merge_method": {
+                    "default": "merge",
+                    "enum": [
+                      "merge",
+                      "squash",
+                      "rebase"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Merged"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Base has diverged from head — not a fast-forward"
+          },
+          "422": {
+            "description": "Land policy not satisfied (body carries `unmet`), already merged, the proposal is closed, or `merge_method: rebase`.\n"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Land a proposal, gated on evidence.\nLand policy is resolved two-level — instance floor ∧ the repo's `adp.yaml` — and re-checked immediately before the ref compare-and-swap, which narrows but does not close the window a superseding gate result could land in (git and Postgres are not one transaction). Requirements are `gates_green`, `one_approval`, and `gates_confident`, the last gating on the Wilson lower bound of a gate's trailing pass rate. A gate that disagrees with itself often enough is quarantined: it stops blocking, but visibly, and the quarantine is recorded as an operation.\nA non-fast-forward base is the MVP's conflict model: 409, the agent rebases and retries. `merge_method` then decides what lands — `merge` (default, matching GitHub) or `squash`. `rebase` is a typed 422, not implemented.\n"
+      }
+    },
+    "/api/v3/repos/{owner}/{repo}/pulls/{number}/reviews": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "List reviews on a proposal"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/owner"
+        },
+        {
+          "$ref": "#/components/parameters/repo"
+        },
+        {
+          "$ref": "#/components/parameters/number"
+        }
+      ],
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Validation failed"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit a typed review (approved / changes_requested / commented) — not a GitHub-shaped emoji thread.\n"
+      }
+    },
+    "/api/v3/user": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Authenticated user"
+      }
+    },
+    "/api/v3/user/repos": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "422": {
+            "description": "Validation failed, or the repository already exists"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a repository owned by the authenticated user (GitHub-shaped)."
+      }
+    },
+    "/healthz": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Liveness probe"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Prometheus exposition format"
+          }
+        },
+        "summary": "Prometheus text-format counters — REST by route pattern/method/status, GraphQL by root field/operation type/outcome. Unauthenticated, like the probes above: an operator's scraper, not a repo-scoped resource.\n"
+      }
+    },
+    "/readyz": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "503": {
+            "description": "Not ready"
+          }
+        },
+        "summary": "Readiness probe (checks DB connectivity)"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ]
+}

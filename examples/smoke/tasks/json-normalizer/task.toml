@@ -1,0 +1,15 @@
+# Harbor task config. Kept minimal on purpose: the smoke study exists to prove
+# the pipeline end to end, and a task with interesting failure modes would make
+# a pipeline failure hard to tell apart from a task failure.
+version = "1.0"
+
+[metadata]
+author_name = "duva-bench"
+difficulty = "easy"
+tags = ["smoke", "python", "stdlib"]
+
+[agent]
+timeout_sec = 300
+
+[verifier]
+timeout_sec = 60

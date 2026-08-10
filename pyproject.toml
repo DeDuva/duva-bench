@@ -1,0 +1,110 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "duva-bench"
+version = "0.0.0"
+description = "Controlled factorial experiments over coding-agent arms, recorded to ADP and executed by Harbor."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Dov Zimring" }]
+
+# Execution-plan §2 fixes these three and nothing else. The rule is not
+# minimalism for its own sake: everything here has to resolve on a machine that
+# only wants to *read* a published study — validate a spec, recompute a digest,
+# reconcile a report against ADP. Anything needed only to produce results
+# belongs in an extra.
+dependencies = [
+  "pydantic>=2.7",
+  "httpx>=0.27",
+  "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+# Harbor requires Python >= 3.12 (its own floor, not ours), so this extra is
+# unresolvable on the 3.11 this package still supports. The marker makes that a
+# clean no-op rather than a resolver error. See docs/blockers.md.
+harbor = [
+  "harbor==0.20.0; python_version >= '3.12'",
+]
+server = [
+  "fastapi>=0.111",
+  "uvicorn>=0.30",
+  "sse-starlette>=2.1",
+]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "types-PyYAML",
+  # The server extra is a *runtime* option and a *development* requirement:
+  # `mypy --strict` cannot check duva_bench.server without FastAPI's types, and
+  # a type check that silently skips a package is a type check that passes by
+  # not looking. Harbor is not here for the same reason it is optional at all —
+  # it needs Python >= 3.12, and this package still supports 3.11.
+  "duva-bench[server]",
+]
+
+[project.scripts]
+duva-bench = "duva_bench.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/duva_bench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  # Anything needing a live ADP instance. Excluded from the default run so a
+  # laptop with no container can still run the suite; CI runs them explicitly,
+  # because a skip and a pass sharing an exit code is how an untested path gets
+  # reported as a tested one.
+  "contract: requires a running ADP instance (see tests/contract)",
+  # Anything needing Harbor, Docker, and a real agent CLI.
+  "harbor: requires a working Harbor install and a container runtime",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+# Machine-written, and carrying ADP's own prose in its summaries, which does not
+# wrap to our line length. Held to `make check-generated` instead — the same
+# reason mypy exempts it below.
+extend-exclude = [
+  "src/duva_bench/adp/_generated",
+  # Fixtures are *inputs*: a grader that crashes, a solution that mishandles an
+  # error path. Linting them would mean fixing the flaws they exist to carry.
+  "tests/fixtures",
+  # A study's graders and tasks are instruments pinned by sha256 in its
+  # study.yaml. Reformatting one changes the instrument without changing the
+  # study that claims to use it — so they are generated, checked in, and left
+  # alone. The generator itself is linted.
+  "studies/*/graders",
+  "studies/*/tasks",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# The factorial is written `model × harness × toolset` in the plan, in the
+# README, and on the published page. Spelling it `x` in the code so a linter
+# stops flagging the multiplication sign would make the code the odd one out.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["duva_bench"]
+mypy_path = "src"
+strict = true
+
+[[tool.mypy.overrides]]
+module = "duva_bench.adp._generated.*"
+ignore_errors = true
+
+# Optional extras. A checkout without them installed still type-checks, which is
+# what keeps `make types` meaningful on a machine that only reads results.
+[[tool.mypy.overrides]]
+module = ["harbor.*", "fastapi.*", "sse_starlette.*", "uvicorn.*"]
+ignore_missing_imports = true

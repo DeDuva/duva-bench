@@ -1,0 +1,120 @@
+# The live-ADP suite. Kept out of ci.yml because it needs a database, a server,
+# and two bootstrapped principals — and because a green `ci` should not depend
+# on another project's checkout being reachable.
+#
+# ADP is pinned by commit rather than by branch. The whole value of a contract
+# test is knowing which contract it passed against, and "whatever main was that
+# morning" is not an answer.
+#
+# NOTE: this workflow has never run. It was written from ADP's own Makefile and
+# server/src/bootstrap.ts and is the plan's stated CI shape, but nothing in the
+# environment this repository was built in could execute it. See
+# docs/blockers.md.
+name: adp-contract
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, because a contract that broke is worth finding out about before
+    # the next study rather than during it.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  # The contract this checkout's client was generated against. Moving it means
+  # re-vendoring the spec and regenerating (make sync-spec generate).
+  ADP_COMMIT: b3a455e8b0100cfce6809236c99edab160d402f8
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: adp
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: duva-bench
+
+      - uses: actions/checkout@v4
+        with:
+          repository: DeDuva/adp
+          ref: ${{ env.ADP_COMMIT }}
+          path: adp
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ADP
+        working-directory: adp/server
+        run: npm ci
+
+      - name: Migrate
+        working-directory: adp/server
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
+        run: npm run migrate
+
+      - name: Start ADP
+        working-directory: adp/server
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
+          PORT: "3000"
+        run: |
+          npm start &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:3000/readyz && break
+            sleep 1
+          done
+
+      - name: Bootstrap two principals
+        working-directory: adp/server
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
+        run: |
+          # Two principals, not one principal with two tokens: ADP decides
+          # `separately_authorized` by comparing principals, so a second token
+          # for the same identity would make every score a self-report.
+          runner=$(npx tsx src/bootstrap.ts duva-runner | awk '/^Token:/ {print $2}')
+          grader=$(npx tsx src/bootstrap.ts duva-grader | awk '/^Token:/ {print $2}')
+          echo "::add-mask::$runner"
+          echo "::add-mask::$grader"
+          echo "DUVA_ADP_RUNNER_TOKEN=$runner" >> "$GITHUB_ENV"
+          echo "DUVA_ADP_GRADER_TOKEN=$grader" >> "$GITHUB_ENV"
+
+      - name: Create the contract repository
+        env:
+          BASE: http://localhost:3000
+        run: |
+          # Repositories, like intents, only exist on the compat plane.
+          curl -sf -X POST "$BASE/api/v3/user/repos" \
+            -H "Authorization: Bearer $DUVA_ADP_RUNNER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"bench-contract"}'
+
+      - name: Install duva-bench
+        working-directory: duva-bench
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Contract suite
+        working-directory: duva-bench
+        env:
+          DUVA_ADP_BASE_URL: http://localhost:3000
+          DUVA_ADP_OWNER: duva-runner
+          DUVA_ADP_REPO: bench-contract
+          DUVA_ADP_DB_URL: postgres://postgres:postgres@localhost:5432/adp
+        run: make test-contract

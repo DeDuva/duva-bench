@@ -89,6 +89,16 @@ is registered in advance in the squad track's
 
 1. **One milestone per branch, one PR per milestone.** Branch from `main`, name it
    `feat/m<N>-<slug>`. Do not start M(N+1) until M(N) is merged.
+
+   > **This rule has been broken exactly once, on purpose, and it still binds.** M0–M8
+   > were written in a single branch during the track pause and landed on 2026-08-10 as
+   > one PR (#5) rather than nine. That was a recovery decision about work that already
+   > existed — replaying it as nine PRs would have produced the same tree after nine
+   > review cycles — and not a precedent. The cost is real and is recorded in
+   > `/ROADMAP.md`: there is no milestone-by-milestone review history behind that code,
+   > which is part of why its gates are tracked separately from its tests. **Every
+   > milestone from gate G1 onward obeys this rule as written.** If you are reading the
+   > git history and the plan and they disagree, the plan is right.
 2. **Never add commit attribution** (no `Co-Authored-By`, no "Generated with" lines).
 3. **Do not invent scope.** If a task under-specifies something, choose the smallest implementation
    that satisfies the done-condition, and record the choice in the PR description.

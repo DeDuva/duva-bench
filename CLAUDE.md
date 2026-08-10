@@ -23,9 +23,18 @@ This file only carries what that plan does not.
 
 ## State
 
-The repo is **docs-only**: `README.md`, `docs/execution-plan.md`, `docs/html/`. There is
-no code yet — M0 (scaffold) has not started. Don't infer conventions from a source tree
-that isn't there; take them from §2.
+**Every milestone has code; no gate has been run.** M0–M8 landed as one branch written
+during the track pause, when no container, no model and no live ADP were reachable. The
+code is real and `make check` passes over it. What none of it has is the evidence its
+gates demand — nothing on this track has produced a result.
+
+The distinction the ledger draws, and that you must keep drawing: *code landed* is not
+*gate passed*. When you touch a milestone, do not describe it as done because its tests
+are green; `ROADMAP.md` says which of the two it is.
+
+**The next milestone is gate G1** — one real trial, verified, with a bridged `tool_call`.
+`docs/g1-runbook.md` is that plan, step by step, and it starts with a known defect in the
+Harbor adapter that will fail the first trial.
 
 **This is the Harbor track, one of two.** The **squad track** lives in the squad fork at
 `packages/duva-bench` (`github.com/DeDuva/squad`, branch `dev`) and has already executed
@@ -39,13 +48,19 @@ All work lands on `main` through a pull request. Commit messages and PR bodies c
 AI attribution.
 
 `make check` is the gate — the same target name as in every repo in this line of work.
-Until M0 lands it runs only `make check-docs`, which asserts that the paths this file
-points at still exist; §2 of the plan says what `setup lint fmt types test` become when
-there is code to run them against.
+It runs `check-docs lint types check-generated test`. Two suites are deliberately outside
+it, because a suite that skips on a missing dependency reports a pass and an untested path
+with the same exit code:
+
+- `make test-contract` — needs a live ADP (`DUVA_ADP_BASE_URL` and both tokens). Has
+  **never been run**. `adp/models.py` is hand-written from ADP's source, so these tests
+  are the only thing that can say whether it is right.
+- the `harbor` marker — needs Harbor and a container runtime. Currently used by **zero**
+  tests, which means excluding it excludes nothing. Closing G1 should change that.
 
 **Do not regenerate this file with `/init`.** It is a set of deliberate pointers into the
-plan of record, and a codebase scan — of a repo with no code — would replace it with
-nothing useful.
+plan of record; a codebase scan would replace them with a description of the source tree,
+which is the one thing you can already get by reading the source tree.
 
 `.claude/settings.json` is checked in and holds the shared permission allowlist. Personal
 overrides go in `.claude/settings.local.json`, which is ignored.

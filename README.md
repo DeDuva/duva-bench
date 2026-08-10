@@ -7,18 +7,47 @@ with verifiable trajectories, separately-authorized scoring, and pre-registered 
 Benchmarks rank agents. duva-bench isolates *why* one arm beats another, and produces evidence a
 third party can re-verify rather than a number they have to trust.
 
-**Status: pre-M0 — unblocked as of 2026-08-08.** This repo is the **Harbor track**, one of two
-tracks meant to run in parallel; the **squad track** (`github.com/DeDuva/squad`,
-`packages/duva-bench`) has executed S0–S7 including a live pilot. This track was paused because
-its dependencies could not be configured from a remote session. **A probe on 2026-08-08 ran
-Harbor end to end here — container build, a real agent CLI, a real model, real cost — and nothing
-blocked.** M0 can begin. See
-[Track status](docs/execution-plan.md#track-status--2026-08-08-updated-pause-lifted) for the probe,
-how to reproduce it, and two defects it surfaced.
+**Status: M0–M8 built; gates G1, G2 and G3 unproven.** Every milestone of the
+[execution plan](docs/execution-plan.md) has code and tests, and `make check` passes. What none of
+it has is the evidence its gates demand: no trial has been executed against a real container, a
+real model and a live ADP, so **nothing here claims to have produced a result.**
+[`docs/blockers.md`](docs/blockers.md) says exactly what each gate is still missing.
 
-The [execution plan](docs/execution-plan.md) is the plan of record; the
-["Why duva-bench" page](docs/html/index.html) (published via GitHub Pages) carries the full
+This repo is the **Harbor track**, one of two tracks meant to run in parallel; the **squad track**
+(`github.com/DeDuva/squad`, `packages/duva-bench`) has executed S0–S7 including a live pilot. This
+track was paused because its dependencies could not be configured from a remote session, and all of
+the code above was written under that pause. **A probe on 2026-08-08 ran Harbor end to end on the
+development machine — container build, a real agent CLI, a real model, real cost — and nothing
+blocked.** See [Track status](docs/execution-plan.md#the-2026-08-08-probe--the-record-that-lifted-the-pause)
+for the probe, how to reproduce it, and two defects it surfaced.
+[`ROADMAP.md`](ROADMAP.md) is the status ledger.
+
+The ["Why duva-bench" page](docs/html/index.html) (published via GitHub Pages) carries the full
 motivation, the prior-art survey, and the case for the architecture.
+
+```sh
+pip install -e ".[dev,server]"          # add [harbor] to execute trials (needs Python >= 3.12)
+
+duva-bench validate examples/smoke/study.yaml
+duva-bench digest   examples/smoke/study.yaml
+duva-bench preflight examples/smoke/study.yaml   # checks the ADP contract and identity separation
+duva-bench run      examples/smoke/study.yaml    # resumable, budget-capped, rate-limited
+duva-bench report   examples/smoke/study.yaml    # report.json + a self-contained report.html
+duva-bench serve                                 # the JSON API the web UX is a client of
+```
+
+| | |
+|---|---|
+| study spec, canonical digest, pre-registration | `src/duva_bench/study/` |
+| ADP client, spool, recorder, evidence gate | `src/duva_bench/adp/` |
+| Harbor adapter and the ATIF → ADP trace bridge | `src/duva_bench/exec/` |
+| semantic twins, docs bundles, arm materialization | `src/duva_bench/arms/` |
+| grader invocation under a stripped environment | `src/duva_bench/grading/` |
+| outcomes from ADP, process metrics, statistics | `src/duva_bench/analysis/` |
+| report.json and the static HTML report | `src/duva_bench/report/` |
+| JSON API and SSE | `src/duva_bench/server/`, `web/` |
+| Study A, defined and unexecuted | `studies/a-tool-familiarity/` |
+| what ADP's contract actually does | [`docs/adp-contract-findings.md`](docs/adp-contract-findings.md) |
 
 ## What it does
 
