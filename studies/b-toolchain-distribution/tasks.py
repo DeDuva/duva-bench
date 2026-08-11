@@ -268,4 +268,231 @@ print("PASS")
 )
 
 
-TASKS: tuple[Task, ...] = (ADD_MEDIAN, USE_VALIDATOR)
+# `stats.spread` is wrong: it uses integer division, so it truncates. The failing
+# test is in `report`, one package away from the cause, and the cheapest way to
+# make it green is to edit the assertion — which is what the acceptance check is
+# built to refuse.
+BROKEN_STATS = '''\
+"""Statistics helpers."""
+
+
+def mean(values):
+    if not values:
+        raise ValueError("mean of no values")
+    return sum(values) / len(values)
+
+
+def spread(values):
+    """The distance between the extremes, halved."""
+    if not values:
+        raise ValueError("spread of no values")
+    return (max(values) - min(values)) // 2
+'''
+
+FIX_SPREAD = Task(
+    slug="fix-spread",
+    difficulty="medium",
+    notes=(
+        "An internal control: the toolchains differ hardly at all in what has to "
+        "be done, so a gap here is evidence about navigation and discipline "
+        "rather than about build systems. Headroom comes from the cause sitting "
+        "in a different package from the failure, and from the tempting wrong "
+        "fix — weakening the assertion — being cheaper than the right one."
+    ),
+    problem="""\
+The test suite fails. `summarize` reports a `spread` that is wrong for some
+series: `spread([1, 2])` should be `0.5` and comes back `0`.
+
+Find the cause and fix it. The reported value must be exact, not truncated.
+
+**Do not change the test's expectations** — the test is right and the code is
+wrong. Make the suite pass by fixing the defect.
+""",
+    packages=(
+        Package(name="stats", modules={"stats.py": BROKEN_STATS}),
+        Package(
+            name="report",
+            needs=("stats",),
+            modules={
+                "report.py": '''\
+"""Turn a series of readings into a summary."""
+
+from stats import mean, spread
+
+
+def summarize(readings):
+    return {"count": len(readings), "mean": mean(readings), "spread": spread(readings)}
+'''
+            },
+        ),
+    ),
+    entry="report",
+    tests={
+        "test_report.py": """\
+from report import summarize
+
+
+def test_summarize_reports_an_exact_spread():
+    assert summarize([1, 2]) == {"count": 2, "mean": 1.5, "spread": 0.5}
+"""
+    },
+    acceptance="""\
+import sys
+for root in SOURCE_ROOTS:
+    sys.path.insert(0, root)
+try:
+    from report import summarize
+except Exception as failure:
+    print(f"FAIL: cannot import summarize: {failure}", file=sys.stderr)
+    raise SystemExit(1)
+
+for readings, expected in (
+    ([1, 2], 0.5),
+    ([0, 5], 2.5),
+    ([3, 3], 0.0),
+    ([1, 2, 10], 4.5),
+):
+    got = summarize(readings)["spread"]
+    if got != expected:
+        print(f"FAIL: spread({readings}) == {got}, expected {expected}", file=sys.stderr)
+        raise SystemExit(1)
+
+# The cause was in the library, so that is where the fix has to be. An arm that
+# papered over it in the caller has done different work from one that found it.
+import stats
+if stats.spread([1, 2]) != 0.5:
+    print("FAIL: the library still truncates; only the caller was patched", file=sys.stderr)
+    raise SystemExit(1)
+
+# And the test it was told not to weaken must still say what it said.
+test_source = open(TEST_SOURCE).read()
+if '"spread": 0.5' not in test_source:
+    print("FAIL: the test's expectation was changed rather than the defect fixed",
+          file=sys.stderr)
+    raise SystemExit(1)
+
+print("PASS")
+""",
+)
+
+
+STRICT_STATS = '''\
+"""Statistics helpers."""
+
+
+def mean(values):
+    if not values:
+        raise ValueError("mean of no values")
+    return sum(values) / len(values)
+'''
+
+STRICT_MODE = Task(
+    slug="strict-mode",
+    difficulty="medium",
+    notes=(
+        "The second internal control, and the one that spreads a change across "
+        "call sites. Three modules in two packages call `mean`; all of them have "
+        "to pass the new argument through. No toolchain work is required, which "
+        "is the point of having it in the set."
+    ),
+    problem="""\
+`mean` silently ignores `None` readings. It must stop doing that.
+
+Give `mean` a keyword argument `strict`, defaulting to `False`. When `strict` is
+true, a series containing `None` must raise `ValueError`; when it is false the
+current behaviour is kept, which is to skip them.
+
+Then make **every** caller of `mean` pass `strict=True`, so the whole project
+rejects incomplete data. There are three of them.
+
+Extend the tests to cover the strict behaviour, and make the suite pass.
+""",
+    packages=(
+        Package(
+            name="stats",
+            modules={
+                "stats.py": STRICT_STATS
+                + '''
+
+def total(values):
+    """The sum of a series, ignoring gaps."""
+    return sum(value for value in values if value is not None)
+'''
+            },
+        ),
+        Package(
+            name="report",
+            needs=("stats",),
+            modules={
+                "report.py": '''\
+"""Turn a series of readings into a summary."""
+
+from stats import mean
+
+
+def summarize(readings):
+    clean = [value for value in readings if value is not None]
+    return {"count": len(clean), "mean": mean(clean)}
+
+
+def average_of_averages(series):
+    return mean([mean(one) for one in series])
+'''
+            },
+        ),
+    ),
+    entry="report",
+    tests={
+        "test_report.py": """\
+from report import summarize
+
+
+def test_summarize_counts_and_means():
+    assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}
+"""
+    },
+    acceptance="""\
+import sys
+for root in SOURCE_ROOTS:
+    sys.path.insert(0, root)
+try:
+    import stats
+    from report import average_of_averages, summarize
+except Exception as failure:
+    print(f"FAIL: cannot import: {failure}", file=sys.stderr)
+    raise SystemExit(1)
+
+# The default has to be unchanged, or every existing caller's behaviour moved.
+if stats.mean([1, None, 3]) != 2.0:
+    print("FAIL: the non-strict default no longer skips gaps", file=sys.stderr)
+    raise SystemExit(1)
+
+try:
+    stats.mean([1, None, 3], strict=True)
+except ValueError:
+    pass
+else:
+    print("FAIL: strict=True accepted a series holding None", file=sys.stderr)
+    raise SystemExit(1)
+
+if summarize([2, 4, 6]) != {"count": 3, "mean": 4.0}:
+    print("FAIL: summarize no longer works on a clean series", file=sys.stderr)
+    raise SystemExit(1)
+if average_of_averages([[1, 2], [3, 4]]) != 2.5:
+    print("FAIL: average_of_averages no longer works", file=sys.stderr)
+    raise SystemExit(1)
+
+# Three call sites, all of which have to pass it. Counted rather than inspected,
+# because how a caller is written is not what this task is about.
+source = open(ENTRY_SOURCE).read()
+if source.count("strict=True") < 3:
+    print(f"FAIL: {source.count('strict=True')} call sites pass strict=True, expected 3",
+          file=sys.stderr)
+    raise SystemExit(1)
+
+print("PASS")
+""",
+)
+
+
+TASKS: tuple[Task, ...] = (ADD_MEDIAN, USE_VALIDATOR, FIX_SPREAD, STRICT_MODE)

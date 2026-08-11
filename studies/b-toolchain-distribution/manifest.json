@@ -1,12 +1,20 @@
 {
   "tasks": [
     "add-median",
-    "use-validator"
+    "use-validator",
+    "fix-spread",
+    "strict-mode"
   ],
   "variants": [
     "add-median-oss",
     "add-median-proprietary",
     "add-median-twin",
+    "fix-spread-oss",
+    "fix-spread-proprietary",
+    "fix-spread-twin",
+    "strict-mode-oss",
+    "strict-mode-proprietary",
+    "strict-mode-twin",
     "use-validator-oss",
     "use-validator-proprietary",
     "use-validator-twin"

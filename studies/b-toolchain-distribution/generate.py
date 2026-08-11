@@ -280,7 +280,13 @@ def dockerfile(extra: str) -> str:
     )
 
 
-def verifier(task: Task, source_roots: list[str], entry_source: str, extra_gate: str = "") -> str:
+def verifier(
+    task: Task,
+    source_roots: list[str],
+    entry_source: str,
+    test_source: str,
+    extra_gate: str = "",
+) -> str:
     """The acceptance check, identical in every variant.
 
     Deliberately not the agent's own test: a task that graded an agent by the
@@ -290,6 +296,7 @@ def verifier(task: Task, source_roots: list[str], entry_source: str, extra_gate:
     body = (
         task.acceptance.replace("SOURCE_ROOTS", json.dumps(source_roots))
         .replace("ENTRY_SOURCE", json.dumps(entry_source))
+        .replace("TEST_SOURCE", json.dumps(test_source))
         .rstrip()
     )
     return (
@@ -305,6 +312,151 @@ def verifier(task: Task, source_roots: list[str], entry_source: str, extra_gate:
         "status=$?\n" + extra_gate + '[ "$status" -eq 0 ] && reward_pass\n'
         'exit "$status"\n'
     )
+
+
+GRADER_TEMPLATE = '''#!/usr/bin/env python3
+"""Grader for Study B's {slug}, in whichever toolchain it was solved.
+
+Invoked as ``python3 <grader> <workdir>``, prints one JSON object. Runs with its
+cwd outside the workdir and with every ADP and provider token stripped from its
+environment, so it cannot report its own score — that is duva-bench's job, under
+a different identity.
+
+The check is the task's acceptance criterion, which is shared by all three
+toolchain variants: the same behaviour is required of every arm, and only the
+paths differ. Scored as two axes rather than one because "it works" and "it was
+done the way the task asked" are different claims, and blending them would hide
+an arm that passed by taking the shortcut the task forbids.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+SPEC = {{
+    "task": "{slug}",
+    "axes": ["acceptance", "discipline"],
+}}
+
+# Where the container's /workspace was collected to. The verifier copies it, so
+# the grader sees the work product without needing the container to still exist.
+WORKSPACE = "workspace"
+ENTRY_MODULE = "{entry_module}.py"
+
+# **The layout is discovered, not assumed.** One grader serves all three
+# toolchains: `src/report/report.py`, `kelvra/report/report.py` and
+# `depot/report/report.py` are the same work in three arrangements, and a grader
+# pinned to one of them would score the other two as "never written" — which is
+# the failure gate G2 found in the smoke study, arriving from the other side.
+#
+# It also means the study pins **one** grader per task rather than one per
+# substrate, so the instrument is provably identical across the arms it compares.
+
+CHECK = {check!r}
+
+
+def unscored(reason: str) -> dict:
+    """A crashed check leaves an axis unscored, never zero (execution-plan §0.6)."""
+    return {{"score": None, "passed": False, "summary": reason}}
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print(f"usage: {{argv[0]}} <workdir>", file=sys.stderr)
+        return 2
+    workdir = Path(argv[1]).resolve()
+    root = workdir / WORKSPACE
+    axes: dict[str, dict] = {{}}
+
+    if not root.is_dir():
+        reason = f"nothing was collected at {{root}}"
+        axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
+        json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+        return 0
+
+    entry = next(iter(sorted(root.rglob(ENTRY_MODULE))), None)
+    tests = sorted(root.rglob("test_*.py"))
+    if entry is None:
+        reason = f"no {{ENTRY_MODULE}} anywhere under {{root}}"
+        axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
+        json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+        return 0
+
+    # Every directory holding a module is importable, which is what each
+    # toolchain arranges in its own way and what the grader must not care about.
+    roots = sorted({{str(path.parent) for path in root.rglob("*.py")}})
+
+    script = CHECK
+    for name, value in (
+        ("__ROOTS__", json.dumps(roots)),
+        ("__ENTRY__", json.dumps(str(entry))),
+        ("__TEST__", json.dumps(str(tests[0]) if tests else "")),
+    ):
+        script = script.replace(name, value)
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=300
+    )
+    output = (completed.stdout + completed.stderr).strip()
+    passed = completed.returncode == 0
+
+    axes["acceptance"] = {{
+        "score": 1.0 if passed else 0.0,
+        "passed": passed,
+        "summary": "behaviour is correct" if passed else output.splitlines()[-1][:200]
+        if output
+        else "the check failed and said nothing",
+    }}
+    # Discipline is the subset of the check that is about *how* — the shortcuts
+    # each task forbids. It is only meaningful once behaviour is right; before
+    # that it is unscored rather than failed, because a trial that never worked
+    # has not demonstrated anything about its method.
+    if passed:
+        axes["discipline"] = {{
+            "score": 1.0,
+            "passed": True,
+            "summary": "no forbidden shortcut detected",
+        }}
+    else:
+        forbidden = any(
+            marker in output
+            for marker in ("only the caller", "was changed rather than", "does its own",
+                           "reimplement", "sorts values itself", "call sites pass")
+        )
+        axes["discipline"] = (
+            {{"score": 0.0, "passed": False, "summary": output.splitlines()[-1][:200]}}
+            if forbidden
+            else unscored("behaviour is wrong, so method says nothing yet")
+        )
+
+    json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
+'''
+
+
+def write_grader(task: Task) -> Path:
+    """One grader per task, serving every substrate.
+
+    Identical instrument across the arms being compared, which is what makes the
+    comparison a comparison — see `digest_bands` and execution-plan §0.6.
+    """
+    body = GRADER_TEMPLATE.format(
+        slug=task.slug,
+        entry_module=task.entry,
+        check=task.acceptance.replace("SOURCE_ROOTS", "__ROOTS__")
+        .replace("ENTRY_SOURCE", "__ENTRY__")
+        .replace("TEST_SOURCE", "__TEST__"),
+    )
+    path = STUDY / "graders" / f"{task.slug}.py"
+    write(path, body)
+    return path
 
 
 def solution(edits: list[tuple[str, list[tuple[str, str]]]]) -> str:
@@ -326,7 +478,7 @@ def solution(edits: list[tuple[str, list[tuple[str, str]]]]) -> str:
 
 
 def oracle_edits(
-    task: Task, entry_source: str, test_path: str
+    task: Task, entry_source: str, test_path: str, roots: list[str]
 ) -> list[tuple[str, list[tuple[str, str]]]]:
     """What a correct change looks like, per task.
 
@@ -384,6 +536,61 @@ def oracle_edits(
                 ],
             ),
         ]
+    if task.slug == "fix-spread":
+        # The defect is in the library, which is a different file from the one
+        # the failure is reported in — that is the task.
+        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        return [
+            (
+                stats_source,
+                [("(max(values) - min(values)) // 2", "(max(values) - min(values)) / 2")],
+            )
+        ]
+    if task.slug == "strict-mode":
+        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        return [
+            (
+                stats_source,
+                [
+                    (
+                        "def mean(values):\n    if not values:\n"
+                        '        raise ValueError("mean of no values")\n'
+                        "    return sum(values) / len(values)",
+                        "def mean(values, *, strict=False):\n"
+                        "    if strict and any(value is None for value in values):\n"
+                        '        raise ValueError("mean of a series holding None")\n'
+                        "    kept = [value for value in values if value is not None]\n"
+                        "    if not kept:\n"
+                        '        raise ValueError("mean of no values")\n'
+                        "    return sum(kept) / len(kept)",
+                    )
+                ],
+            ),
+            (
+                entry_source,
+                [
+                    ("mean(clean)", "mean(clean, strict=True)"),
+                    (
+                        "mean([mean(one) for one in series])",
+                        "mean([mean(one, strict=True) for one in series], strict=True)",
+                    ),
+                ],
+            ),
+            (
+                test_path,
+                [
+                    (
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}',
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}\n\n\n'
+                        "def test_mean_is_strict_when_asked():\n"
+                        "    import pytest\n\n"
+                        "    from stats import mean\n\n"
+                        "    with pytest.raises(ValueError):\n"
+                        "        mean([1, None], strict=True)",
+                    ),
+                ],
+            ),
+        ]
     raise SystemExit(f"no oracle recorded for task {task.slug!r}")
 
 
@@ -429,13 +636,18 @@ def build_flat(task: Task, root: Path, words: dict[str, str]) -> None:
     roots = [f"/workspace/{words['src']}/{p.name}" for p in task.packages]
     entry_source = f"/workspace/{words['src']}/{task.entry}/{task.entry}.py"
     test_path = f"/workspace/{words['tests']}/{next(iter(task.tests))}"
-    write(root / "tests" / "test.sh", verifier(task, roots, entry_source), executable=True)
+    write(
+        root / "tests" / "test.sh",
+        verifier(task, roots, entry_source, test_path),
+        executable=True,
+    )
     write(
         root / "solution" / "solve.sh",
-        solution(oracle_edits(task, entry_source, test_path)),
+        solution(oracle_edits(task, entry_source, test_path, roots)),
         executable=True,
     )
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
+    write_grader(task)
 
 
 def build_proprietary(task: Task, root: Path) -> None:
@@ -473,9 +685,13 @@ def build_proprietary(task: Task, root: Path) -> None:
     # The depot's own gate, on top of the shared acceptance check: a change that
     # works but leaves the build graph undeclared has not landed here.
     gate = 'if [ "$status" -eq 0 ]; then dbuild presubmit >&2 || status=1; fi\n'
-    write(root / "tests" / "test.sh", verifier(task, roots, entry_source, gate), executable=True)
+    write(
+        root / "tests" / "test.sh",
+        verifier(task, roots, entry_source, test_path, gate),
+        executable=True,
+    )
 
-    body = solution(oracle_edits(task, entry_source, test_path))
+    body = solution(oracle_edits(task, entry_source, test_path, roots))
     if task.slug == "use-validator":
         # The declaration this toolchain requires and the other two do not. It is
         # the task's whole point, and without it presubmit rejects a change that
@@ -493,11 +709,14 @@ def build_proprietary(task: Task, root: Path) -> None:
         )
     write(root / "solution" / "solve.sh", body, executable=True)
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
+    write_grader(task)
 
 
 def main() -> int:
     if TASK_ROOT.exists():
         shutil.rmtree(TASK_ROOT)
+    if (STUDY / "graders").exists():
+        shutil.rmtree(STUDY / "graders")
     built: list[str] = []
     for task in TASKS:
         build_flat(task, TASK_ROOT / f"{task.slug}-oss", OSS_WORDS)
