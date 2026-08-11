@@ -66,8 +66,41 @@ python3 studies/b-toolchain-distribution/generate.py
 The three variants are generated from one source of truth so they cannot drift
 apart. Edit `generate.py`, never a task directory.
 
+## The first model run, 2026-08-10 — this task saturates
+
+Before building more tasks, all three variants were run once with a real agent
+(`terminus-2`, `claude-sonnet-4-5`), because the session that produced this
+directory had already learned that a path nobody has executed is a path that does
+not work. It cost **$0.21** in total and it found something worth knowing.
+
+| variant | outcome | steps | tokens in/out | cost |
+|---|---|---|---|---|
+| `add-median-oss` | **solved** | 18 | 53,879 / 2,924 | $0.0822 |
+| `add-median-proprietary` | **solved** | 17 | 51,449 / 2,717 | $0.0771 |
+| `add-median-twin` | **solved** | 8 | 17,867 / 1,980 | $0.0512 |
+
+Two readings, and the second is the important one.
+
+**The instrument works.** Every variant is solvable by an agent, not just by its
+oracle, so no arm's failures will be the instrument's. That is what this run was
+for.
+
+**The task is at ceiling, so it cannot measure anything.** All three solved on
+the first attempt. A task every arm passes has no headroom for a familiarity
+effect to appear in, and the outcome axis would be constant across the
+factorial. The cost column is not a finding either — n=1 per arm, and the *twin*
+happened to be cheapest, which is a good demonstration of why a noise floor has
+to be reported before any contrast is read.
+
+**So `add-median` is a smoke task, not a study task.** It stays, because a
+cheap end-to-end task that every arm passes is exactly what you want for
+checking the pipeline. The study needs tasks where the toolchains differ in
+kind — introducing a dependency, fixing an under-declared build graph, satisfying
+a presubmit gate the change trips — which are the candidates the design document
+lists and the ones this run says to prioritise.
+
 ## Next
 
-Five more tasks (the design document lists candidates), then a pilot on one model
-and one harness across the three toolchains — to get an effect size and a noise
-floor before committing to any factorial.
+Tasks with headroom, per above. Then a pilot on one model and one harness across
+the three toolchains, for an effect size and a noise floor, before committing to
+any factorial.

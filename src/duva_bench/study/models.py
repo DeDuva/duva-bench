@@ -65,12 +65,32 @@ class TaskRef(Spec):
     git: GitSource | None = None
     grader_path: str
     grader_sha256: Sha256
+    # One task posed several ways: substrate name -> path. The README has named
+    # `task substrate` as a factor of this project since its first commit, and
+    # until 2026-08-10 there was nowhere to put one — an arm could vary its
+    # model, harness, toolset and environment, and every arm ran byte-identical
+    # task files. Study B's whole manipulation is the toolchain a problem is
+    # posed in, which is a property of the task files, so it needs this.
+    #
+    # The task is still one task: same problem, same grader, same acceptance.
+    # What differs is the substrate it is expressed in, which is why these are
+    # variants of a `TaskRef` rather than separate tasks — separate tasks would
+    # put the contrast between rows that analysis never compares.
+    substrates: dict[str, str] = Field(default_factory=dict)
     # Free-form, digested. Where a task carries knobs the harness passes through.
     parameters: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _exactly_one_source(self) -> TaskRef:
-        if (self.path is None) == (self.git is None):
+        has_base = self.path is not None or self.git is not None
+        if has_base and self.substrates:
+            raise ValueError(
+                f"task {self.id!r} sets both a single source and `substrates`; a task is posed "
+                "one way or several, and a study that meant both would run something nobody chose"
+            )
+        if not has_base and not self.substrates:
+            raise ValueError(f"task {self.id!r} needs `path`, `git`, or `substrates`")
+        if self.path is not None and self.git is not None:
             raise ValueError(f"task {self.id!r} needs exactly one of `path` or `git`")
         reject_floats(self.parameters, f"tasks.{self.id}.parameters")
         return self
@@ -160,6 +180,11 @@ class Arm(Spec):
     model: ModelSpec
     harness: HarnessSpec
     toolset: ToolsetSpec
+    # Which substrate of each task this arm runs. Required when a study's tasks
+    # declare substrates, meaningless otherwise. It is on the *arm* because it
+    # is a manipulated factor: two arms differing only in substrate are the same
+    # problem posed two ways, which is exactly the contrast Study B draws.
+    substrate: str | None = None
     # Environment pins. Values are strings because that is what an environment
     # holds; a number here would be a number that gets stringified somewhere
     # else and digested differently.
@@ -192,6 +217,9 @@ class Arm(Spec):
             "toolset": self.toolset.name,
             "toolset_digest": self.toolset.digest,
             "docs": self.toolset.docs_bundle.grade,
+            # Absent rather than "none": a label that says a factor was set when
+            # the study has no such factor is worse than no label.
+            **({"substrate": self.substrate} if self.substrate else {}),
         }
 
 

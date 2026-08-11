@@ -333,3 +333,82 @@ def test_an_amendment_needs_a_rationale() -> None:
                 {"date": "2026-08-07", "field": "primary_metric", "previous": "x", "rationale": ""},
             )
         )
+
+
+# --- task substrates: one problem, posed several ways ------------------------
+
+
+def _substrate_study() -> str:
+    return """
+title: substrate study
+adp: {owner: duva, repo: bench, orchestrator: duva-bench}
+tasks:
+  - id: add-median
+    substrates:
+      oss: tasks/add-median-oss
+      proprietary: tasks/add-median-proprietary
+    grader_path: graders/add-median.py
+    grader_sha256: "0000000000000000000000000000000000000000000000000000000000000001"
+arms:
+  - id: oss
+    substrate: oss
+    model: {provider: anthropic, model: m}
+    harness: {agent: terminus-2, version: "0.20.0"}
+    toolset: {name: shell}
+  - id: proprietary
+    substrate: proprietary
+    model: {provider: anthropic, model: m}
+    harness: {agent: terminus-2, version: "0.20.0"}
+    toolset: {name: shell}
+repetitions: 1
+budget_usd_cap: "1.00"
+concurrency: 1
+pre_registration:
+  primary_metric: acceptance
+  repetitions: 1
+  control_arm: oss
+  exclusion_rules: ["none"]
+  metaprogramming_allowed: true
+"""
+
+
+def test_two_arms_may_differ_only_in_the_substrate_they_run() -> None:
+    """The factor the README always named and the spec never had.
+
+    Until 2026-08-10 an arm could vary its model, harness, toolset and
+    environment, and every arm ran byte-identical task files — so a study whose
+    manipulation is *the toolchain a problem is posed in* could not be written
+    down at all.
+    """
+    study = parse_study(_substrate_study())
+
+    assert study.arm("oss").substrate == "oss"
+    assert study.arm("proprietary").substrate == "proprietary"
+    assert study.arm("oss").arm_digest != study.arm("proprietary").arm_digest
+    assert study.arm("proprietary").labels()["substrate"] == "proprietary"
+
+
+def test_an_arm_naming_no_substrate_for_a_task_that_has_them_is_refused(tmp_path: Path) -> None:
+    """Picking one arbitrarily would make the headline contrast depend on dict order."""
+    from duva_bench.exec.trial import _task_dir
+
+    study = parse_study(_substrate_study())
+    with pytest.raises(ValueError, match="names no substrate"):
+        _task_dir(tmp_path, study.task("add-median"), substrate=None)
+
+    with pytest.raises(ValueError, match="no substrate 'twin'"):
+        _task_dir(tmp_path, study.task("add-median"), substrate="twin")
+
+
+def test_a_task_cannot_be_posed_one_way_and_several_ways_at_once() -> None:
+    raw = yaml.safe_load(_substrate_study())
+    raw["tasks"][0]["path"] = "tasks/add-median"
+    with pytest.raises(ValueError, match="one way or several"):
+        parse_study(yaml.safe_dump(raw))
+
+
+def test_a_study_without_substrates_still_needs_a_source() -> None:
+    raw = yaml.safe_load(_substrate_study())
+    del raw["tasks"][0]["substrates"]
+    with pytest.raises(ValueError, match=r"needs \`path\`, \`git\`, or \`substrates\`"):
+        parse_study(yaml.safe_dump(raw))

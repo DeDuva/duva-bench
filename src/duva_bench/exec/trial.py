@@ -502,7 +502,7 @@ def _arm_task_dir(study: Study, task: TaskRef, arm: Arm, *, root: Path, state: S
     from duva_bench.arms.materialize import materialize
     from duva_bench.arms.twin import load_definition
 
-    source = _task_dir(root, task)
+    source = _task_dir(root, task, substrate=arm.substrate)
     manipulates_docs = arm.toolset.docs_bundle.grade != "none"
     if arm.toolset.definition_path is None and not manipulates_docs:
         return source
@@ -521,12 +521,25 @@ def _arm_task_dir(study: Study, task: TaskRef, arm: Arm, *, root: Path, state: S
     return materialized.path
 
 
-def _task_dir(root: Path, task: TaskRef) -> Path:
-    """Where the task lives on disk.
+def _task_dir(root: Path, task: TaskRef, *, substrate: str | None = None) -> Path:
+    """Where the task lives on disk, in the substrate this arm asked for.
 
     Relative paths in a study file are relative to the study file, not to the
     caller's working directory: a study is a document that travels.
     """
+    if task.substrates:
+        if substrate is None:
+            raise ValueError(
+                f"task {task.id!r} is posed in {sorted(task.substrates)} and this arm names no "
+                "substrate. An arm that ran an arbitrary one would make the study's headline "
+                "contrast depend on dictionary order."
+            )
+        if substrate not in task.substrates:
+            raise ValueError(
+                f"task {task.id!r} has no substrate {substrate!r}; it is posed in "
+                f"{sorted(task.substrates)}"
+            )
+        return (root / task.substrates[substrate]).resolve()
     if task.path is None:
         raise NotImplementedError(
             f"task {task.id!r} is sourced from git, which M3 does not fetch. Vendor the "

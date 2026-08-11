@@ -62,16 +62,27 @@ still marked *code landed* carries exactly that risk.
 ## Now / Next / Later
 
 - **Now:** Study B — see [`docs/studies/b-toolchain-distribution.md`](docs/studies/b-toolchain-distribution.md).
-  Arm materialization is wired, so arms can finally differ in something an agent can see.
-- **Next:** build Study B's three toolchain skeletons and one task, oracle-first, then pilot
-  one model × one harness × three toolchains to get an effect size and a noise floor before
-  committing to any factorial. Re-run G2 at some point after the digest change, so the
+  Its first task is built in three toolchains and all three are solved by both their
+  oracles and a real agent, so the instrument works. **The task saturates**, though: every
+  arm passed, so it has no headroom to measure a familiarity effect and is a smoke task
+  rather than a study task.
+- **Next:** Study B tasks with headroom — introducing a dependency, an under-declared build
+  graph, a presubmit gate the change trips — where the toolchains differ in kind rather than
+  only in name. Then the pilot. Re-run G2 at some point after the digest changes, so the
   recorded smoke-study evidence matches the current spec (~$0.45).
 - **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
   on Study B's evidence rather than on convenience, since a sibling project has a
   pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
 
 ## Blockers and open decisions
+
+- **~~`task substrate` was a factor with nowhere to put it~~ — added 2026-08-10.** The
+  README has named `model × harness × toolset × task substrate` since the first commit, and
+  an arm could vary everything but the last: every arm ran byte-identical task files.
+  `TaskRef.substrates` now maps a substrate name to a path and `Arm.substrate` picks one, so
+  Study B's manipulation — the toolchain a problem is posed in — is expressible. An arm that
+  names no substrate for a task that has them is refused rather than given an arbitrary one.
+  Digests moved again, for the third time today and for the same good reason.
 
 - **None blocking G2.** Verified 2026-08-10 by closing G1 on this machine: Docker 29.1.3,
   `harbor==0.20.0`, a live ADP at contract `0.2.0`, provider credentials, a verified run
