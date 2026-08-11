@@ -398,6 +398,45 @@ toolchain's own vocabulary. Two rules follow:
    band is not evidence of a usable task; `topo-order` at 1/5 and at ~3/5 for
    genuine reasons are different tasks wearing the same number.
 
+### 6.3 Three attempts at a hard task produced three instrument defects and no difficulty
+
+The uncomfortable result of 2026-08-11, and the one most worth acting on.
+
+`topo-order`, `window-stats` and `merge-config` were written specifically to be
+failable. Measured, they produced a pass rate of 1/5, 5/5 and 4/5 — and reading
+every failure, **not one of them was the task being hard**:
+
+| apparent failure | what it actually was |
+|---|---|
+| `cannot import: No module named 'graph.graph'` (×3) | the layout never said how packages import each other (§6.2) |
+| `cycle-with-tail: members ['a','b','c'], expected ['a','b','c','d']` (×2) | **the task was wrong and the agent was right** |
+
+The second is worth spelling out. For `{a:[b], b:[c], c:[a], d:[a]}` the cycle is
+`a→b→c→a`; `d` merely depends on it. The task said `members` must hold "exactly
+the names taking part in it", the agent answered `['a','b','c']`, and the
+acceptance check demanded `d` as well — because the reference implementation
+lazily raised with *everything left unordered*. A correct answer was scored as a
+failure.
+
+That is the SWE-bench failure this design cites in §3.3 — a test admitting or
+rejecting the wrong thing — arriving in our own instrument within a day of
+citing it. It is also worse than the contamination it was written to avoid: a
+weak test inflates a score, a *wrong* test invents an effect.
+
+**So the honest state is: three deliberate attempts at a discriminating task
+yielded none.** Every point of apparent difficulty was an authoring defect. That
+is a fact about how hard it is to author these, not a fact about the model, and
+it argues for:
+
+1. **An oracle is not a specification.** Both defects would have been caught by
+   asking "would a competent engineer answer differently, and be right?" of every
+   acceptance case before spending anything.
+2. **A second opinion on the spec is cheap and the run is not.** Calibration
+   costs dollars per task; re-reading the acceptance cases costs minutes.
+3. **Budget for the task set being the hard part.** The machinery — gates,
+   substrates, graders, materialization — is done. Authoring tasks that
+   discriminate for the right reason is the open problem.
+
 Candidate shape — each is a genuine multi-step change, not a function to complete:
 
 1. **Add a feature across a module boundary**, updating build targets and the dependent tests.
