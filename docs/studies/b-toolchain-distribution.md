@@ -337,6 +337,32 @@ Six to eight tasks, authored not scraped, each with an oracle and a multi-axis g
 expressible in **all three toolchains without changing what is being asked**. That last constraint
 is the hard one and it should drive selection.
 
+### 6.1 A task is admitted on a measured pass rate, not on an author's opinion
+
+Added 2026-08-10, after the pilot. Every task in the first set was described in
+its own notes as having headroom and every arm solved all of them twice: pooled
+within-cell sd `0.0`, no outcome signal, nothing to divide a contrast by. The
+description was sincere and wrong, and there was no step at which it could have
+been caught.
+
+So difficulty is now measured before a task is admitted. `calibrate.py` runs a
+candidate N times on the `oss` substrate alone — the cheapest arm and the one a
+model should find easiest — and reports the pass rate together with the
+verifier's reason for each failure.
+
+- **n/n is a smoke task.** Useful for checking a pipeline, useless for measuring
+  anything. `add-median` is kept on exactly those terms.
+- **0/n is not a study task either.** A task nothing passes measures the task.
+- **The band in between is the point**, because that is where repetitions of one
+  cell differ and a within-cell variance exists at all.
+
+What makes a task land in that band, from the three built for it: rules that
+**interact** rather than sit beside one another. `window-stats` passed 3/3 while
+its rules could be satisfied one at a time, and needed a rule that changes the
+order the others have to be applied in — positions decided before gaps, not
+after. Rules that can be handled independently are a checklist; rules that
+constrain each other are a problem.
+
 Candidate shape — each is a genuine multi-step change, not a function to complete:
 
 1. **Add a feature across a module boundary**, updating build targets and the dependent tests.
