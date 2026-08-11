@@ -61,13 +61,18 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** Study B — see [`docs/studies/b-toolchain-distribution.md`](docs/studies/b-toolchain-distribution.md).
-  Two tasks built in three toolchains, all six solved by their oracles; the first was also
-  solved by a real agent in every toolchain, which proves the instrument and shows that
-  task saturates.
-- **Next:** more Study B tasks with headroom, then the pilot — one model × one harness ×
-  three toolchains, for an effect size and a noise floor before any factorial. Gates G1 and
-  G2 are both closed, so the machinery below the study is no longer the risk.
+- **Now:** Study B's pilot is **run** — 24 trials, 24 verified, 0 errors, $2.156. It says
+  the instrument cannot yet answer the question: every arm solved every task twice, so the
+  pooled within-cell sd is 0.0 and there is no outcome signal at all. The cost ordering
+  looks like the predicted effect in aggregate and is driven by one task of four, while the
+  task built to be toolchain-differentiating went the *other* way. Details in
+  [`studies/b-toolchain-distribution/README.md`](studies/b-toolchain-distribution/README.md).
+- **Next:** harder tasks — headroom before coverage, since an outcome axis that never varies
+  makes everything downstream moot — and more than two repetitions per cell, which gives a
+  spread rather than a variance. `strict-mode` is the one cell with a gap worth explaining
+  and is cheaper to investigate than running more of everything.
+- **Not next:** the factorial. The pilot exists to say when that is worth its money, and it
+  says not yet.
 - **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
   on Study B's evidence rather than on convenience, since a sibling project has a
   pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.

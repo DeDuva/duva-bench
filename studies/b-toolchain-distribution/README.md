@@ -119,13 +119,80 @@ has done different work from an arm that found the package.
 All six variants (two tasks × three toolchains) pass their own oracles through
 Harbor.
 
+## The pilot, 2026-08-10 — and why it says not to run the factorial yet
+
+24 trials (4 tasks × 3 substrates × 2 repetitions), one model
+(`claude-sonnet-4-5`), one harness (`terminus-2`), no documentation variation.
+**24/24 verified, 0 errors, $2.156, 16m40s** at concurrency 3, recorded to the
+dedicated ADP. Study digest `sha256:8156a554…`.
+
+### The outcome axes are useless, and the report says so properly
+
+| axis | oss | twin | proprietary |
+|---|---|---|---|
+| acceptance | 1.000 (n=8) | 1.000 (n=8) | 1.000 (n=8) |
+| discipline | 1.000 (n=8) | 1.000 (n=8) | 1.000 (n=8) |
+
+Every arm solved every task, twice. Pooled within-cell sd is **0.0**, and the
+contrast in sd units comes back
+`{"unavailable": "every repetition of every cell gave the same value"}` rather
+than a division by zero or an infinity. That is the noise floor doing its job:
+there is no outcome signal here, and the analysis declines to invent one.
+
+**The whole task set saturates**, not just `add-median`. Every task is too easy
+for this model.
+
+### The cost ordering looks like a finding and is not
+
+Aggregated, the arms line up exactly as H2 predicts — and this is the trap:
+
+| arm | total cost | tokens in | tokens out |
+|---|---|---|---|
+| oss | $0.6410 | 345,025 | 23,948 |
+| twin | $0.7016 | 465,873 | 24,623 |
+| proprietary | $0.8133 | 627,505 | 28,154 |
+
+Per task, the ordering falls apart:
+
+| task | oss | twin | proprietary |
+|---|---|---|---|
+| add-median | 0.0688 ±0.0023 | **0.0845** ±0.0039 | 0.0704 ±0.0083 |
+| fix-spread | 0.0538 ±0.0040 | 0.0583 ±0.0077 | **0.0525** ±0.0060 |
+| strict-mode | 0.0984 ±0.0130 | 0.0982 ±0.0016 | **0.1898** ±0.0127 |
+| use-validator | 0.0996 ±0.0045 | 0.1098 ±0.0217 | **0.0939** ±0.0021 |
+
+(± is the within-cell half-spread over two repetitions.)
+
+Three things follow, and all three argue against a factorial:
+
+1. **The aggregate effect is one task.** `strict-mode` costs the proprietary arm
+   nearly double; on the other three, proprietary is at or *below* `oss`. An
+   aggregate over four tasks turned a single-task effect into an apparent trend.
+2. **`use-validator` went the wrong way.** It is the task built specifically to
+   make the toolchains differ in kind — reach a package the entry does not, which
+   in the depot means a declared dep a presubmit gate enforces — and the
+   proprietary arm was the **cheapest** on it. Whatever the aggregate is
+   measuring, it is not the manipulation the task was designed around.
+3. **The gap is close to the noise.** Mean within-cell half-spread is $0.0073 and
+   the maximum is $0.0217; the mean oss→proprietary gap is $0.0215 per trial —
+   about three times the average noise and the same size as its worst case, at
+   n=2 per cell.
+
+### What the pilot bought
+
+Exactly what a pilot is for: the current instrument cannot answer the question,
+and it now says precisely why. Before a factorial is worth its money the task set
+needs **headroom** — tasks this model fails often enough for an outcome axis to
+vary — and enough repetitions for a within-cell sd that a contrast can be divided
+by. `strict-mode` is the one task showing anything and is the place to look first.
+
+None of the above is a result about agents, toolchains, or familiarity. It is a
+result about this task set.
+
 ## Next
 
-More tasks with headroom — an under-declared build graph, a presubmit gate the
-change trips. Then a pilot on one model and one harness across the three
-toolchains, for an effect size and a noise floor, before committing to any
-factorial.
-
-**The pilot is currently blocked** on ADP, not on the tasks: a study recording
-into `~/dev/adp`'s ephemeral stack is destroyed when another workstream runs
-`make up` there. See [`docs/blockers.md`](../../docs/blockers.md).
+- Harder tasks, chosen for headroom rather than coverage: the outcome axis has to
+  vary before anything else matters.
+- More repetitions per cell — two gives a spread, not a variance.
+- Investigate `strict-mode`: it is the only cell with a gap worth explaining, and
+  understanding it is cheaper than running more of everything.
