@@ -130,6 +130,10 @@ still marked *code landed* carries exactly that risk.
   M0–M8 with done-conditions and gates.
 - [`docs/g1-runbook.md`](docs/g1-runbook.md) — how gate G1 was closed, step by step; kept
   as the model for G2, which needs the same environment.
+- [`docs/studies/b-toolchain-distribution.md`](docs/studies/b-toolchain-distribution.md) —
+  design for a second study: in-distribution toolchains against a proprietary-style stack.
+  **Design only, not registered.** Harbor supports it — the factor is the container, not the
+  agent's tool vocabulary — but it needs the same arm-materialization wiring Study A does.
 - [`docs/blockers.md`](docs/blockers.md) — G1's evidence and the seven defects it took;
   what G2 and G3 are still missing.
 - [`docs/adp-contract-findings.md`](docs/adp-contract-findings.md) — how ADP's contract
