@@ -55,21 +55,19 @@ still marked *code landed* carries exactly that risk.
 | M3 — one Harbor trial end to end | **gate G1 PASSED 2026-08-10** | Run `a5c20876-d5ff-41af-95b5-114c9a8fddb6`: `ok`, `envelope_verified`, `trajectory_digest_matches` all true; 13 labels round-trip; **17 bridged `tool_call` events**. Took seven real defects to get there — see [`docs/blockers.md`](docs/blockers.md) |
 | M4 — arms and twin instruments | code landed, **wired 2026-08-10** | Twin generator, doc bundles, grader runner. Materialization now installs an arm's toolset into the task image and declares it in `task.toml`, which is the only place Harbor reads tools from; a spike proved an agent calls the renamed tools under the names the arm chose. Not yet exercised by a study — see [`docs/blockers.md`](docs/blockers.md) |
 | M5 — factorial scheduler | code landed | Budget cap, per-provider pacing, resumable via `progress.jsonl` |
-| M6 — analysis and report | **gate G2 run 2026-08-10** | The smoke study ran end to end against a live ADP: 8/8 trials, 0 errors, $0.44547, 5m07s at concurrency 2. `run` → `report` produced per-axis tables, CIs, process metrics and a cost ledger that matches the run's own to the micro-dollar. Unscored axes render unscored |
+| M6 — analysis and report | **gate G2 PASSED 2026-08-10** | Study `sha256:e53d00ed…`, 8/8 trials, 0 errors, $0.468609, 5m48s at concurrency 2, against the dedicated ADP. Report reconciles with a direct ADP read by test; unscored axes render unscored; a tampered run is `ERROR`. Took four attempts — three were destroyed by an ADP another workstream reset |
 | M7 — API server and web UX | code landed | Playwright walk passes against `scripts/dev-server.py`'s ADP double, not a real study |
 | M8 — Study A, for real | **defined, not executed** | `studies/a-tool-familiarity/` — 16 arms × 6 tasks × 5 reps = 480 trials, digest `sha256:5c83036c…`. **Gate G3.** Reaching it with a shared task set is the stated precondition of the squad track's cross-track memo (its gate SG3b) |
 
 ## Now / Next / Later
 
 - **Now:** Study B — see [`docs/studies/b-toolchain-distribution.md`](docs/studies/b-toolchain-distribution.md).
-  Its first task is built in three toolchains and all three are solved by both their
-  oracles and a real agent, so the instrument works. **The task saturates**, though: every
-  arm passed, so it has no headroom to measure a familiarity effect and is a smoke task
-  rather than a study task.
-- **Next:** Study B tasks with headroom — introducing a dependency, an under-declared build
-  graph, a presubmit gate the change trips — where the toolchains differ in kind rather than
-  only in name. Then the pilot. Re-run G2 at some point after the digest changes, so the
-  recorded smoke-study evidence matches the current spec (~$0.45).
+  Two tasks built in three toolchains, all six solved by their oracles; the first was also
+  solved by a real agent in every toolchain, which proves the instrument and shows that
+  task saturates.
+- **Next:** more Study B tasks with headroom, then the pilot — one model × one harness ×
+  three toolchains, for an effect size and a noise floor before any factorial. Gates G1 and
+  G2 are both closed, so the machinery below the study is no longer the risk.
 - **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
   on Study B's evidence rather than on convenience, since a sibling project has a
   pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
@@ -108,9 +106,18 @@ still marked *code landed* carries exactly that risk.
 - **The ADP contract suite has never run in CI.** It passes locally against a live server;
   `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
   pinned by a suite one person runs by hand.
-- **Studies cannot share the ADP dev stack.** Verified 2026-08-10 by losing 7 of 8 recorded
-  trials mid-run: another workstream ran `make up` in `~/dev/adp`, replacing the database.
-  The G2 re-run is blocked on this rather than on anything in duva-bench.
+- **~~Studies cannot share the ADP dev stack~~ — fixed 2026-08-10.** Three G2 runs were
+  destroyed by another workstream's `make up` in `~/dev/adp`. Studies now record into their
+  own instance: `make adp-stack` (`tools/adp-stack.sh`) — its own worktree, a compose
+  project outside the `adp-test-*` sweep, and the built server on port 3100 rather than
+  `tsx watch`, which was restarting mid-trial because ADP's `GIT_ROOT` sits inside its own
+  checkout and duva-bench publishes a commit per trial.
+- **The smoke study's `hallucinated_call_rate` is 1.0 by construction.** It declares
+  `read_file`/`write_file`/`run_command` with placeholder digests, supplies none of them,
+  and `terminus-2` calls `bash_command`. Now fixable either way — give it a real toolset via
+  `definition_path`, or stop declaring tools it does not supply so the metric renders
+  not-applicable. Deferred because it moves the study digest and would supersede G2's
+  evidence again.
 - **The local ADP is ephemeral, so a cited run id is reproducible rather than durable.**
   G1's evidence lives in the `adp-test-*` stack that `make down` destroys, and this
   machine's `/tmp` is cleared between sessions. Anyone re-checking a run id in
