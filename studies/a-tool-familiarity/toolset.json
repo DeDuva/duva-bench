@@ -8,12 +8,24 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "path": { "type": "string", "description": "Absolute path of the file to read." },
-          "start_line": { "type": "integer", "description": "First line to return, 1-based." },
-          "max_lines": { "type": "integer", "description": "Stop after this many lines." }
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the file to read."
+          },
+          "start_line": {
+            "type": "integer",
+            "description": "First line to return, 1-based."
+          },
+          "max_lines": {
+            "type": "integer",
+            "description": "Stop after this many lines."
+          }
         },
-        "required": ["path"]
-      }
+        "required": [
+          "path"
+        ]
+      },
+      "capability": "fs.read"
     },
     {
       "name": "write_file",
@@ -21,16 +33,29 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "path": { "type": "string", "description": "Absolute path of the file to write." },
-          "contents": { "type": "string", "description": "The new contents of the file." },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the file to write."
+          },
+          "contents": {
+            "type": "string",
+            "description": "The new contents of the file."
+          },
           "mode": {
             "type": "string",
-            "enum": ["overwrite", "append"],
+            "enum": [
+              "overwrite",
+              "append"
+            ],
             "description": "Whether to replace the file or add to the end of it."
           }
         },
-        "required": ["path", "contents"]
-      }
+        "required": [
+          "path",
+          "contents"
+        ]
+      },
+      "capability": "fs.write"
     },
     {
       "name": "list_dir",
@@ -38,11 +63,20 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "path": { "type": "string", "description": "Absolute path of the directory." },
-          "recursive": { "type": "boolean", "description": "Descend into subdirectories." }
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the directory."
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Descend into subdirectories."
+          }
         },
-        "required": ["path"]
-      }
+        "required": [
+          "path"
+        ]
+      },
+      "capability": "fs.list"
     },
     {
       "name": "search_text",
@@ -50,12 +84,24 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "pattern": { "type": "string", "description": "The regular expression to match." },
-          "path": { "type": "string", "description": "Directory or file to search." },
-          "max_results": { "type": "integer", "description": "Stop after this many matches." }
+          "pattern": {
+            "type": "string",
+            "description": "The regular expression to match."
+          },
+          "path": {
+            "type": "string",
+            "description": "Directory or file to search."
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Stop after this many matches."
+          }
         },
-        "required": ["pattern"]
-      }
+        "required": [
+          "pattern"
+        ]
+      },
+      "capability": "proc.run"
     },
     {
       "name": "run_command",
@@ -63,11 +109,20 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "command": { "type": "string", "description": "The command line to run." },
-          "timeout_s": { "type": "integer", "description": "Give up after this many seconds." }
+          "command": {
+            "type": "string",
+            "description": "The command line to run."
+          },
+          "timeout_s": {
+            "type": "integer",
+            "description": "Give up after this many seconds."
+          }
         },
-        "required": ["command"]
-      }
+        "required": [
+          "command"
+        ]
+      },
+      "capability": "proc.run"
     },
     {
       "name": "apply_patch",
@@ -75,11 +130,20 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "patch": { "type": "string", "description": "The unified diff to apply." },
-          "reverse": { "type": "boolean", "description": "Apply the patch in reverse." }
+          "patch": {
+            "type": "string",
+            "description": "The unified diff to apply."
+          },
+          "reverse": {
+            "type": "boolean",
+            "description": "Apply the patch in reverse."
+          }
         },
-        "required": ["patch"]
-      }
+        "required": [
+          "patch"
+        ]
+      },
+      "capability": "proc.run"
     }
   ]
 }

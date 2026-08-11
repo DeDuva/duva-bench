@@ -111,109 +111,52 @@ written against studies where everything was priced. It took running the machine
 whose trials genuinely have no cost — which is precisely what an oracle rehearsal is for, and an
 argument for keeping one around rather than treating it as scaffolding.
 
-## The arm materialization gap · **BLOCKS STUDY A, found 2026-08-10**
+## The arm materialization gap · **CLOSED 2026-08-10**
 
-**`arms/materialize.py` is never called by anything that runs a trial.** It is imported by
-`arms/__init__.py`, used by `cli.py` for `duva-bench twin`, and exercised by `tests/test_arms.py`.
-`exec/trial.py` hands Harbor the task directory as it sits on disk.
+**Found and fixed the same day.** `arms/materialize.py` was never called by anything that ran a
+trial, so an arm's toolset, twin and documentation bundle were digested, labelled and never applied.
+Gate G2's run is what exposed it: the smoke study's two arms differ *only* in toolset metadata and
+the report read acceptance 0.75 for `standard` against 1.00 for `twin` — two runs of one arm, and
+the gap was the study's own noise. Study A's primary metric was constant for the same reason: the
+declared vocabulary was not the one the agent had, so hallucinated-call rate was 1.0 everywhere.
 
-So an arm's **toolset, its semantic twin, and its documentation bundle are digested, labelled, and
-never applied.** Two arms differing only in those factors are the same arm with two names, and the
-agent inside the container cannot tell them apart because nothing about the container differs.
+### Wiring it in was not enough, and that is the interesting part
 
-Gate G2's run is the demonstration. The smoke study's two arms differ *only* in toolset metadata —
-identical tool names, identical digests, one carrying `twin_of` and `twin_seed`. It reported:
+`materialize()` wrote `duva/toolset.json` into the task copy. **Nothing reads that file.** Harbor
+configures an agent's tools from `task.toml` and from nowhere else, so connecting materialization as
+it stood would have produced arms that still differed only in labels *while looking wired* — worse
+than the visible gap it replaced.
 
-| axis | standard | twin |
-|---|---|---|
-| acceptance | 0.75 (n=4) | 1.00 (n=4) |
-| robustness | 0.50 (n=2) | 1.00 (n=2) |
+What the redesign does instead:
 
-Read innocently, the twin arm won. In fact **those are two runs of one arm**, and the gap is the
-study's own noise — which is exactly what a smoke study of identical instruments should show, and
-exactly what nobody would have concluded from the numbers alone.
-
-### It also makes Study A's primary metric constant
-
-Study A pre-registers **hallucinated-call rate** as its primary metric: tool calls naming a tool the
-arm did not have. The smoke study declares `read_file`, `write_file`, `run_command` with placeholder
-digests. `terminus-2` actually calls `bash_command` and `mark_task_complete`. Every call is
-therefore outside the declared vocabulary and the rate is **1.0 in every arm**:
-
-```
-standard  tool_calls=53  tool_error_rate=0.019  hallucinated_call_rate=1.0
-twin      tool_calls=41  tool_error_rate=0.073  hallucinated_call_rate=1.0
-```
-
-A primary metric that is 1.0 by construction cannot separate anything. Note the tool-error rate
-beside it is sane and non-zero — that one is measuring something real.
-
-### The toolset axis is reachable — through a mechanism materialize.py does not use
-
-**Corrected 2026-08-10 by a spike.** The first version of this section said the toolset axis might
-not be executable on Harbor at all. That was drawn from `terminus-2` alone and was wrong.
-
-Harbor carries **MCP servers in task config** (`EnvironmentConfig.mcp_servers`, merged into the
-agent at `harbor/trial/trial.py:789`). Agents differ in what they do with them:
-
-- `terminus-2` appends a *text description* of the servers to the instruction
-  (`terminus_2.py:1578`) and leaves the callable surface at `bash_command` /
-  `mark_task_complete` — useless as a manipulation.
-- `claude-code` writes real user-scoped `mcpServers` config (`claude_code.py:1308`), so the tools
-  arrive as genuine callable functions.
-
-A spike proved it end to end. One task, a ledger reachable *only* through MCP tools; two variants
-identical but for two environment variables the server reads to name its tools. Both passed their
-verifier, and the trajectories differ exactly as intended:
-
-| variant | tool calls in the trajectory |
+| | |
 |---|---|
-| named | `mcp__ledger__ledger_append` ×2, `mcp__ledger__ledger_read` ×1, `Write`, `ToolSearch` |
-| twin | `mcp__ledger__vantrel_lodge` ×2, `mcp__ledger__vantrel_scan` ×1, `Write`, `ToolSearch` |
+| `environment/duva_toolset.json` | the arm's effective toolset — the twin's, when it twins one |
+| `environment/duva_mcp_server.py` | a stdlib-only stdio MCP server that serves it |
+| `environment/Dockerfile` | appended `COPY` lines that install both into the image |
+| `task.toml` | appended `[[environment.mcp_servers]]` and `DUVA_TOOLSET`, which is what Harbor reads |
+| `docs/TOOLS.md` + `instruction.md` | unchanged; this half always worked |
 
-**So the toolset axis is a task-config difference, needs no bespoke agent, and does not collide with
-`execution-plan.md` §5.**
+Tools are dispatched by a **capability** (`fs.read`, `proc.run`) carried on each definition, not by
+name, so two arms serve the same implementations under different names — which is what makes them
+isomorphic. The twin generator now also records `parameter_roles`, because it renames parameters as
+well as tools and the server has to map them back.
 
-### But `materialize()` writes a file nothing reads
+### The leak this design has to avoid, and how it was caught
 
-This is the part that has to change before wiring it in. `materialize()` currently produces:
+A twin arm's container must not contain the vocabulary that arm is being tested without: an agent
+with a shell can read every file in its own task. `test_a_twin_variant_carries_no_word_of_the_
+vocabulary_it_replaces` scans a materialized twin for the original names — and **it failed on first
+run**, because the MCP server's own docstring used a standard tool name as an example, and that file
+is copied into the image verbatim. The rename map is handed back to the caller and written beside
+the variant, never inside it.
 
-| what it writes | does anything consume it? |
-|---|---|
-| `duva/toolset.json` | **No.** Harbor never reads it and no agent is configured from it. It is an inert file in the task directory |
-| `docs/TOOLS.md` + a pointer appended to `instruction.md` | **Yes.** The agent can read both — this half genuinely works |
-| env pins | Applied by the trial runner already, via `--agent-env` |
+### What this cost
 
-The only thing Harbor reads for tools is `task.toml`. So materializing an arm's toolset means
-**rewriting the task's `task.toml`** to declare `[[environment.mcp_servers]]` with the arm's chosen
-names, not writing a JSON file beside it. Wiring `materialize()` in as it stands would produce a
-task variant Harbor ignores, and arms that still differ only in labels — with the added hazard that
-it would *look* wired.
-
-The study spec has a second gap in the same place: `ToolsetSpec` records tool **digests** but has no
-locator for the tool *definitions*. Study A keeps them in `toolset.json` / `toolset-twin.json` and
-connects them by convention inside `generate_study.py`. A trial runner cannot use a convention held
-in a generator script.
-
-### What has to be decided
-
-1. **Materialization has to be redesigned around `task.toml`**, not around `duva/toolset.json`. The
-   docs half can stay as it is.
-2. **`ToolsetSpec` needs to say where its definitions and its MCP server live.** Adding a field
-   moves every toolset, arm and study digest, because `digest_source` dumps all fields including
-   absent ones — including the smoke study's `d1a38ec0…` and Study A's `5c83036c…`. That is
-   *correct* (the spec would genuinely have changed) but it makes the G2 run evidence for a
-   superseded version of the study, and re-running it costs about $0.45.
-3. **The tool-name prefix.** MCP tools arrive as `mcp__<server>__<tool>`. Any hallucinated-call rate
-   has to normalise that, or every legitimate call reads as a hallucination.
-4. **MCP adds tools rather than replacing them.** `Write` and `ToolSearch` were still available in
-   the spike. A clean toolset manipulation needs tasks where the named set is the only route to the
-   goal, which is a constraint on task design, not on the framework.
-5. **The agent becomes a covariate.** The axis needs an MCP-registering agent, so harness cannot be
-   crossed freely against toolset.
-
-Until 1 and 2 are done, **Study A would produce four familiarity arms per cell that differ only in
-their labels**, and 480 trials of a factor that was never applied.
+Every toolset, arm and study digest moved, because `ToolsetSpec` gained a `definition_path` and the
+twin definitions gained `parameter_roles`, and `digest_source` dumps every field. That is correct —
+the specs genuinely changed — and it makes **the G2 run recorded above evidence for a superseded
+version of the smoke study**. Re-running it costs about $0.45.
 
 ## Gate G3 — Study A executed · **BLOCKED**
 

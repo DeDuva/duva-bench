@@ -53,7 +53,7 @@ still marked *code landed* carries exactly that risk.
 | M1 — study spec and digest | code landed | `examples/smoke/study.yaml` validates; digest `sha256:d1a38ec0…` |
 | M2 — ADP recording core | code landed, **contract suite passes** | 13/13 against a live ADP at contract `0.2.0` (2026-08-10, first ever run — 5 failed initially). `adp/models.py` is hand-written from ADP's *source*; `tests/fakes.py` reproduced the same misreading and now enforces the server's rules |
 | M3 — one Harbor trial end to end | **gate G1 PASSED 2026-08-10** | Run `a5c20876-d5ff-41af-95b5-114c9a8fddb6`: `ok`, `envelope_verified`, `trajectory_digest_matches` all true; 13 labels round-trip; **17 bridged `tool_call` events**. Took seven real defects to get there — see [`docs/blockers.md`](docs/blockers.md) |
-| M4 — arms and twin instruments | code landed, **not wired into execution** | Twin generator, doc bundles and grader runner all exist and are tested. `arms/materialize.py` is **never called by anything that runs a trial**, so an arm's toolset, twin and docs are digested and labelled but never applied. Blocks G3 — see [`docs/blockers.md`](docs/blockers.md) |
+| M4 — arms and twin instruments | code landed, **wired 2026-08-10** | Twin generator, doc bundles, grader runner. Materialization now installs an arm's toolset into the task image and declares it in `task.toml`, which is the only place Harbor reads tools from; a spike proved an agent calls the renamed tools under the names the arm chose. Not yet exercised by a study — see [`docs/blockers.md`](docs/blockers.md) |
 | M5 — factorial scheduler | code landed | Budget cap, per-provider pacing, resumable via `progress.jsonl` |
 | M6 — analysis and report | **gate G2 run 2026-08-10** | The smoke study ran end to end against a live ADP: 8/8 trials, 0 errors, $0.44547, 5m07s at concurrency 2. `run` → `report` produced per-axis tables, CIs, process metrics and a cost ledger that matches the run's own to the micro-dollar. Unscored axes render unscored |
 | M7 — API server and web UX | code landed | Playwright walk passes against `scripts/dev-server.py`'s ADP double, not a real study |
@@ -61,16 +61,15 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** nothing in flight. G1 closed and the smoke study has been executed end to end.
-- **Next:** **decide what to do about the arm materialization gap** before anything else.
-  `arms/materialize.py` is never called by the trial runner, so toolset, twin and docs are
-  labels with no effect on the container — and Study A's primary metric,
-  hallucinated-call rate, is 1.0 by construction because the declared vocabulary is not the
-  one `terminus-2` uses. This is not a patch: Harbor's `terminus-2` has fixed tools and no
-  flag to replace them, so the question is whether the toolset axis is executable on this
-  harness at all. `docs/blockers.md` has the evidence.
-- **Later:** G3 (Study A, 480 trials), once the arms differ in something an agent can see.
-  Post-M8, squad-as-an-arm via a Harbor adapter.
+- **Now:** Study B — see [`docs/studies/b-toolchain-distribution.md`](docs/studies/b-toolchain-distribution.md).
+  Arm materialization is wired, so arms can finally differ in something an agent can see.
+- **Next:** build Study B's three toolchain skeletons and one task, oracle-first, then pilot
+  one model × one harness × three toolchains to get an effect size and a noise floor before
+  committing to any factorial. Re-run G2 at some point after the digest change, so the
+  recorded smoke-study evidence matches the current spec (~$0.45).
+- **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
+  on Study B's evidence rather than on convenience, since a sibling project has a
+  pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
 
 ## Blockers and open decisions
 

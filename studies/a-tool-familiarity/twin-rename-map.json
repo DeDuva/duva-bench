@@ -1,5 +1,5 @@
 {
-  "original_digest": "sha256:31fddccc4448fe36730d58499fb7710c30accfb69e1192c6ce1c0533c6b5a82a",
+  "original_digest": "sha256:499f61cea938526eef7e2fdef7ef6343d82e74e2a66d40f45b89a953607f4751",
   "parameters": {
     "apply_patch": {
       "patch": "vusez",

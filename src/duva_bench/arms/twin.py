@@ -392,6 +392,18 @@ def _twin_tool(tool: dict[str, Any], rename_map: dict[str, Any]) -> dict[str, An
             new_parameters["required"] = [renames.get(str(name), name) for name in required]
         twinned["parameters"] = new_parameters
 
+    # How the server gets from a twinned argument name back to the role its
+    # implementation expects. Written into the *served* definition rather than
+    # kept with the rename map, because the server needs it inside the container
+    # and the rename map must never go there — an agent that could read the map
+    # would have been handed the vocabulary it is being tested without.
+    #
+    # Only the twinned direction is recorded, and only for parameters: it says
+    # that this tool's `qelbo` plays the role `path`, which its own description
+    # already says in prose. It never names the tool this one is a twin of.
+    if renames:
+        twinned["parameter_roles"] = {new: old for old, new in renames.items()}
+
     return twinned
 
 

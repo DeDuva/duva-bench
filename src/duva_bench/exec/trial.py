@@ -35,7 +35,7 @@ from duva_bench.adp.spool import Spool
 from duva_bench.exec.bridge import AdpEvent, bridge
 from duva_bench.exec.harbor import HarborExecutor, HarborFailed, HarborTrial, TrialExecutor
 from duva_bench.state import StateDir
-from duva_bench.study.models import Study, TaskRef
+from duva_bench.study.models import Arm, Study, TaskRef
 
 logger = logging.getLogger(__name__)
 
@@ -316,7 +316,7 @@ def run_trial(
             harbor_trial = executor.execute(
                 task,
                 arm,
-                task_dir=_task_dir(root, task),
+                task_dir=_arm_task_dir(study, task, arm, root=root, state=state),
                 work_dir=state.root / "work" / trial.label(study),
                 label=trial.label(study),
             )
@@ -487,6 +487,38 @@ def _harbor_failure_event(reason: str) -> AdpEvent:
         status="error",
         payload={"reason": reason},
     )
+
+
+def _arm_task_dir(study: Study, task: TaskRef, arm: Arm, *, root: Path, state: StateDir) -> Path:
+    """The task directory this arm actually runs, materialized if it differs.
+
+    An arm that manipulates neither tools nor documentation runs the task as its
+    author wrote it — copying it would add a failure mode and change nothing.
+    Otherwise the arm gets its own copy with its toolset installed and its
+    documentation injected, because that is the only way those factors reach the
+    container at all: they were digested and labelled and never applied until
+    2026-08-10, so arms differing only in them were one arm with several names.
+    """
+    from duva_bench.arms.materialize import materialize
+    from duva_bench.arms.twin import load_definition
+
+    source = _task_dir(root, task)
+    manipulates_docs = arm.toolset.docs_bundle.grade != "none"
+    if arm.toolset.definition_path is None and not manipulates_docs:
+        return source
+
+    definition: dict[str, Any] = {"name": arm.toolset.name, "tools": []}
+    if arm.toolset.definition_path is not None:
+        definition = load_definition(root / arm.toolset.definition_path)
+
+    destination = state.root / "variants" / f"{task.id}__{arm.id}"
+    materialized = materialize(
+        task, arm, source=source, destination=destination, toolset_definition=definition
+    )
+    # Beside the variant, never inside it. An agent that could read the rename
+    # map would have been handed the vocabulary it is being tested without.
+    materialized.write_rename_map(state.root / "rename-maps" / f"{task.id}__{arm.id}.json")
+    return materialized.path
 
 
 def _task_dir(root: Path, task: TaskRef) -> Path:
