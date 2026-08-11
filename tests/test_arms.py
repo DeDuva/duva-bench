@@ -396,3 +396,154 @@ def test_per_tool_digests_change_only_for_the_tool_that_changed() -> None:
     assert after["read_file"] != before["read_file"]
     assert after["write_file"] == before["write_file"]
     assert after["run_command"] == before["run_command"]
+
+
+# --- materialization has to reach the container ------------------------------
+
+
+def _servable_definition() -> dict[str, object]:
+    return {
+        "name": "standard",
+        "tools": [
+            {
+                "name": "read_file",
+                "capability": "fs.read",
+                "description": "Read a file from the workspace.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                    "required": ["path"],
+                },
+            },
+            {
+                "name": "run_command",
+                "capability": "proc.run",
+                "description": "Run a shell command.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"command": {"type": "string"}},
+                    "required": ["command"],
+                },
+            },
+        ],
+    }
+
+
+def test_a_materialized_task_declares_its_toolset_where_harbor_reads_it(tmp_path: Path) -> None:
+    """The defect this redesign exists to fix.
+
+    Materialization used to write `duva/toolset.json` and stop. Harbor
+    configures an agent's tools from `task.toml` and from nowhere else, so that
+    file was inert and arms differing only in their toolset differed only in
+    their labels — which gate G2 demonstrated by reporting one arm beating
+    another when the two were the same arm.
+    """
+    study = load_study(EXAMPLE)
+    materialized = materialize(
+        study.task("json-normalizer"),
+        study.arm("standard"),
+        source=EXAMPLE.parent / "tasks" / "json-normalizer",
+        destination=tmp_path / "variant",
+        toolset_definition=_servable_definition(),
+    )
+
+    config = (materialized.path / "task.toml").read_text(encoding="utf-8")
+    assert "[[environment.mcp_servers]]" in config, "Harbor is never told the toolset exists"
+    assert "DUVA_TOOLSET" in config, "the server is never told what to serve"
+
+    dockerfile = (materialized.path / "environment" / "Dockerfile").read_text(encoding="utf-8")
+    assert "duva_mcp_server.py" in dockerfile, "the server never reaches the image"
+    assert (materialized.path / "environment" / "duva_toolset.json").is_file()
+    assert (materialized.path / "environment" / "duva_mcp_server.py").is_file()
+
+
+def test_a_twin_variant_carries_no_word_of_the_vocabulary_it_replaces(tmp_path: Path) -> None:
+    """The container must not contain the answer.
+
+    A twin arm is being tested on names it has never seen. If the original names
+    were anywhere inside the task — the toolset file, the Dockerfile, the
+    instruction — an agent with a shell could read them, and the arm would be
+    measuring whether the model can grep.
+    """
+    study = load_study(EXAMPLE)
+    materialized = materialize(
+        study.task("json-normalizer"),
+        study.arm("twin"),
+        source=EXAMPLE.parent / "tasks" / "json-normalizer",
+        destination=tmp_path / "twin",
+        toolset_definition=_servable_definition(),
+    )
+
+    leaked = []
+    for path in materialized.path.rglob("*"):
+        if not path.is_file():
+            continue
+        try:
+            body = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for original in ("read_file", "run_command"):
+            if original in body:
+                leaked.append(f"{path.relative_to(materialized.path)} contains {original!r}")
+    assert not leaked, leaked
+
+    # The map that would reveal it exists, and is handed back rather than written in.
+    assert materialized.rename_map is not None
+    assert set(materialized.rename_map["tools"]) == {"read_file", "run_command"}
+
+
+def test_the_served_twin_dispatches_to_the_same_implementations(tmp_path: Path) -> None:
+    """Isomorphism, checked by calling the twin and the original.
+
+    A twin whose tools do something different is not a twin, and the study built
+    on it would be measuring two toolsets rather than two names for one.
+    """
+    from duva_bench.arms.mcp_server import handle
+    from duva_bench.arms.twin import twin_toolset
+
+    original = _servable_definition()
+    twin = twin_toolset(original, seed="isomorphism").definition
+
+    target = tmp_path / "subject.txt"
+    target.write_text("first\nsecond\n", encoding="utf-8")
+
+    def call(definition: dict[str, object], name: str, arguments: dict[str, object]) -> str:
+        reply = handle(
+            definition,
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": name, "arguments": arguments},
+            },
+        )
+        assert reply is not None
+        return str(reply["result"]["content"][0]["text"])
+
+    from_original = call(original, "read_file", {"path": str(target)})
+
+    twin_read = next(t for t in twin["tools"] if t["capability"] == "fs.read")
+    twin_path_arg = next(k for k, v in twin_read["parameter_roles"].items() if v == "path")
+    from_twin = call(twin, str(twin_read["name"]), {twin_path_arg: str(target)})
+
+    assert from_original == from_twin == "first\nsecond"
+
+
+def test_an_arm_that_manipulates_nothing_runs_the_task_as_written(tmp_path: Path) -> None:
+    """Copying a task that does not need copying only adds failure modes."""
+    from duva_bench.exec.trial import _arm_task_dir
+    from duva_bench.state import StateDir
+
+    study = load_study(EXAMPLE)
+    arm = study.arm("standard")
+    assert arm.toolset.definition_path is None
+    assert arm.toolset.docs_bundle.grade == "none"
+
+    resolved = _arm_task_dir(
+        study,
+        study.task("json-normalizer"),
+        arm,
+        root=EXAMPLE.parent,
+        state=StateDir(tmp_path),
+    )
+    assert resolved == (EXAMPLE.parent / "tasks" / "json-normalizer").resolve()

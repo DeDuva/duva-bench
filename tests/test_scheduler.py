@@ -12,6 +12,7 @@ from duva_bench.adp.client import AdpClient
 from duva_bench.exec.harbor import HarborTrial, load_trial
 from duva_bench.exec.ledger import BudgetExceeded, CostLedger, ProviderLimiter
 from duva_bench.exec.scheduler import plan_trials, run_study, study_status
+from duva_bench.exec.trial import Trial, run_trial
 from duva_bench.state import StateDir
 from duva_bench.study.load import load_study, parse_study
 from duva_bench.study.models import Arm, Study, TaskRef
@@ -336,3 +337,72 @@ def test_a_studys_rate_limit_paces_its_trial_starts(
     # 30 requests per minute is one every two seconds, and eight trials wait
     # seven times.
     assert waits == [pytest.approx(2.0)] * 7
+
+
+def test_status_reads_adp_when_the_state_directory_is_gone(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path
+) -> None:
+    """`status --check-adp` has to answer from ADP, not from a lost cache.
+
+    `adp_completed_refs` read intents from the state directory alone and gave up
+    on a miss. `run_study` was immune by accident — it calls `ensure_intent` for
+    every task first, which repopulates the cache — but `study_status` does not,
+    so a checkout whose `.duva-bench/` was gone reported a *finished* study as
+    entirely unstarted while reporting `adp_consulted: true`.
+
+    A wrong answer labelled authoritative is worse than the local-only one
+    beside it, which at least admits it did not look. A fresh clone, a second
+    machine and a cleaned scratch directory are all this situation, and on this
+    project's own machine `/tmp` is cleared between sessions.
+    """
+    first = StateDir(tmp_path / "first")
+    run_study(
+        study, state=first, client=client, executor=CountingExecutor(), study_dir=EXAMPLE.parent
+    )
+    planned = len(plan_trials(study))
+    closed = {run.external_ref for run in adp.runs.values() if run.status == "closed"}
+    assert len(closed) == planned, "the first run did not finish the study"
+
+    # A different machine: same study, same ADP, no local state whatsoever.
+    status = study_status(study, state=StateDir(tmp_path / "elsewhere"), client=client)
+
+    assert status["adp_consulted"] is True
+    assert status["verified"] == planned
+    assert status["remaining"] == [], (
+        "status claimed to have consulted ADP and still reported a finished study as unstarted"
+    )
+
+
+def test_status_counts_only_the_trials_this_study_planned(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path
+) -> None:
+    """`planned + verified + remaining` has to describe one study.
+
+    ADP holds every run ever closed against this study's intents — including
+    repetitions past the study's own and any one-off `duva-bench trial`
+    invocations, both of which happened while closing gate G1. Counting them raw
+    reported `planned: 8, verified: 4, remaining: 7`: eleven trials in an
+    eight-trial study, which is not a state anything can be in.
+    """
+    state = StateDir(tmp_path)
+    run_study(
+        study, state=state, client=client, executor=CountingExecutor(), study_dir=EXAMPLE.parent
+    )
+
+    # A repetition beyond the study's own, exactly as `duva-bench trial` makes.
+    run_trial(
+        study,
+        Trial(task_id="json-normalizer", arm_id="standard", repetition=99),
+        state=state,
+        client=client,
+        executor=CountingExecutor(),
+        study_dir=EXAMPLE.parent,
+    )
+
+    status = study_status(study, state=state, client=client)
+    planned = len(plan_trials(study))
+
+    assert status["planned"] == planned
+    assert status["verified"] == planned, "a run outside the plan was counted as progress"
+    assert status["remaining"] == []
+    assert status["verified"] + len(status["remaining"]) == status["planned"]

@@ -340,17 +340,23 @@ def _cost(block: dict[str, Any]) -> str:
         f'<tr><td>{esc(arm)}</td><td class="num">{row["trials"]}</td>'
         f'<td class="num">{row["tokens_in"]:,}</td>'
         f'<td class="num">{row["tokens_out"]:,}</td>'
-        f'<td class="num">{row["cost_micro_usd"] / 1_000_000:.4f}</td></tr>'
+        f'<td class="num">{_usd(row["cost_micro_usd"])}</td></tr>'
         for arm, row in sorted(block.get("by_arm", {}).items())
     )
     unpriced = (
         f'<div class="band">{block["unpriced_trials"]} trial(s) carry no cost in ADP. They are '
-        "reported as unpriced rather than folded in as zero.</div>"
+        "reported as unpriced rather than folded in as zero, so this study has a priced "
+        "subtotal and no total.</div>"
         if block.get("unpriced_trials")
         else ""
     )
     cards = (
-        _card(f"${block['total_usd']:.4f}", "total")
+        _card(
+            f"${block['total_usd']:.4f}"
+            if block.get("total_usd") is not None
+            else f"${block.get('priced_usd', 0):.4f}+",
+            "total" if block.get("total_usd") is not None else "priced subtotal",
+        )
         + _card(f"{block['tokens_in']:,}", "tokens in")
         + _card(f"{block['tokens_out']:,}", "tokens out")
     )
@@ -359,6 +365,11 @@ def _cost(block: dict[str, Any]) -> str:
         f'<div class="cards">{cards}</div>'
         f'{unpriced}<div class="scroll"><table>{header}{body}</table></div>'
     )
+
+
+def _usd(micro: int | None) -> str:
+    """Money, or an explicit refusal to name a figure. Never a stand-in zero."""
+    return "unpriced" if micro is None else f"{micro / 1_000_000:.4f}"
 
 
 def _trials(trials: list[dict[str, Any]]) -> str:

@@ -3,8 +3,14 @@
   "name": "standard",
   "tools": [
     {
+      "capability": "fs.read",
       "description": "Read a file from the workspace and return its contents.",
       "name": "kanotuhim",
+      "parameter_roles": {
+        "dilu": "path",
+        "jinojekeko": "start_line",
+        "rimikehat": "max_lines"
+      },
       "parameters": {
         "properties": {
           "dilu": {
@@ -27,8 +33,14 @@
       }
     },
     {
+      "capability": "fs.write",
       "description": "Write a file, creating it or replacing its kelobosa.",
       "name": "lolovutuzu",
+      "parameter_roles": {
+        "fahu": "mode",
+        "kelobosa": "contents",
+        "pagu": "path"
+      },
       "parameters": {
         "properties": {
           "fahu": {
@@ -56,8 +68,13 @@
       }
     },
     {
+      "capability": "fs.list",
       "description": "List the entries of a directory.",
       "name": "babizafa",
+      "parameter_roles": {
+        "raga": "path",
+        "zolemutul": "recursive"
+      },
       "parameters": {
         "properties": {
           "raga": {
@@ -76,8 +93,14 @@
       }
     },
     {
+      "capability": "proc.run",
       "description": "Search the workspace for lines matching a regular expression.",
       "name": "gofalidozuj",
+      "parameter_roles": {
+        "hoholal": "pattern",
+        "ronuridufem": "max_results",
+        "roso": "path"
+      },
       "parameters": {
         "properties": {
           "hoholal": {
@@ -100,8 +123,13 @@
       }
     },
     {
+      "capability": "proc.run",
       "description": "Run a shell makumiz in the workspace and return its output and exit status.",
       "name": "siduvozepir",
+      "parameter_roles": {
+        "holilipet": "timeout_s",
+        "makumiz": "command"
+      },
       "parameters": {
         "properties": {
           "holilipet": {
@@ -120,8 +148,13 @@
       }
     },
     {
+      "capability": "proc.run",
       "description": "Apply a unified diff to the workspace.",
       "name": "bifefivizug",
+      "parameter_roles": {
+        "dekized": "reverse",
+        "vusez": "patch"
+      },
       "parameters": {
         "properties": {
           "dekized": {

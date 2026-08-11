@@ -15,6 +15,11 @@ dist/
 
 # Local state
 .duva-bench/
+# Generated reports. A report is a *rendering* of what ADP holds, so a committed
+# one is a second source of truth that can disagree with the system of record —
+# and a stale one is indistinguishable from a fresh one. The exception is a
+# study's own committed result under studies/, which M8 asks for deliberately.
+examples/*/report/
 *.local
 .env
 web/dist/

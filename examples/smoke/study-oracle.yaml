@@ -1,0 +1,84 @@
+# The smoke study's shape, run by Harbor's oracle agent instead of a model.
+#
+# This is not an experiment and is not meant to be read as one: both arms run
+# the same oracle, so any difference between them is noise by construction.
+# What it is, is the dress rehearsal for `study.yaml` — the same two tasks, the
+# same 2 x 2 x 2 = 8 trials, the same concurrency — with the model taken out.
+#
+# It exists because concurrency was the one thing gate G1 could not test. G1 ran
+# single trials, one container at a time; a study runs the factorial through a
+# thread pool, and "several Harbor jobs at once on this machine" was unmeasured
+# right up until it would have been measured by an eight-trial run that costs
+# real money. Discovering a scheduling or disk-pressure problem here costs
+# container time and nothing else.
+#
+# Numbers are strings wherever a YAML parser would otherwise make them floats.
+# See src/duva_bench/study/digest.py.
+
+title: duva-bench smoke study (oracle)
+
+adp:
+  owner: duva
+  repo: bench-smoke
+  orchestrator: duva-bench
+
+tasks:
+  - id: json-normalizer
+    path: tasks/json-normalizer
+    grader_path: graders/json-normalizer.py
+    grader_sha256: bf591ba22dd3aabcd8547d3423221bceeb37795295107d92c77b60b54789fa2b
+  - id: retry-backoff
+    path: tasks/retry-backoff
+    grader_path: graders/retry-backoff.py
+    grader_sha256: 5f87ff5c546a6edbf3dcbfc9bdd87cfdba130be51227f7a74b61408bc5520f62
+
+arms:
+  # The oracle takes no model. `provider`/`model` still have to say something,
+  # and they say exactly what is true rather than naming a model that will never
+  # be called — a label that lies is worse than a label that is blunt.
+  - id: oracle-a
+    model:
+      provider: none
+      model: oracle
+    harness:
+      agent: oracle
+      version: "0.20.0"
+    toolset:
+      name: none
+      tools: {}
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+
+  - id: oracle-b
+    model:
+      provider: none
+      model: oracle
+    harness:
+      agent: oracle
+      version: "0.20.0"
+    toolset:
+      name: none
+      tools: {}
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+
+repetitions: 2
+# Nothing here can spend, and the cap is set low on purpose: if this study ever
+# reports a cost above zero, something is calling a model that should not be.
+budget_usd_cap: "0.01"
+concurrency: 2
+
+pre_registration:
+  primary_metric: acceptance
+  secondary_metrics:
+    - robustness
+  repetitions: 2
+  control_arm: oracle-a
+  exclusion_rules:
+    - A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.
+    - A trial whose grader crashed is unscored and is excluded from that axis, never scored zero.
+  metaprogramming_allowed: true

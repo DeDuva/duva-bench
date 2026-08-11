@@ -96,6 +96,12 @@ class StudyOutcomes:
     # Intents the study never minted, i.e. tasks that were never run.
     missing_tasks: list[str] = field(default_factory=list)
     read_errors: list[str] = field(default_factory=list)
+    # Runs ADP holds against this study's intents that are not this study's
+    # results — a repetition past the study's own, or a cell produced by an
+    # older adapter. Counted and named rather than dropped in silence: a report
+    # that quietly discards rows is as hard to trust as one that quietly
+    # includes them.
+    out_of_scope: list[str] = field(default_factory=list)
 
     @property
     def included(self) -> list[TrialOutcome]:
@@ -124,9 +130,28 @@ def extract(
     state: StateDir,
     with_trajectories: bool = True,
 ) -> StudyOutcomes:
-    """Read every trial of ``study`` back out of ADP."""
+    """Read every trial of ``study`` back out of ADP.
+
+    "Every trial of this study" is narrower than "every run against this study's
+    intents", and the difference is not academic. An intent accumulates
+    everything ever run for its task: repetitions beyond the study's own, one-off
+    `duva-bench trial` invocations while debugging, and cells re-run after an
+    adapter change. The first report rendered here described **13 trials for an
+    eight-trial study** and banded an arm as having two harness identities —
+    correctly, because it had gathered up runs from before and after gate G1's
+    seven fixes.
+
+    So a row is this study's result when its cell is one the study planned *and*
+    it was produced by the adapter now installed. Everything else is recorded in
+    ``out_of_scope`` and counted in the report.
+    """
+    from duva_bench import ADAPTER_VERSION
+    from duva_bench.exec.scheduler import plan_trials
+
     outcomes = StudyOutcomes()
     intents = state.known_intents()
+    planned = {trial.external_ref(study) for trial in plan_trials(study)}
+    adapter = f"duva-bench/{ADAPTER_VERSION}"
 
     for task in study.tasks:
         intent_id = intents.get(task.id)
@@ -145,6 +170,16 @@ def extract(
                 # Another study's runs against the same task. Skipped rather
                 # than counted: a report that quietly included them would be
                 # describing an experiment nobody ran.
+                continue
+            ref = row.external_ref or ""
+            if _cell_of(ref) not in planned:
+                outcomes.out_of_scope.append(f"{ref} (not a cell this study plans)")
+                continue
+            if row.labels.get("adapter") != adapter:
+                outcomes.out_of_scope.append(
+                    f"{ref} (produced by {row.labels.get('adapter') or 'an unrecorded adapter'}, "
+                    f"not {adapter})"
+                )
                 continue
             outcomes.trials.append(
                 _outcome(study, client, task.id, row, with_trajectories=with_trajectories)
@@ -199,6 +234,15 @@ def _outcome(
     )
 
 
+def _cell_of(external_ref: str) -> str:
+    """The cell an external ref belongs to, ignoring which attempt it was.
+
+    `…:r1` and `…:r1/a2` are the same cell — one is the retry of the other after
+    an abandoned or stale-instrument attempt. See `duva_bench.exec.trial._open_run`.
+    """
+    return external_ref.split("/a", 1)[0]
+
+
 def digest_bands(outcomes: StudyOutcomes) -> dict[str, Any]:
     """Which digests the included trials disagree about.
 
@@ -226,9 +270,18 @@ def digest_bands(outcomes: StudyOutcomes) -> dict[str, Any]:
                 continue
             per_task_axis.setdefault((trial.task_id, axis.name), set()).add(axis.spec_digest)
             axis_digests.setdefault(axis.name, set()).add(axis.spec_digest)
+        # The harness identity is Harbor's *and ours*. A run says which agent
+        # and version it used; until 2026-08-10 it said nothing about the
+        # adapter that drove that agent and mapped its trace, so seven defects
+        # could be fixed in a day and the runs from either side of the fix
+        # ranked against each other without a word of warning. An arm whose
+        # trials were produced by two different instruments is not one arm.
         harness = trial.labels.get("harness_digest")
-        if harness:
-            harnesses.setdefault(trial.arm_id, set()).add(harness)
+        adapter = trial.labels.get("adapter")
+        if harness or adapter:
+            harnesses.setdefault(trial.arm_id, set()).add(
+                f"{harness or 'unknown'}+{adapter or 'adapter:unrecorded'}"
+            )
 
     split = sorted({axis for (_task, axis), values in per_task_axis.items() if len(values) > 1})
     return {

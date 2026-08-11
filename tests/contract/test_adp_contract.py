@@ -352,3 +352,63 @@ def test_a_sigkilled_recorder_resumes_gap_free_against_a_real_adp(
     sequences = [event.producer_seq for event in trajectory.events if event.producer_seq]
     assert sequences == list(range(1, len(sequences) + 1))
     assert len(set(sequences)) == len(sequences)
+
+
+# --- G2: the report reconciles with ADP -------------------------------------
+
+
+def test_a_rendered_report_reconciles_with_a_direct_adp_read(
+    client: AdpClient, owner: str, repo: str, tmp_path: Path
+) -> None:
+    """Gate G2's done-condition, against a live server rather than the double.
+
+    `tests/test_report.py` already reconciles a report against the in-memory
+    ADP, and that is worth having — but the double is this project's own reading
+    of ADP's responses, and a report that agrees with it proves the two agree,
+    not that either is right. Contact with the real server is what found finding
+    #5 in `docs/adp-contract-findings.md`.
+
+    Reconciles what a reader would actually act on: how many trials there were,
+    which verified, and the money. The cost is the sharpest of the three,
+    because it is summed from per-event usage on one path and read from an
+    aggregate endpoint on the other.
+    """
+    from duva_bench.analysis.extract import extract
+    from duva_bench.report.build import build_report
+    from duva_bench.state import StateDir
+    from duva_bench.study.load import load_study
+
+    study_path = Path(__file__).resolve().parents[2] / "examples" / "smoke" / "study.yaml"
+    study = load_study(study_path)
+    state = StateDir.for_study(study, None)
+    if not state.known_intents():
+        pytest.skip("no local state for the smoke study on this machine; run it first")
+
+    outcomes = extract(study, client=client, state=state, with_trajectories=False)
+    if not outcomes.trials:
+        pytest.skip("the smoke study has not been executed against this ADP")
+
+    report = build_report(study, state=state, outcomes=outcomes).as_dict()
+
+    # 1. Trial count and verification, straight off the run rows.
+    assert report["evidence"]["trials"] == len(outcomes.trials)
+    verified = [t for t in outcomes.trials if t.verdict == "VERIFIED"]
+    assert report["evidence"]["verified"] == len(verified)
+
+    # 2. Cost, re-derived from ADP rather than from the report's own arithmetic.
+    from_adp = sum(trial.cost_micro_usd for trial in outcomes.trials)
+    if report["cost"]["unpriced_trials"] == 0:
+        assert report["cost"]["total_micro_usd"] == from_adp
+    assert report["cost"]["priced_micro_usd"] == from_adp
+
+    # 3. Tokens, likewise.
+    assert report["cost"]["tokens_in"] == sum(t.tokens_in for t in outcomes.trials)
+    assert report["cost"]["tokens_out"] == sum(t.tokens_out for t in outcomes.trials)
+
+    # 4. Every trial the report lists is a run ADP will still show us, and every
+    #    one of them verifies. A report naming a run that cannot be fetched is
+    #    the one failure mode this whole architecture exists to prevent.
+    for trial in verified:
+        assert client.verify_run(owner, repo, trial.run_id).ok, (
+            f"{trial.external_ref} is in the report and does not verify"
+        )

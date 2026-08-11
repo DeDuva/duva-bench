@@ -304,3 +304,60 @@ def test_the_real_trajectory_carries_the_usage_harbor_summaries_lose() -> None:
     assert calls, "no model_call events bridged from a real trajectory"
     assert sum(c.tokens_in or 0 for c in calls) > 0, "every model_call reported zero input tokens"
     assert sum(c.tokens_out or 0 for c in calls) > 0, "every model_call reported zero output tokens"
+
+
+def test_bridged_usage_reconciles_with_the_agents_own_totals() -> None:
+    """Every cost figure on this track descends from these five events.
+
+    The 2026-08-08 probe found Harbor's `results.json` reporting
+    `total_input_tokens: 0` for `claude-code` while the agent's own log carried
+    full usage — a plausible-looking zero rather than an error, which is the
+    worst shape a wrong number can take. M2 was written to take usage from the
+    agent log for that reason, and this asserts the arithmetic actually holds
+    for `terminus-2`.
+
+    The trajectory states its own totals in `final_metrics`, independently of
+    the per-step `metrics` the bridge reads. Summing one and comparing it to the
+    other is a real cross-check: they are two different fields, written by the
+    producer, that have to agree. If a future agent reports per-step usage that
+    does not add up to what it claims overall, a study's cost ledger is wrong
+    and nothing else would say so.
+    """
+    trajectory = json.loads((REAL / "agent" / "trajectory.json").read_text(encoding="utf-8"))
+    results = json.loads((REAL / "result.json").read_text(encoding="utf-8"))
+    totals = trajectory["final_metrics"]
+
+    calls = [e for e in bridge(trajectory, results, final_git_sha=None) if e.kind == "model_call"]
+
+    assert sum(c.tokens_in or 0 for c in calls) == totals["total_prompt_tokens"]
+    assert sum(c.tokens_out or 0 for c in calls) == totals["total_completion_tokens"]
+
+    # Cost is carried in micro-USD integers, so the comparison is to the nearest
+    # micro-dollar rather than exact: floats are refused at the digest boundary
+    # for the same reason they are not trusted here.
+    bridged_micro = sum(c.cost_micro_usd or 0 for c in calls)
+    stated_micro = round(totals["total_cost_usd"] * 1_000_000)
+    assert abs(bridged_micro - stated_micro) <= len(calls), (
+        f"bridged {bridged_micro} micro-USD against a stated {stated_micro}; "
+        "per-step costs do not add up to the trajectory's own total"
+    )
+
+
+def test_cached_tokens_are_not_silently_dropped_from_the_prompt_count() -> None:
+    """Cache reads are most of the prompt, and they are not free.
+
+    This trajectory reports 8,384 cached of 13,297 prompt tokens. `prompt_tokens`
+    already includes them, so the bridge must not add `cached_tokens` on top —
+    doing so would inflate the input count by 60% here, and the error would grow
+    with exactly the caching that makes long studies affordable.
+    """
+    trajectory = json.loads((REAL / "agent" / "trajectory.json").read_text(encoding="utf-8"))
+    results = json.loads((REAL / "result.json").read_text(encoding="utf-8"))
+    totals = trajectory["final_metrics"]
+    assert totals.get("total_cached_tokens", 0) > 0, "this fixture no longer exercises caching"
+
+    calls = [e for e in bridge(trajectory, results, final_git_sha=None) if e.kind == "model_call"]
+    bridged_in = sum(c.tokens_in or 0 for c in calls)
+
+    assert bridged_in == totals["total_prompt_tokens"]
+    assert bridged_in != totals["total_prompt_tokens"] + totals["total_cached_tokens"]

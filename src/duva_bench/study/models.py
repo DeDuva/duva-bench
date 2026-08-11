@@ -129,6 +129,12 @@ class ToolsetSpec(Spec):
 
     name: Slug
     tools: dict[str, str] = Field(default_factory=dict)
+    # Where the tool *definitions* live, relative to the study file. `tools`
+    # above records their digests, which pins identity but does not locate them;
+    # Study A kept the connection in a generator script, where a trial runner
+    # cannot reach it. Absent means this arm does not manipulate tools and its
+    # tasks are handed to Harbor as their author wrote them.
+    definition_path: str | None = None
     docs_bundle: DocsBundle = Field(default_factory=DocsBundle)
     # Set on a twin: the toolset it is isomorphic to, and the seed that produced
     # it. Together they make the twin reproducible from the spec alone, and they
