@@ -82,10 +82,20 @@ Two aggravating factors of our own, both now known:
 - `make up` alone leaves an unmigrated database; `npm run migrate --prefix server` has to
   follow it, or `bootstrap.ts` fails with a bare Postgres `parserOpenTable` error.
 
-**What this costs.** Any study whose results matter needs an ADP instance nobody else
-resets — a dedicated stack, a container of its own, or a durable deployment. Until then a
-run's evidence lives at the mercy of an unrelated workstream, which is the ephemerality
-already recorded in `/ROADMAP.md` arriving sooner and with less warning.
+**Resolved for local runs on 2026-08-10** by giving studies their own instance:
+`tools/adp-stack.sh` (or `make adp-stack`). Three things make it survivable, and each is
+there because its absence cost a run:
+
+1. **Its own worktree**, `~/dev/adp-duvabench`, pinned to a commit. Branch switches and
+   merges in the main checkout cannot reach it.
+2. **A compose project outside `adp-test-*`** — `duvabench-adp`. ADP's `make down-all`
+   sweeps every `adp-test-*` stack on the machine; this is not one.
+3. **The built server on port 3100**, never `npm run dev`. A dev instance and this one can
+   both exist without either noticing.
+
+**Still open: durability.** A dedicated stack is still an ephemeral one — `make down`
+destroys it, and a cited run id goes with it. Anything whose evidence has to outlive the
+session, or be re-checkable by someone else, needs a deployment rather than a stack.
 
 ## Gate G2 — the smoke study end to end · **NOT RUN, and rehearsed**
 

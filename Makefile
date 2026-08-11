@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= python3
 
-.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated
+.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated adp-stack adp-status
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -36,6 +36,12 @@ test-contract: ## Run contract tests against a live ADP (needs DUVA_ADP_BASE_URL
 	@test -n "$$DUVA_ADP_RUNNER_TOKEN" || { echo "DUVA_ADP_RUNNER_TOKEN is not set"; exit 1; }
 	@test -n "$$DUVA_ADP_GRADER_TOKEN" || { echo "DUVA_ADP_GRADER_TOKEN is not set"; exit 1; }
 	$(PY) -m pytest -m contract
+
+adp-stack: ## Bring up the dedicated ADP studies record into (see tools/adp-stack.sh)
+	sh tools/adp-stack.sh up
+
+adp-status: ## Is the dedicated ADP up, and at what contract version
+	sh tools/adp-stack.sh status
 
 check-docs: ## Assert CLAUDE.md still points at paths that exist
 	sh tools/check-claude-md.sh
