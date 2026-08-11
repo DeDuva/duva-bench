@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# The twin's build runner. Identical in behaviour to the standard one;
+# only the name it is invoked by, and the file it reads, are different.
+exec make -f tomakfile "$@"

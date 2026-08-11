@@ -136,3 +136,60 @@ def test_the_oracle_runs_through_harbor_and_satisfies_the_grader(
         f"{sorted(failed)} — {json.dumps(failed, sort_keys=True)}. A failing arm and a "
         "broken task would be indistinguishable in the study."
     )
+
+
+# --- Study B: one problem, three toolchains ----------------------------------
+
+STUDY_B = ROOT / "studies" / "b-toolchain-distribution" / "tasks"
+STUDY_B_VARIANTS = ["add-median-oss", "add-median-twin", "add-median-proprietary"]
+
+
+@pytest.mark.parametrize("variant", STUDY_B_VARIANTS)
+def test_every_toolchain_variant_is_solvable_by_its_own_oracle(
+    variant: str, tmp_path: Path
+) -> None:
+    """The admission criterion for Study B, and the reason it is strict.
+
+    The three variants pose one problem in three toolchains. If one of them is
+    unsolvable — an image that will not build, a driver that cannot run its own
+    tests, a verifier that rejects a correct change — then that arm's failures
+    are the instrument's and the study would report them as the agent's.
+
+    Run with the oracle, so admitting a task costs container time and no model
+    spend at all.
+    """
+    task_dir = STUDY_B / variant
+    jobs = tmp_path / "jobs"
+    jobs.mkdir()
+
+    completed = subprocess.run(
+        [
+            HarborExecutor().resolve(),
+            "run",
+            "--path",
+            str(task_dir),
+            "--agent",
+            "oracle",
+            "--jobs-dir",
+            str(jobs),
+            "--job-name",
+            f"oracle-{variant}",
+            "--n-attempts",
+            "1",
+            "--n-concurrent",
+            "1",
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=1800,
+    )
+    assert completed.returncode == 0, f"harbor exited {completed.returncode}\n{completed.stderr}"
+
+    trial_dir = find_trial_dir(jobs / f"oracle-{variant}")
+    assert trial_dir is not None, f"{variant}: harbor wrote no trial result"
+    trial = load_trial(trial_dir)
+    assert trial.verifier_passed is True, (
+        f"{variant}: the variant's own oracle did not satisfy its verifier "
+        f"(verifier_passed={trial.verifier_passed!r})"
+    )

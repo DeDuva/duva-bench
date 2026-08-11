@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""A minimal monorepo build driver, in the published Google style.
+
+Not Blaze and not Bazel: it implements only what these tasks exercise — resolve
+a `//depot/pkg:target`, refuse a target whose dependencies are not declared, run
+tests. It exists so the *conventions* are real (declared deps, target paths, a
+presubmit gate) without a large toolchain download, and the reconstruction is
+recorded as this study's central limitation.
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Overridable so the driver can be tested against a temporary depot. The default
+# is the only value any task uses.
+DEPOT = Path(os.environ.get("DBUILD_DEPOT", "/workspace/depot"))
+
+
+def parse_build(package):
+    """Targets declared by a package's BUILD file: {name: {srcs, deps}}."""
+    build = DEPOT / package / "BUILD"
+    if not build.exists():
+        raise SystemExit(f"no BUILD file for //depot/{package}")
+    targets, current = {}, None
+    for raw in build.read_text().splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.endswith("("):
+            current = {"kind": line[:-1].strip(), "srcs": [], "deps": []}
+            continue
+        if line == ")":
+            current = None
+            continue
+        if current is None or "=" not in line:
+            continue
+        key, value = (part.strip().rstrip(",") for part in line.split("=", 1))
+        if key == "name":
+            current["name"] = value.strip('"')
+            targets[current["name"]] = current
+        elif key in ("srcs", "deps"):
+            current[key] = [
+                item.strip().strip('",') for item in value.strip("[]").split() if item.strip(' ",')
+            ]
+    return targets
+
+
+def resolve(label):
+    if not label.startswith("//depot/") or ":" not in label:
+        raise SystemExit(f"not a target label: {label}")
+    package, name = label[len("//depot/") :].split(":", 1)
+    targets = parse_build(package)
+    if name not in targets:
+        raise SystemExit(f"no target {name!r} in //depot/{package}")
+    return package, targets[name]
+
+
+def sources_for(label, seen=None):
+    """Every source file a target needs, following declared deps only."""
+    seen = seen if seen is not None else set()
+    if label in seen:
+        return []
+    seen.add(label)
+    package, target = resolve(label)
+    paths = [str(DEPOT / package / src) for src in target["srcs"]]
+    for dep in target["deps"]:
+        paths.extend(sources_for(dep, seen))
+    return paths
+
+
+def run_test(label):
+    package, target = resolve(label)
+    if target["kind"] != "py_test":
+        raise SystemExit(f"{label} is not a py_test")
+    # Only declared dependencies are on the path. An import that works by
+    # accident of the filesystem is exactly what a declared build prevents.
+    roots = {str(Path(path).parent) for path in sources_for(label)}
+    env_path = ":".join(sorted(roots))
+    completed = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", *[s for s in target["srcs"]]],
+        cwd=str(DEPOT / package),
+        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONPATH": env_path},
+    )
+    return completed.returncode
+
+
+def presubmit():
+    failures = []
+    for build in sorted(DEPOT.rglob("BUILD")):
+        package = str(build.parent.relative_to(DEPOT))
+        for name, target in parse_build(package).items():
+            label = f"//depot/{package}:{name}"
+            for dep in target["deps"]:
+                try:
+                    resolve(dep)
+                except SystemExit as bad:
+                    failures.append(f"{label}: {bad}")
+            if target["kind"] == "py_test" and run_test(label) != 0:
+                failures.append(f"{label}: tests failed")
+    if failures:
+        print("PRESUBMIT FAILED")
+        for failure in failures:
+            print(f"  {failure}")
+        return 1
+    print("PRESUBMIT OK")
+    return 0
+
+
+def main(argv):
+    if len(argv) < 2:
+        print("usage: dbuild [test <label> | build <label> | presubmit]", file=sys.stderr)
+        return 2
+    command = argv[1]
+    if command == "presubmit":
+        return presubmit()
+    if command in ("test", "build") and len(argv) > 2:
+        label = argv[2]
+        if command == "build":
+            sources_for(label)
+            print(f"BUILD OK {label}")
+            return 0
+        return run_test(label)
+    print(f"unknown command: {command}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
