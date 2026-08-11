@@ -1,7 +1,7 @@
 py_library(
     name = "config",
     srcs = [
-        "config.py",
+        "__init__.py",
     ],
     deps = [
     ],

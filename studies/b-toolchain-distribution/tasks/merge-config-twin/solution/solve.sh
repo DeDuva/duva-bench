@@ -2,10 +2,10 @@
 set -euo pipefail
 python3 - <<'ORACLE'
 from pathlib import Path
-p = Path('/workspace/kelvra/config/config.py')
+p = Path('/workspace/kelvra/config/__init__.py')
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text('"""Layered configuration."""\n\n\ndef merge(base, override):\n    """Merge `override` onto `base`, returning a new mapping."""\n    result = dict(base)\n    for key, value in override.items():\n        if value is None:\n            result.pop(key, None)\n        elif isinstance(value, dict) and isinstance(result.get(key), dict):\n            result[key] = merge(result[key], value)\n        else:\n            result[key] = value\n    return result\n')
-p = Path('/workspace/kelvra/report/report.py')
+p = Path('/workspace/kelvra/report/__init__.py')
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text('"""Effective configuration."""\n\nfrom config import merge\n\n\ndef effective(layers):\n    """Fold `layers` left to right so later layers win."""\n    result = {}\n    for layer in layers:\n        result = merge(result, layer)\n    return result\n')
 p = Path('/workspace/brivols/test_report.py')

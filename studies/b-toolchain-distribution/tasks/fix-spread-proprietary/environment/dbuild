@@ -9,8 +9,10 @@ limitation.
 """
 
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Overridable so the driver can be tested against a temporary depot. The default
@@ -71,33 +73,59 @@ def resolve(label):
     return package, targets[name]
 
 
-def roots_for(label, seen=None):
-    """Directories a target may import from, following declared deps only."""
+def packages_for(label, seen=None):
+    """Package names a target may import, following declared deps only."""
     seen = seen if seen is not None else set()
     if label in seen:
         return []
     seen.add(label)
     package, target = resolve(label)
-    roots = [str(DEPOT / package)]
+    names = [package]
     for dep in target["deps"]:
-        roots.extend(roots_for(dep, seen))
-    return roots
+        names.extend(packages_for(dep, seen))
+    return names
+
+
+def declared_root(label):
+    """A directory holding exactly the packages `label` declared.
+
+    Packages are real Python packages, so a package is found by its *parent*
+    being on the path — and putting the depot root there would make every
+    package importable and the declaration rule decorative. So the parent is
+    built: a directory of symlinks to the declared packages and nothing else.
+
+    An import that works by accident of the filesystem is precisely what a
+    declared build exists to prevent, and this is where that is enforced.
+    """
+    root = Path(tempfile.mkdtemp(prefix="dbuild-"))
+    for package in sorted(set(packages_for(label))):
+        link = root / package
+        if not link.exists():
+            link.symlink_to(DEPOT / package)
+    return root
 
 
 def run_test(label):
     package, target = resolve(label)
     if target["kind"] != "py_test":
         raise SystemExit(f"{label} is not a py_test")
-    # Only declared dependencies are importable. An import that works by
-    # accident of the filesystem is exactly what a declared build prevents.
-    completed = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", *target["srcs"]],
-        cwd=str(DEPOT / package),
-        env={
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
-            "PYTHONPATH": ":".join(sorted(set(roots_for(label)))),
-        },
-    )
+    root = declared_root(label)
+    try:
+        completed = subprocess.run(
+            # `--import-mode=importlib` is load-bearing. Packages carry an
+            # `__init__.py`, so pytest's default mode walks up past them looking
+            # for a directory without one, finds the depot root, and puts *that*
+            # on sys.path — which makes every package importable and the
+            # declaration rule decorative. importlib mode imports the test
+            # without touching sys.path, so PYTHONPATH decides, which is the
+            # whole point.
+            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+             "--import-mode=importlib", *target["srcs"]],
+            cwd=str(DEPOT / package),
+            env={"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONPATH": str(root)},
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
     return completed.returncode
 
 
@@ -133,7 +161,7 @@ def main(argv):
     if command in ("test", "build") and len(argv) > 2:
         label = argv[2]
         if command == "build":
-            roots_for(label)
+            packages_for(label)
             print(f"BUILD OK {label}")
             return 0
         return run_test(label)

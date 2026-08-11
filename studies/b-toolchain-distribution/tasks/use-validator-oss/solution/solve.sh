@@ -2,7 +2,7 @@
 set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
-p = Path('/workspace/src/report/report.py')
+p = Path('/workspace/src/report/__init__.py')
 body = p.read_text()
 body = body.replace('from stats import mean', 'from stats import mean\nfrom validate import numeric')
 body = body.replace('def summarize(readings):\n    return {', 'def summarize(readings):\n    readings = numeric(readings)\n    return {')

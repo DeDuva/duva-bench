@@ -1,7 +1,7 @@
 py_library(
     name = "stats",
     srcs = [
-        "stats.py",
+        "__init__.py",
     ],
     deps = [
     ],

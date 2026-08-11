@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/src/stats", "/workspace/src/window", "/workspace/src/report"]:
+for root in ["/workspace/src"]:
     sys.path.insert(0, root)
 try:
     from report import rolling_mean
@@ -59,7 +59,7 @@ check("rolling-partial", rolling_mean([1, 2, 3, 4, 5], 2, 2), [1.5, 3.5])
 check("rolling-none", rolling_mean([1], 2, 1), [])
 check("rolling-gap", rolling_mean([1, None, 3, 4], 2, 2), [3.5])
 
-source = open("/workspace/src/report/report.py").read()
+source = open("/workspace/src/report/__init__.py").read()
 if "windows" not in source:
     print("FAIL: the entry module does not use windows", file=sys.stderr)
     raise SystemExit(1)

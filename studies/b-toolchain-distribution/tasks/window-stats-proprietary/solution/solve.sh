@@ -2,10 +2,10 @@
 set -euo pipefail
 python3 - <<'ORACLE'
 from pathlib import Path
-p = Path('/workspace/depot/window/window.py')
+p = Path('/workspace/depot/window/__init__.py')
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text('"""Sliding windows over a series."""\n\n\ndef windows(values, size, step):\n    """Consecutive runs of `size` values, advancing by `step`."""\n    if size < 1 or step < 1:\n        raise ValueError("size and step must both be at least 1")\n    values = list(values)\n    return [\n        window\n        for start in range(0, len(values) - size + 1, step)\n        # Positions come from size and step alone; a gap removes a window\n        # without moving the ones after it.\n        if None not in (window := values[start : start + size])\n    ]\n')
-p = Path('/workspace/depot/report/report.py')
+p = Path('/workspace/depot/report/__init__.py')
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text('"""Rolling summaries."""\n\nfrom stats import mean\nfrom window import windows\n\n\ndef rolling_mean(values, size, step):\n    """The mean of each complete window."""\n    return [mean(one) for one in windows(values, size, step)]\n')
 p = Path('/workspace/depot/report/test_report.py')

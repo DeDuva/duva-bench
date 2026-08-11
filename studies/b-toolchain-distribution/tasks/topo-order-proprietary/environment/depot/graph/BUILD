@@ -1,7 +1,7 @@
 py_library(
     name = "graph",
     srcs = [
-        "graph.py",
+        "__init__.py",
     ],
     deps = [
     ],

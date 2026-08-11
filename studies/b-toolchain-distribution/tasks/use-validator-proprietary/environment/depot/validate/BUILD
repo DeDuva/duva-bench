@@ -1,7 +1,7 @@
 py_library(
     name = "validate",
     srcs = [
-        "validate.py",
+        "__init__.py",
     ],
     deps = [
     ],

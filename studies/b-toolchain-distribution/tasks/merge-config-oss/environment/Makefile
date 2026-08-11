@@ -1,2 +1,2 @@
 test:
-	PYTHONPATH=src/report python3 -m pytest -q tests
+	PYTHONPATH=src python3 -m pytest -q --import-mode=importlib tests

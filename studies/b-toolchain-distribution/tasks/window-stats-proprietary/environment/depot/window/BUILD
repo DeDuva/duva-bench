@@ -1,7 +1,7 @@
 py_library(
     name = "window",
     srcs = [
-        "window.py",
+        "__init__.py",
     ],
     deps = [
     ],

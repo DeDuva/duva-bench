@@ -51,7 +51,9 @@ def failure_reason(trial_dir: Path) -> str:
     return "no FAIL line recorded"
 
 
-def run_once(task_dir: Path, jobs: Path, label: str, model: str) -> tuple[bool | None, float, int, str]:
+def run_once(
+    task_dir: Path, jobs: Path, label: str, model: str
+) -> tuple[bool | None, float, int, str]:
     completed = subprocess.run(
         [
             HarborExecutor().resolve(),

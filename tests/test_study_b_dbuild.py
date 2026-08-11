@@ -24,12 +24,12 @@ DBUILD = DBUILD / "environment" / "dbuild"
 def _depot(tmp_path: Path, report_deps: str) -> Path:
     depot = tmp_path / "depot"
     (depot / "stats").mkdir(parents=True)
-    (depot / "stats" / "stats.py").write_text("def mean(v):\n    return sum(v) / len(v)\n")
+    (depot / "stats" / "__init__.py").write_text("def mean(v):\n    return sum(v) / len(v)\n")
     (depot / "stats" / "BUILD").write_text(
-        'py_library(\n    name = "stats",\n    srcs = ["stats.py"],\n    deps = [],\n)\n'
+        'py_library(\n    name = "stats",\n    srcs = ["__init__.py"],\n    deps = [],\n)\n'
     )
     (depot / "report").mkdir(parents=True)
-    (depot / "report" / "report.py").write_text(
+    (depot / "report" / "__init__.py").write_text(
         "from stats import mean\n\n\ndef summarize(v):\n    return {'mean': mean(v)}\n"
     )
     (depot / "report" / "test_report.py").write_text(
@@ -37,7 +37,7 @@ def _depot(tmp_path: Path, report_deps: str) -> Path:
         "def test_mean():\n    assert summarize([2, 4])['mean'] == 3\n"
     )
     (depot / "report" / "BUILD").write_text(
-        'py_library(\n    name = "report",\n    srcs = ["report.py"],\n'
+        'py_library(\n    name = "report",\n    srcs = ["__init__.py"],\n'
         f"    deps = [{report_deps}],\n)\n\n"
         'py_test(\n    name = "report_test",\n    srcs = ["test_report.py"],\n'
         '    deps = ["//depot/report:report"],\n)\n'
