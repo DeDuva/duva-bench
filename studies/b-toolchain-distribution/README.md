@@ -189,10 +189,54 @@ by. `strict-mode` is the one task showing anything and is the place to look firs
 None of the above is a result about agents, toolchains, or familiarity. It is a
 result about this task set.
 
+## What the pilot's one gap was, 2026-08-10
+
+`strict-mode` cost the `proprietary` arm nearly double while `twin` matched
+`oss`, which by the twin's own logic means *structural, not naming*. The
+trajectories say what the structure was:
+
+| arm | tool calls | what it did |
+|---|---|---|
+| `oss` | 20 | explored, edited three files, ran the suite twice, stopped |
+| `proprietary` | 25 | the same edits, **plus a new test module for the library and a new `py_test` target for it**, then two `dbuild test` runs and two `dbuild presubmit` runs |
+
+The proprietary arm was not lost. It did **more work**, because the depot
+convention — every directory that produces something declares its targets —
+invites a test beside the library you just changed, and a named gate invites
+running it.
+
+That is the confound the design document's §9 warns about, caught on real data:
+**the arms were not doing the same amount of work**, so the cost gap is not a
+familiarity measure. It is also a finding in its own right — a convention that
+asks for more work costs more without anyone being unfamiliar with anything.
+The twin arm made it legible by *not* moving, which is the best evidence so far
+that the control does its job.
+
+## Calibration — difficulty is measured now, not asserted
+
+`calibrate.py` runs a task N times on the `oss` substrate alone (the cheapest
+arm, and the one a model should find easiest) and reports the pass rate and the
+verifier's reason for each failure. A task at 0/n or n/n cannot carry an outcome
+axis whatever the other arms do; the useful band is where repetitions of one
+cell actually differ.
+
+First pass, 3 reps, $1.43:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | 2/3 | 0.189 | 23.0 |
+| `window-stats` | 3/3 | 0.136 | 18.7 |
+| `merge-config` | 1/3 | 0.154 | 17.7 |
+
+Two of three landed in a usable band on the first attempt. `window-stats`
+saturated and was hardened rather than dropped: a rule was added that
+*interacts* with the others instead of sitting beside them — a gap removes a
+window without shifting the ones after it, which rules out the natural
+implementation of filtering the series before slicing it.
+
 ## Next
 
-- Harder tasks, chosen for headroom rather than coverage: the outcome axis has to
-  vary before anything else matters.
-- More repetitions per cell — two gives a spread, not a variance.
-- Investigate `strict-mode`: it is the only cell with a gap worth explaining, and
-  understanding it is cheaper than running more of everything.
+- Finish calibrating at higher repetitions, and keep only tasks whose outcome
+  actually varies.
+- Then the pilot proper, on the surviving tasks, with enough repetitions per cell
+  for a variance rather than a spread.

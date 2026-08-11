@@ -34,6 +34,11 @@ check("skipping", windows([1, 2, 3, 4, 5, 6], 2, 3), [[1, 2], [4, 5]])
 check("size-exceeds", windows([1, 2], 3, 1), [])
 check("exact-fit", windows([1, 2, 3], 3, 1), [[1, 2, 3]])
 check("empty", windows([], 1, 1), [])
+# Gaps remove a window without shifting the rest.
+check("gap-skips", windows([1, None, 3, 4], 2, 2), [[3, 4]])
+check("gap-overlap", windows([1, 2, None, 4, 5], 2, 1), [[1, 2], [4, 5]])
+check("gap-all", windows([None, None], 2, 1), [])
+check("gap-does-not-shift", windows([1, None, 3, 4, 5, 6], 2, 2), [[3, 4], [5, 6]])
 
 for size, step in ((0, 1), (1, 0), (-1, 1), (1, -2)):
     try:
@@ -52,6 +57,7 @@ check("rolling-adjacent", rolling_mean([1, 2, 3, 4], 2, 2), [1.5, 3.5])
 check("rolling-overlap", rolling_mean([1, 2, 3, 4], 2, 1), [1.5, 2.5, 3.5])
 check("rolling-partial", rolling_mean([1, 2, 3, 4, 5], 2, 2), [1.5, 3.5])
 check("rolling-none", rolling_mean([1], 2, 1), [])
+check("rolling-gap", rolling_mean([1, None, 3, 4], 2, 2), [3.5])
 
 source = open("/workspace/depot/report/report.py").read()
 if "windows" not in source:

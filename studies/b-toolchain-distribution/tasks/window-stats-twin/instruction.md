@@ -10,6 +10,9 @@ Rules, all tested:
 - `step` may be larger than `size`, so values are skipped.
 - A `size` larger than the series returns an empty list.
 - `size` or `step` below 1 raises `ValueError`.
+- Readings of `None` are **gaps**. A window containing one is not a window: it is
+  skipped, and it does not shift the ones after it — positions are decided by
+  `size` and `step` alone, before gaps are considered.
 
 Then make `rolling_mean(values, size, step)` in the reporting package return the
 mean of each window, using `windows` and the existing `mean`. `window` is part

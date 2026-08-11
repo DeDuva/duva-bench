@@ -33,7 +33,25 @@ from duva_bench.exec.harbor import HarborExecutor, find_trial_dir, load_trial  #
 STUDY = Path(__file__).resolve().parent
 
 
-def run_once(task_dir: Path, jobs: Path, label: str, model: str) -> tuple[bool | None, float, int]:
+def failure_reason(trial_dir: Path) -> str:
+    """Why the verifier said no.
+
+    The first calibration reported pass rates and nothing else, which says a task
+    is hard without saying what about it is hard — and that is the half you need
+    to design the next task. The verifier prints one `FAIL: ...` line naming the
+    case it tripped on.
+    """
+    stdout = trial_dir / "verifier" / "test-stdout.txt"
+    for candidate in (stdout, trial_dir / "verifier" / "test-stderr.txt"):
+        if not candidate.exists():
+            continue
+        for line in candidate.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("FAIL:"):
+                return line[:160]
+    return "no FAIL line recorded"
+
+
+def run_once(task_dir: Path, jobs: Path, label: str, model: str) -> tuple[bool | None, float, int, str]:
     completed = subprocess.run(
         [
             HarborExecutor().resolve(),
@@ -59,10 +77,10 @@ def run_once(task_dir: Path, jobs: Path, label: str, model: str) -> tuple[bool |
         timeout=3600,
     )
     if completed.returncode != 0:
-        return None, 0.0, 0
+        return None, 0.0, 0, f"harbor exited {completed.returncode}"
     trial_dir = find_trial_dir(jobs / label)
     if trial_dir is None:
-        return None, 0.0, 0
+        return None, 0.0, 0, "harbor wrote no trial"
     trial = load_trial(trial_dir)
     cost, steps = 0.0, 0
     trajectory = trial_dir / "agent" / "trajectory.json"
@@ -70,7 +88,8 @@ def run_once(task_dir: Path, jobs: Path, label: str, model: str) -> tuple[bool |
         data = json.loads(trajectory.read_text(encoding="utf-8"))
         cost = float((data.get("final_metrics") or {}).get("total_cost_usd") or 0.0)
         steps = len(data.get("steps") or [])
-    return trial.verifier_passed, cost, steps
+    reason = "" if trial.verifier_passed else failure_reason(trial_dir)
+    return trial.verifier_passed, cost, steps, reason
 
 
 def main() -> int:
@@ -92,14 +111,19 @@ def main() -> int:
         outcomes: list[bool | None] = []
         costs: list[float] = []
         steps: list[int] = []
+        reasons: list[str] = []
         with tempfile.TemporaryDirectory() as raw:
             jobs = Path(raw) / "jobs"
             jobs.mkdir()
             for rep in range(1, args.reps + 1):
-                passed, cost, step_count = run_once(task_dir, jobs, f"{slug}-r{rep}", args.model)
+                passed, cost, step_count, reason = run_once(
+                    task_dir, jobs, f"{slug}-r{rep}", args.model
+                )
                 outcomes.append(passed)
                 costs.append(cost)
                 steps.append(step_count)
+                if reason:
+                    reasons.append(reason)
                 spent += cost
         good = sum(1 for o in outcomes if o is True)
         known = [o for o in outcomes if o is not None]
@@ -107,6 +131,8 @@ def main() -> int:
         mean_cost = sum(costs) / len(costs) if costs else 0.0
         mean_steps = sum(steps) / len(steps) if steps else 0
         print(f"{slug:16} {good:>8} {rate:>6} {mean_cost:>8.4f} {mean_steps:>11.1f}")
+        for reason in reasons:
+            print(f"{'':16}   ↳ {reason}")
     print(f"\ncalibration spend: ${spent:.4f}")
     return 0
 

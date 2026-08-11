@@ -217,9 +217,10 @@ WINDOW_STATS = Task(
     slug="window-stats",
     difficulty="hard",
     notes=(
-        "Boundary semantics a first attempt usually gets wrong: the trailing "
-        "partial window, a size exceeding the series, a step larger than the "
-        "size. Cross-package as well."
+        "Calibrated at 3/3 on 2026-08-10, so a rule was added that interacts "
+        "with the others rather than sitting beside them: a gap removes a window "
+        "without moving the ones after it, which rules out the natural "
+        "implementation of filtering the series first."
     ),
     problem="""\
 Readings arrive in a stream and have to be summarised over a sliding window.
@@ -234,6 +235,9 @@ Rules, all tested:
 - `step` may be larger than `size`, so values are skipped.
 - A `size` larger than the series returns an empty list.
 - `size` or `step` below 1 raises `ValueError`.
+- Readings of `None` are **gaps**. A window containing one is not a window: it is
+  skipped, and it does not shift the ones after it — positions are decided by
+  `size` and `step` alone, before gaps are considered.
 
 Then make `rolling_mean(values, size, step)` in the reporting package return the
 mean of each window, using `windows` and the existing `mean`. `window` is part
@@ -302,8 +306,11 @@ def windows(values, size, step):
         raise ValueError("size and step must both be at least 1")
     values = list(values)
     return [
-        values[start : start + size]
+        window
         for start in range(0, len(values) - size + 1, step)
+        # Positions come from size and step alone; a gap removes a window
+        # without moving the ones after it.
+        if None not in (window := values[start : start + size])
     ]
 ''',
         "report/report.py": '''"""Rolling summaries."""
@@ -333,6 +340,10 @@ def test_a_trailing_partial_window_is_dropped():
 def test_a_bad_size_is_refused():
     with pytest.raises(ValueError):
         windows([1, 2, 3], 0, 1)
+
+
+def test_a_gap_removes_a_window_without_shifting_the_rest():
+    assert windows([1, None, 3, 4], 2, 2) == [[3, 4]]
 """,
     },
     acceptance="""import sys
@@ -359,6 +370,11 @@ check("skipping", windows([1, 2, 3, 4, 5, 6], 2, 3), [[1, 2], [4, 5]])
 check("size-exceeds", windows([1, 2], 3, 1), [])
 check("exact-fit", windows([1, 2, 3], 3, 1), [[1, 2, 3]])
 check("empty", windows([], 1, 1), [])
+# Gaps remove a window without shifting the rest.
+check("gap-skips", windows([1, None, 3, 4], 2, 2), [[3, 4]])
+check("gap-overlap", windows([1, 2, None, 4, 5], 2, 1), [[1, 2], [4, 5]])
+check("gap-all", windows([None, None], 2, 1), [])
+check("gap-does-not-shift", windows([1, None, 3, 4, 5, 6], 2, 2), [[3, 4], [5, 6]])
 
 for size, step in ((0, 1), (1, 0), (-1, 1), (1, -2)):
     try:
@@ -377,6 +393,7 @@ check("rolling-adjacent", rolling_mean([1, 2, 3, 4], 2, 2), [1.5, 3.5])
 check("rolling-overlap", rolling_mean([1, 2, 3, 4], 2, 1), [1.5, 2.5, 3.5])
 check("rolling-partial", rolling_mean([1, 2, 3, 4, 5], 2, 2), [1.5, 3.5])
 check("rolling-none", rolling_mean([1], 2, 1), [])
+check("rolling-gap", rolling_mean([1, None, 3, 4], 2, 2), [3.5])
 
 source = open(ENTRY_SOURCE).read()
 if "windows" not in source:
