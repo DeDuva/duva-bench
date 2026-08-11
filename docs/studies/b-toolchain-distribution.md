@@ -437,6 +437,46 @@ it argues for:
    substrates, graders, materialization — is done. Authoring tasks that
    discriminate for the right reason is the open problem.
 
+### 6.4 With the defects removed, every task saturates — and that is the real result
+
+Calibrated 2026-08-11 on corrected, unambiguous specs, 6 repetitions each on the
+`oss` substrate:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | **6/6** | 0.267 | 23.8 |
+| `window-stats` | **6/6** | 0.143 | 16.8 |
+| `merge-config` | **6/6** | 0.170 | 16.3 |
+
+Seven tasks have now been authored — four ordinary, three built specifically to
+be failable — and **not one of them discriminates**. Every point of apparent
+difficulty across four calibration rounds traced to an authoring defect, and
+each defect cost real money to find:
+
+| round | topo | window | merge | what it was measuring |
+|---|---|---|---|---|
+| 1 | 2/3 | 3/3 | 1/3 | unknown — reasons were not recorded |
+| 2 | 1/5 | 5/5 | 4/5 | import ambiguity, and a spec that demanded a wrong answer |
+| 3 | 4/5 | 5/5 | 3/5 | import ambiguity again; prose had not fixed it |
+| 4 | **6/6** | **6/6** | **6/6** | the tasks |
+
+**So the honest conclusion is not "these tasks are too easy". It is that a task
+of this size cannot discriminate this model, and four rounds of measurement were
+needed to see past our own defects to that fact.**
+
+Two consequences, and neither is "write a cleverer puzzle":
+
+1. **The model is the wrong constant.** Study B always crossed *model* as a
+   factor; saturation says to choose one where the task set is not at ceiling
+   rather than to keep hunting for a task that defeats the strongest available
+   one. A study whose outcome axis is pinned at 1.0 measures nothing however
+   good its statistics are.
+2. **Scale, not trickiness.** If a stronger model is wanted, the tasks have to
+   grow in *scope* — many files, many constraints, integration rather than
+   logic — because a small closed-world problem with well-stated rules is
+   something this class of model simply does. Trickiness produces ambiguity, and
+   §6.2 is what ambiguity costs.
+
 Candidate shape — each is a genuine multi-step change, not a function to complete:
 
 1. **Add a feature across a module boundary**, updating build targets and the dependent tests.

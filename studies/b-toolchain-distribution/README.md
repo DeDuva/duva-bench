@@ -259,9 +259,36 @@ The lasting rule: **read the reasons, never only the rate.** `topo-order` at 1/5
 for mixed reasons and at 1/5 for the rule it was built around are different tasks
 wearing the same number.
 
+Fourth pass, 6 reps, on corrected specs — the decisive one:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | **6/6** | 0.267 | 23.8 |
+| `window-stats` | **6/6** | 0.143 | 16.8 |
+| `merge-config` | **6/6** | 0.170 | 16.3 |
+
+Every task saturates. Across four rounds, **100% of the apparent difficulty was
+authoring defects** — an import convention the layout never explained, and an
+acceptance check that demanded a wrong answer:
+
+| round | topo | window | merge | measuring |
+|---|---|---|---|---|
+| 1 | 2/3 | 3/3 | 1/3 | unknown — reasons not recorded |
+| 2 | 1/5 | 5/5 | 4/5 | ambiguity, and a wrong spec |
+| 3 | 4/5 | 5/5 | 3/5 | ambiguity again; prose had not fixed it |
+| 4 | 6/6 | 6/6 | 6/6 | the tasks |
+
+Seven tasks authored, three of them built specifically to be failable, and none
+discriminates. The conclusion is not that they are too easy — it is that **a task
+of this size cannot discriminate this model**, and it took four rounds to see
+past our own defects to that.
+
 ## Next
 
-- Recalibrate now the ambiguity is gone, and keep only tasks whose outcome varies
-  for reasons the task is actually about.
-- Then the pilot proper, on the survivors, with enough repetitions per cell for a
-  variance rather than a spread.
+- **Calibrate a smaller model.** Study B crosses model as a factor anyway, and a
+  study whose outcome axis is pinned at 1.0 measures nothing however good its
+  statistics. Choosing a model the task set does not saturate is cheaper and
+  more honest than hunting for a puzzle that defeats the strongest one.
+- If a stronger model is wanted, tasks have to grow in **scope** — many files,
+  many constraints, integration rather than logic. Trickiness produces
+  ambiguity, and the third round is what ambiguity costs.
