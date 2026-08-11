@@ -258,7 +258,7 @@ def _collected_workspace(root: Path, source_dir: str, task: Task) -> Path:
         body = next(iter(package.modules.values()))
         target.write_text(body, encoding="utf-8")
     for key, content in task.oracle_files.items():
-        package, _, module = key.partition("/")
+        package = key.partition("/")[0]
         if package == "tests":
             continue
         target = workspace / source_dir / package / "__init__.py"
