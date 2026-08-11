@@ -1,16 +1,28 @@
 {
-  "task": "add-median",
+  "tasks": [
+    "add-median",
+    "use-validator",
+    "fix-spread",
+    "strict-mode"
+  ],
   "variants": [
     "add-median-oss",
     "add-median-proprietary",
-    "add-median-twin"
+    "add-median-twin",
+    "fix-spread-oss",
+    "fix-spread-proprietary",
+    "fix-spread-twin",
+    "strict-mode-oss",
+    "strict-mode-proprietary",
+    "strict-mode-twin",
+    "use-validator-oss",
+    "use-validator-proprietary",
+    "use-validator-twin"
   ],
   "twin_words": {
-    "lang": "Python",
     "src": "kelvra",
     "tests": "brivols",
     "runner": "tomak",
-    "verb": "vess",
-    "harness": "pelmatest"
+    "verb": "vess"
   }
 }

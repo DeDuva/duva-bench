@@ -1,118 +1,71 @@
 #!/usr/bin/env python3
-"""Generate Study B's task variants: one problem, three toolchains.
+"""Generate Study B's task variants: each problem, posed in three toolchains.
 
     python3 studies/b-toolchain-distribution/generate.py
 
-The design is `docs/studies/b-toolchain-distribution.md`. What matters here is
-the constraint that governs every line: **the three variants must pose the same
-problem.** If the `proprietary` variant is harder in substance rather than only
-in convention, the study measures difficulty and its headline claim evaporates.
-So the source files, the assertions and the acceptance criteria are shared, and
-only the *toolchain* around them changes:
+The design is `docs/studies/b-toolchain-distribution.md`; the task content is
+`tasks.py`. What matters here is the constraint that governs every line: **the
+variants of a task must pose the same problem.** If the `proprietary` variant is
+harder in substance rather than only in convention, the study measures difficulty
+and its headline claim evaporates. So source files, tests and acceptance criteria
+come from one definition and only the toolchain around them changes:
 
 ``oss``
-    What a model has seen a million times: ``src/`` and ``tests/``, ``pytest``,
-    a ``Makefile``.
+    What a model has read a million times: packages under ``src/``, ``pytest``,
+    a ``Makefile`` whose ``test`` target sets ``PYTHONPATH``.
 
 ``twin``
-    ``oss`` with every user-visible identifier mechanically renamed — the
-    command, the config file, the target names — and byte-identical behaviour.
-    This is the control. If it costs an agent nothing, the deficit on
-    ``proprietary`` is structural; if it costs as much, the deficit is names.
+    ``oss`` with every user-visible identifier mechanically renamed — the source
+    directory, the test directory, the runner, its target — and byte-identical
+    behaviour. This is the **control**. If it costs an agent nothing, a deficit
+    on ``proprietary`` is structural; if it costs as much, the deficit is names.
 
 ``proprietary``
-    A monorepo in the published Google style: ``//depot/...`` target paths,
-    ``BUILD`` files declaring targets and their dependencies, a build driver
-    invoked as ``dbuild``, and a presubmit gate the change must satisfy.
+    A monorepo in the published Google style: ``//depot/...`` labels, ``BUILD``
+    files declaring targets and their dependencies, a ``dbuild`` driver, and a
+    presubmit gate that rejects an undeclared dependency.
 
-**The build driver is a reconstruction, not Blaze**, and not Bazel either: a
-real Bazel image is a large download and Bazel is itself public and therefore in
-distribution, which would blunt the contrast. `dbuild` implements the parts the
-tasks exercise — resolve a target, run its dependencies, run its tests — from
-the conventions described in Potvin and Levenberg (CACM 2016). That it is a
-reconstruction is the study's central limitation and is recorded in the design
-document, not hidden here.
+**The build driver is a reconstruction**, not Blaze and deliberately not Bazel:
+Bazel is public and therefore itself in distribution, which would blunt the
+contrast, and a real Bazel image is a large download. `dbuild` implements only
+what these tasks exercise, from the conventions in Potvin and Levenberg (CACM
+2016). That it is a reconstruction is the study's central limitation and is
+recorded in the design document rather than hidden here.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
+import sys
 import textwrap
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from tasks import TASKS, Task  # noqa: E402
+
 STUDY = Path(__file__).resolve().parent
-TASKS = STUDY / "tasks"
+TASK_ROOT = STUDY / "tasks"
 
-# The problem, identical in all three variants: `summarize` must gain a median,
-# which means touching a second module and the test that covers it.
-LIBRARY = '''\
-"""Statistics helpers."""
-
-
-def mean(values):
-    if not values:
-        raise ValueError("mean of no values")
-    return sum(values) / len(values)
-
-
-def median(values):
-    if not values:
-        raise ValueError("median of no values")
-    ordered = sorted(values)
-    middle = len(ordered) // 2
-    if len(ordered) % 2:
-        return float(ordered[middle])
-    return (ordered[middle - 1] + ordered[middle]) / 2
-'''
-
-REPORT_BEFORE = '''\
-"""Turn a series of readings into a summary."""
-
-from stats import mean
-
-
-def summarize(readings):
-    return {"count": len(readings), "mean": mean(readings)}
-'''
-
-TEST_BEFORE = """\
-from report import summarize
-
-
-def test_summarize_counts_and_means():
-    assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}
-"""
-
-# What the agent is asked for, worded the same in every variant. Only the
-# toolchain paragraph differs, and that paragraph is the manipulation.
-PROBLEM = """\
-`summarize` reports a count and a mean. It also needs a **median**.
-
-Add a `median` key to the dictionary `summarize` returns, computed by the
-`median` function that already exists in the statistics module — do not
-reimplement it. Then extend the existing test so it covers the new key, and make
-the whole test suite pass.
-
-The median of an even-length series is the mean of its two middle values.
-"""
+# The `twin` vocabulary: pronounceable, non-dictionary, length-matched to what it
+# replaces, which is the twin generator's own rule (`arms/twin.py`).
+TWIN_WORDS = {
+    "src": "kelvra",
+    "tests": "brivols",
+    "runner": "tomak",
+    "verb": "vess",
+}
+OSS_WORDS = {"src": "src", "tests": "tests", "runner": "make", "verb": "test"}
 
 OSS_TOOLCHAIN = """\
 ## Working here
 
 This is a standard Python project.
 
-- Source is in `src/`, tests are in `tests/`.
-- Run the tests with `make test`, which runs `pytest`.
-"""
-
-TWIN_TOOLCHAIN = """\
-## Working here
-
-This is a standard {lang} project.
-
-- Source is in `{src}/`, tests are in `{tests}/`.
-- Run the tests with `{runner} {verb}`, which runs `{harness}`.
+- Each package is a directory under `{src}/`.
+- Tests are in `{tests}/`.
+- Run the tests with `{runner} {verb}`.
 """
 
 PROPRIETARY_TOOLCHAIN = """\
@@ -122,8 +75,8 @@ This is a monorepo. Code lives under `depot/`, and every directory that produces
 something has a `BUILD` file declaring its targets.
 
 - A target is named by its path from the depot root: `//depot/stats:stats`.
-- A target that uses another must **declare it** in its `deps`. A build with an
-  undeclared dependency fails even if the import would work.
+- A target that uses another must **declare it** in that target's `deps`. A
+  build with an undeclared dependency fails even if the import would work.
 - Build and test with the depot's driver:
 
   ```
@@ -140,26 +93,15 @@ something has a `BUILD` file declaring its targets.
   whose dependencies are not declared.
 """
 
-# The `twin` vocabulary. Pronounceable, non-dictionary, and length-matched to
-# what it replaces, which is the twin generator's own rule (`arms/twin.py`).
-TWIN_WORDS = {
-    "lang": "Python",  # the language is not the manipulation; the toolchain is
-    "src": "kelvra",
-    "tests": "brivols",
-    "runner": "tomak",
-    "verb": "vess",
-    "harness": "pelmatest",
-}
-
 DBUILD = '''\
 #!/usr/bin/env python3
 """A minimal monorepo build driver, in the published Google style.
 
 Not Blaze and not Bazel: it implements only what these tasks exercise — resolve
 a `//depot/pkg:target`, refuse a target whose dependencies are not declared, run
-tests. It exists so the *conventions* are real (declared deps, target paths, a
-presubmit gate) without a large toolchain download, and the reconstruction is
-recorded as this study's central limitation.
+tests, gate on presubmit. It exists so the *conventions* are real without a large
+toolchain download, and the reconstruction is recorded as this study's central
+limitation.
 """
 
 import os
@@ -173,14 +115,25 @@ DEPOT = Path(os.environ.get("DBUILD_DEPOT", "/workspace/depot"))
 
 
 def parse_build(package):
-    """Targets declared by a package's BUILD file: {name: {srcs, deps}}."""
+    """Targets declared by a package's BUILD file: {name: {kind, srcs, deps}}."""
     build = DEPOT / package / "BUILD"
     if not build.exists():
         raise SystemExit(f"no BUILD file for //depot/{package}")
-    targets, current = {}, None
+    targets, current, collecting = {}, None, None
     for raw in build.read_text().splitlines():
         line = raw.split("#", 1)[0].strip()
         if not line:
+            continue
+        # A list spread over several lines, which is how BUILD files are
+        # actually written. Reading only single-line lists silently produced
+        # targets with no sources, and a test target with no sources passes.
+        if collecting is not None:
+            if line.startswith("]"):
+                collecting = None
+                continue
+            item = line.strip().strip(",").strip('"')
+            if item:
+                current[collecting].append(item)
             continue
         if line.endswith("("):
             current = {"kind": line[:-1].strip(), "srcs": [], "deps": []}
@@ -195,6 +148,9 @@ def parse_build(package):
             current["name"] = value.strip('"')
             targets[current["name"]] = current
         elif key in ("srcs", "deps"):
+            if value.strip() == "[":
+                collecting = key
+                continue
             current[key] = [
                 item.strip().strip('",') for item in value.strip("[]").split() if item.strip(' ",')
             ]
@@ -211,31 +167,32 @@ def resolve(label):
     return package, targets[name]
 
 
-def sources_for(label, seen=None):
-    """Every source file a target needs, following declared deps only."""
+def roots_for(label, seen=None):
+    """Directories a target may import from, following declared deps only."""
     seen = seen if seen is not None else set()
     if label in seen:
         return []
     seen.add(label)
     package, target = resolve(label)
-    paths = [str(DEPOT / package / src) for src in target["srcs"]]
+    roots = [str(DEPOT / package)]
     for dep in target["deps"]:
-        paths.extend(sources_for(dep, seen))
-    return paths
+        roots.extend(roots_for(dep, seen))
+    return roots
 
 
 def run_test(label):
     package, target = resolve(label)
     if target["kind"] != "py_test":
         raise SystemExit(f"{label} is not a py_test")
-    # Only declared dependencies are on the path. An import that works by
+    # Only declared dependencies are importable. An import that works by
     # accident of the filesystem is exactly what a declared build prevents.
-    roots = {str(Path(path).parent) for path in sources_for(label)}
-    env_path = ":".join(sorted(roots))
     completed = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", *[s for s in target["srcs"]]],
+        [sys.executable, "-m", "pytest", "-q", *target["srcs"]],
         cwd=str(DEPOT / package),
-        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONPATH": env_path},
+        env={
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "PYTHONPATH": ":".join(sorted(set(roots_for(label)))),
+        },
     )
     return completed.returncode
 
@@ -272,7 +229,7 @@ def main(argv):
     if command in ("test", "build") and len(argv) > 2:
         label = argv[2]
         if command == "build":
-            sources_for(label)
+            roots_for(label)
             print(f"BUILD OK {label}")
             return 0
         return run_test(label)
@@ -284,6 +241,21 @@ if __name__ == "__main__":
     raise SystemExit(main(sys.argv))
 '''
 
+TASK_TOML = """\
+version = "1.0"
+
+[metadata]
+author_name = "duva-bench"
+difficulty = "{difficulty}"
+tags = ["study-b", "toolchain"]
+
+[agent]
+timeout_sec = 900
+
+[verifier]
+timeout_sec = 180
+"""
+
 
 def write(path: Path, body: str, executable: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -292,261 +264,468 @@ def write(path: Path, body: str, executable: bool = False) -> None:
         path.chmod(0o755)
 
 
-def dockerfile(extra: str = "") -> str:
-    return textwrap.dedent(
-        f"""\
-        FROM python:3.12-slim
+def dockerfile(extra: str) -> str:
+    return (
+        textwrap.dedent(
+            """\
+            FROM python:3.12-slim
 
-        RUN pip install --no-cache-dir pytest==8.3.3
-        WORKDIR /workspace
-        {extra}
-        """
+            RUN apt-get update && apt-get install -y --no-install-recommends make \\
+                && rm -rf /var/lib/apt/lists/*
+            RUN pip install --no-cache-dir pytest==8.3.3
+            WORKDIR /workspace
+            """
+        )
+        + extra
     )
 
 
-def verifier(check: str) -> str:
-    """Every variant's verifier runs the same acceptance check.
+def verifier(
+    task: Task,
+    source_roots: list[str],
+    entry_source: str,
+    test_source: str,
+    extra_gate: str = "",
+) -> str:
+    """The acceptance check, identical in every variant.
 
     Deliberately not the agent's own test: a task that graded an agent by the
-    test the agent was told to edit would grade it on its willingness to write
-    an assertion. This imports the result and checks the behaviour.
+    test it was told to edit would be grading its willingness to write an
+    assertion. This imports the result and checks the behaviour.
     """
-    return textwrap.dedent(
-        f"""\
-        #!/usr/bin/env bash
-        set -uo pipefail
-
-        REWARD_FILE="${{HARBOR_REWARD_FILE:-/logs/verifier/reward.txt}}"
-        mkdir -p "$(dirname "$REWARD_FILE")"
-        printf '0' > "$REWARD_FILE"
-        reward_pass() {{ printf '1' > "$REWARD_FILE"; }}
-
-        mkdir -p /logs/artifacts
-        cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
-
-        {check}
-
-        status=$?
-        [ "$status" -eq 0 ] && reward_pass
-        exit "$status"
-        """
+    body = (
+        task.acceptance.replace("SOURCE_ROOTS", json.dumps(source_roots))
+        .replace("ENTRY_SOURCE", json.dumps(entry_source))
+        .replace("TEST_SOURCE", json.dumps(test_source))
+        .rstrip()
+    )
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -uo pipefail\n\n"
+        'REWARD_FILE="${HARBOR_REWARD_FILE:-/logs/verifier/reward.txt}"\n'
+        'mkdir -p "$(dirname "$REWARD_FILE")"\n'
+        "printf '0' > \"$REWARD_FILE\"\n"
+        "reward_pass() { printf '1' > \"$REWARD_FILE\"; }\n\n"
+        "mkdir -p /logs/artifacts\n"
+        "cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true\n\n"
+        "python3 - <<'PY'\n" + body + "\nPY\n\n"
+        "status=$?\n" + extra_gate + '[ "$status" -eq 0 ] && reward_pass\n'
+        'exit "$status"\n'
     )
 
 
-ACCEPTANCE = """\
-python3 - <<'PY'
-import subprocess, sys
-sys.path.insert(0, SOURCE_ROOT)
-try:
-    from report import summarize
-except Exception as failure:
-    print(f"FAIL: cannot import summarize: {failure}", file=sys.stderr)
-    raise SystemExit(1)
+GRADER_TEMPLATE = '''#!/usr/bin/env python3
+"""Grader for Study B's {slug}, in whichever toolchain it was solved.
 
-cases = [
-    ([2, 4, 6], {"count": 3, "mean": 4.0, "median": 4.0}),
-    ([1, 2, 3, 4], {"count": 4, "mean": 2.5, "median": 2.5}),
-    ([5], {"count": 1, "mean": 5.0, "median": 5.0}),
-]
-for readings, expected in cases:
-    got = summarize(readings)
-    if got != expected:
-        print(f"FAIL: summarize({readings}) == {got}, expected {expected}", file=sys.stderr)
-        raise SystemExit(1)
+Invoked as ``python3 <grader> <workdir>``, prints one JSON object. Runs with its
+cwd outside the workdir and with every ADP and provider token stripped from its
+environment, so it cannot report its own score — that is duva-bench's job, under
+a different identity.
 
-# The median must come from the statistics module rather than be reimplemented:
-# the task says so, and a study that let either pass would be scoring two
-# different pieces of work as one.
-import report
-if "median" not in getattr(report, "__dict__", {}) and not hasattr(report, "median"):
-    pass
-source = open(REPORT_PATH).read()
-if "median" not in source:
-    print("FAIL: report does not mention median", file=sys.stderr)
-    raise SystemExit(1)
-if "sorted(" in source:
-    print("FAIL: report sorts values itself instead of using the statistics module",
-          file=sys.stderr)
-    raise SystemExit(1)
-
-print("PASS")
-PY
+The check is the task's acceptance criterion, which is shared by all three
+toolchain variants: the same behaviour is required of every arm, and only the
+paths differ. Scored as two axes rather than one because "it works" and "it was
+done the way the task asked" are different claims, and blending them would hide
+an arm that passed by taking the shortcut the task forbids.
 """
 
+from __future__ import annotations
 
-def oss_variant() -> None:
-    root = TASKS / "add-median-oss"
-    if root.exists():
-        shutil.rmtree(root)
-    write(root / "environment" / "Dockerfile", dockerfile())
-    write(root / "environment" / "src" / "stats.py", LIBRARY)
-    write(root / "environment" / "src" / "report.py", REPORT_BEFORE)
-    write(root / "environment" / "tests" / "test_report.py", TEST_BEFORE)
-    write(
-        root / "environment" / "Makefile",
-        "test:\n\tPYTHONPATH=src python3 -m pytest -q tests\n",
-    )
-    write(root / "instruction.md", PROBLEM + "\n" + OSS_TOOLCHAIN)
-    write(
-        root / "environment" / "Dockerfile",
-        dockerfile(
-            "COPY src/ /workspace/src/\nCOPY tests/ /workspace/tests/\nCOPY Makefile /workspace/Makefile\n"
-        ),
-    )
-    check = ACCEPTANCE.replace("SOURCE_ROOT", '"/workspace/src"').replace(
-        "REPORT_PATH", '"/workspace/src/report.py"'
-    )
-    write(root / "tests" / "test.sh", verifier(check), executable=True)
-    write(
-        root / "solution" / "solve.sh",
-        "#!/usr/bin/env bash\nset -euo pipefail\n"
-        "python3 - <<'PY'\n"
-        "from pathlib import Path\n"
-        "p = Path('/workspace/src/report.py')\n"
-        "p.write_text(p.read_text()\n"
-        "  .replace('from stats import mean', 'from stats import mean, median')\n"
-        '  .replace(\'"mean": mean(readings)}\', \'"mean": mean(readings), "median": median(readings)}\'))\n'
-        "t = Path('/workspace/tests/test_report.py')\n"
-        "t.write_text(t.read_text().replace(\n"
-        '  \'{"count": 3, "mean": 4.0}\', \'{"count": 3, "mean": 4.0, "median": 4.0}\'))\n'
-        "PY\n",
-        executable=True,
-    )
-    write(root / "task.toml", TASK_TOML)
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+SPEC = {{
+    "task": "{slug}",
+    "axes": ["acceptance", "discipline"],
+}}
+
+# Where the container's /workspace was collected to. The verifier copies it, so
+# the grader sees the work product without needing the container to still exist.
+WORKSPACE = "workspace"
+ENTRY_MODULE = "{entry_module}.py"
+
+# **The layout is discovered, not assumed.** One grader serves all three
+# toolchains: `src/report/report.py`, `kelvra/report/report.py` and
+# `depot/report/report.py` are the same work in three arrangements, and a grader
+# pinned to one of them would score the other two as "never written" — which is
+# the failure gate G2 found in the smoke study, arriving from the other side.
+#
+# It also means the study pins **one** grader per task rather than one per
+# substrate, so the instrument is provably identical across the arms it compares.
+
+CHECK = {check!r}
 
 
-def twin_variant() -> None:
-    root = TASKS / "add-median-twin"
-    if root.exists():
-        shutil.rmtree(root)
-    words = TWIN_WORDS
-    write(root / "environment" / words["src"] / "stats.py", LIBRARY)
-    write(root / "environment" / words["src"] / "report.py", REPORT_BEFORE)
-    write(root / "environment" / words["tests"] / "test_report.py", TEST_BEFORE)
-    # `tomak vess` is `make test` under another name: same runner semantics,
-    # same output, a name the model has never read.
-    write(
-        root / "environment" / "tomakfile",
-        f"{words['verb']}:\n\tPYTHONPATH={words['src']} python3 -m pytest -q {words['tests']}\n",
-    )
-    write(
-        root / "environment" / "tomak",
-        "#!/usr/bin/env bash\n"
-        "# The twin's build runner. Identical in behaviour to the standard one;\n"
-        "# only the name it is invoked by, and the file it reads, are different.\n"
-        'exec make -f tomakfile "$@"\n',
-        executable=True,
-    )
-    write(
-        root / "environment" / "Dockerfile",
-        dockerfile(
-            "RUN apt-get update && apt-get install -y --no-install-recommends make "
-            "&& rm -rf /var/lib/apt/lists/*\n"
-            f"COPY {words['src']}/ /workspace/{words['src']}/\n"
-            f"COPY {words['tests']}/ /workspace/{words['tests']}/\n"
-            "COPY tomakfile /workspace/tomakfile\n"
-            "COPY tomak /usr/local/bin/tomak\n"
-        ),
-    )
-    write(root / "instruction.md", PROBLEM + "\n" + TWIN_TOOLCHAIN.format(**words))
-    check = ACCEPTANCE.replace("SOURCE_ROOT", f'"/workspace/{words["src"]}"').replace(
-        "REPORT_PATH", f'"/workspace/{words["src"]}/report.py"'
-    )
-    write(root / "tests" / "test.sh", verifier(check), executable=True)
-    write(
-        root / "solution" / "solve.sh",
-        "#!/usr/bin/env bash\nset -euo pipefail\n"
-        "python3 - <<'PY'\n"
-        "from pathlib import Path\n"
-        f"p = Path('/workspace/{words['src']}/report.py')\n"
-        "p.write_text(p.read_text()\n"
-        "  .replace('from stats import mean', 'from stats import mean, median')\n"
-        '  .replace(\'"mean": mean(readings)}\', \'"mean": mean(readings), "median": median(readings)}\'))\n'
-        f"t = Path('/workspace/{words['tests']}/test_report.py')\n"
-        "t.write_text(t.read_text().replace(\n"
-        '  \'{"count": 3, "mean": 4.0}\', \'{"count": 3, "mean": 4.0, "median": 4.0}\'))\n'
-        "PY\n",
-        executable=True,
-    )
-    write(root / "task.toml", TASK_TOML)
+def unscored(reason: str) -> dict:
+    """A crashed check leaves an axis unscored, never zero (execution-plan §0.6)."""
+    return {{"score": None, "passed": False, "summary": reason}}
 
 
-def proprietary_variant() -> None:
-    root = TASKS / "add-median-proprietary"
-    if root.exists():
-        shutil.rmtree(root)
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print(f"usage: {{argv[0]}} <workdir>", file=sys.stderr)
+        return 2
+    workdir = Path(argv[1]).resolve()
+    root = workdir / WORKSPACE
+    axes: dict[str, dict] = {{}}
+
+    if not root.is_dir():
+        reason = f"nothing was collected at {{root}}"
+        axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
+        json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+        return 0
+
+    entry = next(iter(sorted(root.rglob(ENTRY_MODULE))), None)
+    tests = sorted(root.rglob("test_*.py"))
+    if entry is None:
+        reason = f"no {{ENTRY_MODULE}} anywhere under {{root}}"
+        axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
+        json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+        return 0
+
+    # Every directory holding a module is importable, which is what each
+    # toolchain arranges in its own way and what the grader must not care about.
+    roots = sorted({{str(path.parent) for path in root.rglob("*.py")}})
+
+    script = CHECK
+    for name, value in (
+        ("__ROOTS__", json.dumps(roots)),
+        ("__ENTRY__", json.dumps(str(entry))),
+        ("__TEST__", json.dumps(str(tests[0]) if tests else "")),
+    ):
+        script = script.replace(name, value)
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=300
+    )
+    output = (completed.stdout + completed.stderr).strip()
+    passed = completed.returncode == 0
+
+    axes["acceptance"] = {{
+        "score": 1.0 if passed else 0.0,
+        "passed": passed,
+        "summary": "behaviour is correct" if passed else output.splitlines()[-1][:200]
+        if output
+        else "the check failed and said nothing",
+    }}
+    # Discipline is the subset of the check that is about *how* — the shortcuts
+    # each task forbids. It is only meaningful once behaviour is right; before
+    # that it is unscored rather than failed, because a trial that never worked
+    # has not demonstrated anything about its method.
+    if passed:
+        axes["discipline"] = {{
+            "score": 1.0,
+            "passed": True,
+            "summary": "no forbidden shortcut detected",
+        }}
+    else:
+        forbidden = any(
+            marker in output
+            for marker in ("only the caller", "was changed rather than", "does its own",
+                           "reimplement", "sorts values itself", "call sites pass")
+        )
+        axes["discipline"] = (
+            {{"score": 0.0, "passed": False, "summary": output.splitlines()[-1][:200]}}
+            if forbidden
+            else unscored("behaviour is wrong, so method says nothing yet")
+        )
+
+    json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
+'''
+
+
+def write_grader(task: Task) -> Path:
+    """One grader per task, serving every substrate.
+
+    Identical instrument across the arms being compared, which is what makes the
+    comparison a comparison — see `digest_bands` and execution-plan §0.6.
+    """
+    body = GRADER_TEMPLATE.format(
+        slug=task.slug,
+        entry_module=task.entry,
+        check=task.acceptance.replace("SOURCE_ROOTS", "__ROOTS__")
+        .replace("ENTRY_SOURCE", "__ENTRY__")
+        .replace("TEST_SOURCE", "__TEST__"),
+    )
+    path = STUDY / "graders" / f"{task.slug}.py"
+    write(path, body)
+    return path
+
+
+def solution(edits: list[tuple[str, list[tuple[str, str]]]]) -> str:
+    """An oracle expressed as literal substitutions on named files."""
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        "python3 - <<'PY'",
+        "from pathlib import Path",
+    ]
+    for path, replacements in edits:
+        lines.append(f"p = Path({path!r})")
+        lines.append("body = p.read_text()")
+        for old, new in replacements:
+            lines.append(f"body = body.replace({old!r}, {new!r})")
+        lines.append("p.write_text(body)")
+    lines.append("PY")
+    return "\n".join(lines) + "\n"
+
+
+def oracle_edits(
+    task: Task, entry_source: str, test_path: str, roots: list[str]
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    """What a correct change looks like, per task.
+
+    Written per task rather than derived: "the right change" is the one thing a
+    generator cannot infer, and an oracle that guessed would admit tasks whose
+    graders it does not actually satisfy.
+    """
+    if task.slug == "add-median":
+        return [
+            (
+                entry_source,
+                [
+                    ("from stats import mean", "from stats import mean, median"),
+                    (
+                        '"mean": mean(readings)}',
+                        '"mean": mean(readings), "median": median(readings)}',
+                    ),
+                ],
+            ),
+            (
+                test_path,
+                [('{"count": 3, "mean": 4.0}', '{"count": 3, "mean": 4.0, "median": 4.0}')],
+            ),
+        ]
+    if task.slug == "use-validator":
+        return [
+            (
+                entry_source,
+                [
+                    (
+                        "from stats import mean",
+                        "from stats import mean\nfrom validate import numeric",
+                    ),
+                    (
+                        "def summarize(readings):\n    return {",
+                        "def summarize(readings):\n    readings = numeric(readings)\n    return {",
+                    ),
+                ],
+            ),
+            (
+                test_path,
+                [
+                    (
+                        "from report import summarize",
+                        "import pytest\n\nfrom report import summarize\n"
+                        "from validate import NotNumeric",
+                    ),
+                    (
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}',
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}\n\n\n'
+                        "def test_summarize_rejects_a_non_number():\n"
+                        "    with pytest.raises(NotNumeric):\n"
+                        '        summarize([1, "x"])',
+                    ),
+                ],
+            ),
+        ]
+    if task.slug == "fix-spread":
+        # The defect is in the library, which is a different file from the one
+        # the failure is reported in — that is the task.
+        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        return [
+            (
+                stats_source,
+                [("(max(values) - min(values)) // 2", "(max(values) - min(values)) / 2")],
+            )
+        ]
+    if task.slug == "strict-mode":
+        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        return [
+            (
+                stats_source,
+                [
+                    (
+                        "def mean(values):\n    if not values:\n"
+                        '        raise ValueError("mean of no values")\n'
+                        "    return sum(values) / len(values)",
+                        "def mean(values, *, strict=False):\n"
+                        "    if strict and any(value is None for value in values):\n"
+                        '        raise ValueError("mean of a series holding None")\n'
+                        "    kept = [value for value in values if value is not None]\n"
+                        "    if not kept:\n"
+                        '        raise ValueError("mean of no values")\n'
+                        "    return sum(kept) / len(kept)",
+                    )
+                ],
+            ),
+            (
+                entry_source,
+                [
+                    ("mean(clean)", "mean(clean, strict=True)"),
+                    (
+                        "mean([mean(one) for one in series])",
+                        "mean([mean(one, strict=True) for one in series], strict=True)",
+                    ),
+                ],
+            ),
+            (
+                test_path,
+                [
+                    (
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}',
+                        'assert summarize([2, 4, 6]) == {"count": 3, "mean": 4.0}\n\n\n'
+                        "def test_mean_is_strict_when_asked():\n"
+                        "    import pytest\n\n"
+                        "    from stats import mean\n\n"
+                        "    with pytest.raises(ValueError):\n"
+                        "        mean([1, None], strict=True)",
+                    ),
+                ],
+            ),
+        ]
+    raise SystemExit(f"no oracle recorded for task {task.slug!r}")
+
+
+def build_flat(task: Task, root: Path, words: dict[str, str]) -> None:
+    """`oss`, and `twin` — one layout under two vocabularies."""
     env = root / "environment"
-    write(env / "depot" / "stats" / "stats.py", LIBRARY)
+    for package in task.packages:
+        for name, body in package.modules.items():
+            write(env / words["src"] / package.name / name, body)
+    for name, body in task.tests.items():
+        write(env / words["tests"] / name, body)
+
+    # Only the packages the entry already needs are on the path. A task that
+    # requires reaching a *new* one is a task about this toolchain's way of
+    # making a package reachable, which is the contrast the study draws.
+    entry = next(p for p in task.packages if p.name == task.entry)
+    reachable = [entry.name, *entry.needs]
+    path = ":".join(f"{words['src']}/{name}" for name in reachable)
+    runner_file = "Makefile" if words["runner"] == "make" else f"{words['runner']}file"
     write(
-        env / "depot" / "stats" / "BUILD",
-        'py_library(\n    name = "stats",\n    srcs = ["stats.py"],\n    deps = [],\n)\n',
+        env / runner_file,
+        f"{words['verb']}:\n\tPYTHONPATH={path} python3 -m pytest -q {words['tests']}\n",
     )
-    write(env / "depot" / "report" / "report.py", REPORT_BEFORE)
-    write(env / "depot" / "report" / "test_report.py", TEST_BEFORE)
+
+    copies = [
+        f"COPY {words['src']}/ /workspace/{words['src']}/\n",
+        f"COPY {words['tests']}/ /workspace/{words['tests']}/\n",
+        f"COPY {runner_file} /workspace/{runner_file}\n",
+    ]
+    if words["runner"] != "make":
+        write(
+            env / words["runner"],
+            "#!/usr/bin/env bash\n"
+            "# This project's build runner. Identical in behaviour to the usual\n"
+            "# one; only its name, and the file it reads, are different.\n"
+            f'exec make -f {runner_file} "$@"\n',
+            executable=True,
+        )
+        copies.append(f"COPY {words['runner']} /usr/local/bin/{words['runner']}\n")
+    write(env / "Dockerfile", dockerfile("".join(copies)))
+    write(root / "instruction.md", task.problem + "\n" + OSS_TOOLCHAIN.format(**words))
+
+    roots = [f"/workspace/{words['src']}/{p.name}" for p in task.packages]
+    entry_source = f"/workspace/{words['src']}/{task.entry}/{task.entry}.py"
+    test_path = f"/workspace/{words['tests']}/{next(iter(task.tests))}"
     write(
-        env / "depot" / "report" / "BUILD",
-        'py_library(\n    name = "report",\n    srcs = ["report.py"],\n'
-        '    deps = ["//depot/stats:stats"],\n)\n\n'
-        'py_test(\n    name = "report_test",\n    srcs = ["test_report.py"],\n'
-        '    deps = ["//depot/report:report"],\n)\n',
+        root / "tests" / "test.sh",
+        verifier(task, roots, entry_source, test_path),
+        executable=True,
     )
+    write(
+        root / "solution" / "solve.sh",
+        solution(oracle_edits(task, entry_source, test_path, roots)),
+        executable=True,
+    )
+    write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
+    write_grader(task)
+
+
+def build_proprietary(task: Task, root: Path) -> None:
+    env = root / "environment"
+    for package in task.packages:
+        for name, body in package.modules.items():
+            write(env / "depot" / package.name / name, body)
+        deps = "".join(f'        "//depot/{need}:{need}",\n' for need in package.needs)
+        srcs = "".join(f'        "{name}",\n' for name in package.modules)
+        build = (
+            f'py_library(\n    name = "{package.name}",\n    srcs = [\n{srcs}    ],\n'
+            f"    deps = [\n{deps}    ],\n)\n"
+        )
+        if package.name == task.entry:
+            for name, body in task.tests.items():
+                write(env / "depot" / package.name / name, body)
+            test_srcs = "".join(f'        "{name}",\n' for name in task.tests)
+            build += (
+                f'\npy_test(\n    name = "{package.name}_test",\n'
+                f"    srcs = [\n{test_srcs}    ],\n"
+                f'    deps = [\n        "//depot/{package.name}:{package.name}",\n    ],\n)\n'
+            )
+        write(env / "depot" / package.name / "BUILD", build)
+
     write(env / "dbuild", DBUILD, executable=True)
     write(
         env / "Dockerfile",
         dockerfile("COPY depot/ /workspace/depot/\nCOPY dbuild /usr/local/bin/dbuild\n"),
     )
-    write(root / "instruction.md", PROBLEM + "\n" + PROPRIETARY_TOOLCHAIN)
-    check = ACCEPTANCE.replace("SOURCE_ROOT", '"/workspace/depot/report"').replace(
-        "REPORT_PATH", '"/workspace/depot/report/report.py"'
-    )
-    # The depot variant additionally has to satisfy its own gate: a change that
+    write(root / "instruction.md", task.problem + "\n" + PROPRIETARY_TOOLCHAIN)
+
+    roots = [f"/workspace/depot/{p.name}" for p in task.packages]
+    entry_source = f"/workspace/depot/{task.entry}/{task.entry}.py"
+    test_path = f"/workspace/depot/{task.entry}/{next(iter(task.tests))}"
+    # The depot's own gate, on top of the shared acceptance check: a change that
     # works but leaves the build graph undeclared has not landed here.
-    check = (
-        'export PYTHONPATH="/workspace/depot/stats:/workspace/depot/report"\n'
-        + check.rstrip()
-        + "\nif [ $? -eq 0 ]; then dbuild presubmit >&2 || exit 1; fi\n"
-    )
-    write(root / "tests" / "test.sh", verifier(check), executable=True)
+    gate = 'if [ "$status" -eq 0 ]; then dbuild presubmit >&2 || status=1; fi\n'
     write(
-        root / "solution" / "solve.sh",
-        "#!/usr/bin/env bash\nset -euo pipefail\n"
-        "python3 - <<'PY'\n"
-        "from pathlib import Path\n"
-        "p = Path('/workspace/depot/report/report.py')\n"
-        "p.write_text(p.read_text()\n"
-        "  .replace('from stats import mean', 'from stats import mean, median')\n"
-        '  .replace(\'"mean": mean(readings)}\', \'"mean": mean(readings), "median": median(readings)}\'))\n'
-        "t = Path('/workspace/depot/report/test_report.py')\n"
-        "t.write_text(t.read_text().replace(\n"
-        '  \'{"count": 3, "mean": 4.0}\', \'{"count": 3, "mean": 4.0, "median": 4.0}\'))\n'
-        "PY\n",
+        root / "tests" / "test.sh",
+        verifier(task, roots, entry_source, test_path, gate),
         executable=True,
     )
-    write(root / "task.toml", TASK_TOML)
 
-
-TASK_TOML = """\
-version = "1.0"
-
-[metadata]
-author_name = "duva-bench"
-difficulty = "easy"
-tags = ["study-b", "toolchain"]
-
-[agent]
-timeout_sec = 600
-
-[verifier]
-timeout_sec = 120
-"""
+    body = solution(oracle_edits(task, entry_source, test_path, roots))
+    if task.slug == "use-validator":
+        # The declaration this toolchain requires and the other two do not. It is
+        # the task's whole point, and without it presubmit rejects a change that
+        # is otherwise correct.
+        body += (
+            "python3 - <<'PY'\n"
+            "from pathlib import Path\n"
+            f"b = Path('/workspace/depot/{task.entry}/BUILD')\n"
+            "body = b.read_text()\n"
+            "body = body.replace('        \"//depot/stats:stats\",\\n',\n"
+            '                    \'        "//depot/stats:stats",\\n'
+            '        "//depot/validate:validate",\\n\')\n'
+            "b.write_text(body)\n"
+            "PY\n"
+        )
+    write(root / "solution" / "solve.sh", body, executable=True)
+    write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
+    write_grader(task)
 
 
 def main() -> int:
-    for build in (oss_variant, twin_variant, proprietary_variant):
-        build()
+    if TASK_ROOT.exists():
+        shutil.rmtree(TASK_ROOT)
+    if (STUDY / "graders").exists():
+        shutil.rmtree(STUDY / "graders")
+    built: list[str] = []
+    for task in TASKS:
+        build_flat(task, TASK_ROOT / f"{task.slug}-oss", OSS_WORDS)
+        build_flat(task, TASK_ROOT / f"{task.slug}-twin", TWIN_WORDS)
+        build_proprietary(task, TASK_ROOT / f"{task.slug}-proprietary")
+        built.extend(f"{task.slug}-{kind}" for kind in ("oss", "twin", "proprietary"))
     manifest = {
-        "task": "add-median",
-        "variants": sorted(path.name for path in TASKS.iterdir() if path.is_dir()),
+        "tasks": [task.slug for task in TASKS],
+        "variants": sorted(built),
         "twin_words": TWIN_WORDS,
     }
     write(STUDY / "manifest.json", json.dumps(manifest, indent=2) + "\n")

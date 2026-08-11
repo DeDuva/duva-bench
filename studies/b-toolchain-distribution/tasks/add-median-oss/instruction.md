@@ -11,5 +11,6 @@ The median of an even-length series is the mean of its two middle values.
 
 This is a standard Python project.
 
-- Source is in `src/`, tests are in `tests/`.
-- Run the tests with `make test`, which runs `pytest`.
+- Each package is a directory under `src/`.
+- Tests are in `tests/`.
+- Run the tests with `make test`.

@@ -1,0 +1,115 @@
+# Study B pilot — one problem per task, posed in three toolchains.
+#
+# The design is docs/studies/b-toolchain-distribution.md. This is the *pilot*:
+# one model, one harness, three toolchains, no documentation variation. Its job
+# is an effect size and a noise floor, not an answer — with four tasks and two
+# repetitions it is far too small to rank anything, and the report is required
+# to print the noise floor before any contrast is read.
+#
+# The three arms differ in exactly one factor: the substrate each runs. Same
+# model, same harness, same (absent) toolset, same environment.
+
+title: duva-bench Study B pilot — toolchain familiarity
+
+adp:
+  owner: duva
+  repo: bench-studyb
+  orchestrator: duva-bench
+
+tasks:
+  - id: add-median
+    substrates:
+      oss: tasks/add-median-oss
+      twin: tasks/add-median-twin
+      proprietary: tasks/add-median-proprietary
+    grader_path: graders/add-median.py
+    grader_sha256: "c6d125c708437a3f054ba83f2d635cc07f5fe628188b58a6a3af39c69801dcd5"
+  - id: use-validator
+    substrates:
+      oss: tasks/use-validator-oss
+      twin: tasks/use-validator-twin
+      proprietary: tasks/use-validator-proprietary
+    grader_path: graders/use-validator.py
+    grader_sha256: "1a66753c1279aa442230834fb0786610a0c9e514628eb8d9a5181588f65680cc"
+  - id: fix-spread
+    substrates:
+      oss: tasks/fix-spread-oss
+      twin: tasks/fix-spread-twin
+      proprietary: tasks/fix-spread-proprietary
+    grader_path: graders/fix-spread.py
+    grader_sha256: "f6f87be6d33a2cede97677c3f92d3f70db3967f660068eb9196c50d6f4660675"
+  - id: strict-mode
+    substrates:
+      oss: tasks/strict-mode-oss
+      twin: tasks/strict-mode-twin
+      proprietary: tasks/strict-mode-proprietary
+    grader_path: graders/strict-mode.py
+    grader_sha256: "e9709ac7e0468adc857b6e7856dc1db06156b51801d05d9893828c03fb29c2b2"
+
+arms:
+  - id: oss
+    substrate: oss
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      parameters:
+        temperature: "0"
+    harness:
+      agent: terminus-2
+      version: "0.20.0"
+    toolset:
+      name: shell
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+  - id: twin
+    substrate: twin
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      parameters:
+        temperature: "0"
+    harness:
+      agent: terminus-2
+      version: "0.20.0"
+    toolset:
+      name: shell
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+  - id: proprietary
+    substrate: proprietary
+    model:
+      provider: anthropic
+      model: claude-sonnet-4-5-20250929
+      parameters:
+        temperature: "0"
+    harness:
+      agent: terminus-2
+      version: "0.20.0"
+    toolset:
+      name: shell
+      docs_bundle:
+        grade: none
+    env:
+      LANG: C.UTF-8
+
+repetitions: 2
+budget_usd_cap: "8.00"
+concurrency: 3
+provider_rate_limits:
+  anthropic: 30
+
+pre_registration:
+  primary_metric: acceptance
+  secondary_metrics:
+    - discipline
+  repetitions: 2
+  control_arm: oss
+  exclusion_rules:
+    - A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.
+    - A trial whose grader crashed is unscored and is excluded from that axis, never scored zero.
+    - The twin arm is the instrument's own control; a difference between twin and oss is measurement noise or a familiarity effect, and the report states the noise floor before either is read.
+  metaprogramming_allowed: true

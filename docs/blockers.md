@@ -61,102 +61,83 @@ pinned by fixtures this project also wrote. That is the whole lesson of this gat
 against a recorded copy of its own output. The `harbor` marker had been declared since M0 and used
 by zero tests.
 
-## Gate G2 — the smoke study end to end · **NOT RUN, and rehearsed**
+## Studies cannot share the ADP dev stack · **OPEN, found 2026-08-10**
 
-Downstream of G1: `duva-bench run` then `duva-bench report` needs eight real trials with a model.
-That has not happened. What has, on 2026-08-10, is the same eight trials with the model taken out.
+**A study run against `~/dev/adp`'s ephemeral stack is destroyed by anyone else running
+`make up` in that checkout.** Re-running gate G2 to match the current spec got 7 of 8 trials
+recorded and then lost them: the ADP checkout moved from `c125db3` to `924d6d8` on branch
+`m4/m4-3-quotas-and-gc` and a fresh stack replaced the database mid-study. The symptoms
+arrive in this order and none of them names the cause:
 
-### The dress rehearsal
+1. `Connection reset by peer` on a recording append;
+2. `401` from a token that worked a minute earlier — it belongs to a database that is gone;
+3. `404` for a repository that was created and no longer exists.
 
-`examples/smoke/study-oracle.yaml` is `study.yaml`'s shape — two tasks, two arms, two repetitions,
-concurrency 2 — run by Harbor's **oracle** agent. Both arms are the same instrument, so it answers
-no question about any agent; it exercises the machinery for the cost of the containers.
+Two aggravating factors of our own, both now known:
+
+- ADP's `GIT_ROOT` defaults **inside** its own checkout (`.adp-test/git`) and `npm run dev`
+  is `tsx watch`, so every artifact commit duva-bench publishes restarted the server under
+  the running study. Use the built server (`npm run build && npm start`) for anything that
+  publishes, never the watcher.
+- `make up` alone leaves an unmigrated database; `npm run migrate --prefix server` has to
+  follow it, or `bootstrap.ts` fails with a bare Postgres `parserOpenTable` error.
+
+**Resolved for local runs on 2026-08-10** by giving studies their own instance:
+`tools/adp-stack.sh` (or `make adp-stack`). Three things make it survivable, and each is
+there because its absence cost a run:
+
+1. **Its own worktree**, `~/dev/adp-duvabench`, pinned to a commit. Branch switches and
+   merges in the main checkout cannot reach it.
+2. **A compose project outside `adp-test-*`** — `duvabench-adp`. ADP's `make down-all`
+   sweeps every `adp-test-*` stack on the machine; this is not one.
+3. **The built server on port 3100**, never `npm run dev`. A dev instance and this one can
+   both exist without either noticing.
+
+**Still open: durability.** A dedicated stack is still an ephemeral one — `make down`
+destroys it, and a cited run id goes with it. Anything whose evidence has to outlive the
+session, or be re-checkable by someone else, needs a deployment rather than a stack.
+
+## Gate G2 — the smoke study end to end · **PASSED 2026-08-10**
+
+Study digest `sha256:e53d00ed…`, eight trials against the dedicated ADP at contract `0.2.0`.
 
 ```
-duva-bench run    → planned 8, completed 8, errors 0, 1m22s wall clock
-duva-bench status → verified 8, remaining []
-duva-bench report → 8 trials, 8 verified, 7 axes, 0 warnings
+duva-bench run    → planned 8, completed 8, errors 0, 5m48s at concurrency 2, $0.468609
+duva-bench report → 8 trials, 8 verified, 7 axes, 0 warnings, 0 out-of-scope runs
+make test-contract → 14 passed
 ```
 
-Three of the things G2 was going to discover, discovered for nothing:
+The gate's four conditions:
 
-* **Concurrency works and costs about what you would guess.** Two trials at a time held exactly
-  two trials at a time — and **four containers**, because a trial runs two. Scheduler peak RSS was
-  224 MB; 12.2 GB of memory stayed free throughout; container disk did not move measurably. The
-  number to carry forward is the multiplier: *concurrency N means 2N containers*, so Study A at
-  concurrency 8 is 16.
-* **The report renders `null`, not `0`, for a metric nothing supports.** The oracle makes no tool
-  calls, and `tool_error_rate` comes back `null` with `tool_calls: 0` beside it rather than a
-  flattering zero. That is execution-plan §0.6's unscored-is-not-zero rule holding at the only
-  place it can be observed.
-* **Both arms scored `acceptance` 1.0, CI [1.0, 1.0], 4 trials each, 0 unscored** — which is the
-  correct answer for two identical instruments, and would have been a red flag from a real study.
-
-### What the rehearsal cannot say
-
-It runs no model, so it says nothing about token accounting, provider rate limiting, or budget
-enforcement under real spend — `priced_trials` was 0 and the cap was never approached. G2 still has
-to be run.
-
-### And it caught one thing that no test would have
-
-The report's cost block printed `total_usd: 0.0` beside `unpriced_trials: 8`. For an oracle that
-total is true — nothing was called. For a model whose price nobody has, it is the failure
-execution-plan §0.6 forbids by name: unpriced folded in as zero, understating a study's cost
-silently and by an unknown amount. Fixed in the same PR — a total is stated only when every trial
-is priced, and `priced_usd` carries what is known otherwise.
-
-Worth noting *how* it was caught. Every unit test of the cost block passed, because they were
-written against studies where everything was priced. It took running the machinery over a study
-whose trials genuinely have no cost — which is precisely what an oracle rehearsal is for, and an
-argument for keeping one around rather than treating it as scaffolding.
-
-## The arm materialization gap · **CLOSED 2026-08-10**
-
-**Found and fixed the same day.** `arms/materialize.py` was never called by anything that ran a
-trial, so an arm's toolset, twin and documentation bundle were digested, labelled and never applied.
-Gate G2's run is what exposed it: the smoke study's two arms differ *only* in toolset metadata and
-the report read acceptance 0.75 for `standard` against 1.00 for `twin` — two runs of one arm, and
-the gap was the study's own noise. Study A's primary metric was constant for the same reason: the
-declared vocabulary was not the one the agent had, so hallucinated-call rate was 1.0 everywhere.
-
-### Wiring it in was not enough, and that is the interesting part
-
-`materialize()` wrote `duva/toolset.json` into the task copy. **Nothing reads that file.** Harbor
-configures an agent's tools from `task.toml` and from nowhere else, so connecting materialization as
-it stood would have produced arms that still differed only in labels *while looking wired* — worse
-than the visible gap it replaced.
-
-What the redesign does instead:
-
-| | |
+| Condition | Result |
 |---|---|
-| `environment/duva_toolset.json` | the arm's effective toolset — the twin's, when it twins one |
-| `environment/duva_mcp_server.py` | a stdlib-only stdio MCP server that serves it |
-| `environment/Dockerfile` | appended `COPY` lines that install both into the image |
-| `task.toml` | appended `[[environment.mcp_servers]]` and `DUVA_TOOLSET`, which is what Harbor reads |
-| `docs/TOOLS.md` + `instruction.md` | unchanged; this half always worked |
+| `run` then `report`, end to end | 8/8, no failures, no budget stop |
+| Every number reconciles with a direct ADP read | `report.json`'s `total_usd` is `0.468609` against the run ledger's `spent_usd` of `0.468609`; `test_a_rendered_report_reconciles_with_a_direct_adp_read` re-derives trials, verification, cost and tokens from ADP rather than from the report's own arithmetic |
+| An unscored trial renders as unscored | `robustness` and `backoff_shape` each show `n=2, unscored=2` — they are task-specific axes and the other task's trials are unscored on them, not zero |
+| A tampered run is `ERROR` and excluded | `test_a_tampered_event_makes_the_gate_return_error`, run against this instance |
 
-Tools are dispatched by a **capability** (`fs.read`, `proc.run`) carried on each definition, not by
-name, so two arms serve the same implementations under different names — which is what makes them
-isomorphic. The twin generator now also records `parameter_roles`, because it renames parameters as
-well as tools and the server has to map them back.
+### What it took, after the rehearsal
 
-### The leak this design has to avoid, and how it was caught
+The oracle rehearsal (below) had already found the machinery sound, so the remaining failures
+were environmental and they were all the same failure: **three runs were destroyed by an ADP
+that something else reset.** Two reached 7 of 8 recorded trials before losing the database.
+Fixed by giving studies their own instance (`tools/adp-stack.sh`), after which the run
+completed first time and the instance stayed healthy throughout.
 
-A twin arm's container must not contain the vocabulary that arm is being tested without: an agent
-with a shell can read every file in its own task. `test_a_twin_variant_carries_no_word_of_the_
-vocabulary_it_replaces` scans a materialized twin for the original names — and **it failed on first
-run**, because the MCP server's own docstring used a standard tool name as an example, and that file
-is copied into the image verbatim. The rename map is handed back to the caller and written beside
-the variant, never inside it.
+### One number in this report is still meaningless, and now for a knowable reason
 
-### What this cost
+`hallucinated_call_rate` is **1.0 for both arms**. The smoke study declares a toolset
+(`read_file`, `write_file`, `run_command`) with placeholder digests, sets no
+`definition_path`, and therefore hands the agent nothing: `terminus-2` calls `bash_command`,
+which is outside the declared vocabulary, so every call reads as hallucinated.
 
-Every toolset, arm and study digest moved, because `ToolsetSpec` gained a `definition_path` and the
-twin definitions gained `parameter_roles`, and `digest_source` dumps every field. That is correct —
-the specs genuinely changed — and it makes **the G2 run recorded above evidence for a superseded
-version of the smoke study**. Re-running it costs about $0.45.
+The declared tools are fiction left over from before the toolset axis worked. The fix is to
+either give the study a real toolset — which now works, via `definition_path` and the MCP
+server materialization installs — or to stop declaring tools it does not supply, so the
+metric renders as not-applicable instead of as a confident 1.0. **Not done here** because it
+moves the study digest again and would make this run evidence for a superseded spec, which
+is the loop this gate just spent three attempts escaping. `tool_error_rate` beside it is
+sane (0.020 and 0.039), which is how you can tell one metric is measuring something.
 
 ## Gate G3 — Study A executed · **BLOCKED**
 
