@@ -68,6 +68,8 @@ OSS_TOOLCHAIN = """\
 This is a standard Python project.
 
 - Each package is a directory under `{src}/`.
+- A package's module is imported by its own name: the code in `{src}/stats/` is
+  reached with `from stats import ...`, not `from stats.stats import ...`.
 - Tests are in `{tests}/`.
 - Run the tests with `{runner} {verb}`.
 """
@@ -79,6 +81,8 @@ This is a monorepo. Code lives under `depot/`, and every directory that produces
 something has a `BUILD` file declaring its targets.
 
 - A target is named by its path from the depot root: `//depot/stats:stats`.
+- A package's module is imported by its own name: the code in `depot/stats/` is
+  reached with `from stats import ...`, not `from depot.stats import ...`.
 - A target that uses another must **declare it** in that target's `deps`. A
   build with an undeclared dependency fails even if the import would work.
 - Build and test with the depot's driver:

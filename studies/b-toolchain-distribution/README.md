@@ -234,9 +234,34 @@ saturated and was hardened rather than dropped: a rule was added that
 window without shifting the ones after it, which rules out the natural
 implementation of filtering the series before slicing it.
 
+Second pass, 5 reps, $3.23 — and the reasons mattered more than the rates:
+
+| task | pass rate | of the failures |
+|---|---|---|
+| `topo-order` | 1/5 | 2 were the `cycle-with-tail` rule, **2 were an import the task never explained** |
+| `window-stats` | 5/5 | — |
+| `merge-config` | 4/5 | **1, and it was the same import** |
+
+Three of six failures were the instrument, not the task. A package's code sits at
+`src/<pkg>/<pkg>.py` with its own directory on the path, so `from graph import
+resolve` is right and `from graph.graph import resolve` is wrong — and nothing
+said so. The two tasks that produced every one of those failures were exactly the
+two whose starting code contained no example import; `window-stats`, which shows
+`from stats import mean`, never hit it in ten runs.
+
+**Every toolchain's instruction now states the convention** in its own
+vocabulary. Half the measured difficulty of the hard tasks was an agent guessing
+something the task never told it — plausible noise, shaped exactly like the
+effect being hunted, and it would have entered a factorial as a familiarity
+signal.
+
+The lasting rule: **read the reasons, never only the rate.** `topo-order` at 1/5
+for mixed reasons and at 1/5 for the rule it was built around are different tasks
+wearing the same number.
+
 ## Next
 
-- Finish calibrating at higher repetitions, and keep only tasks whose outcome
-  actually varies.
-- Then the pilot proper, on the surviving tasks, with enough repetitions per cell
-  for a variance rather than a spread.
+- Recalibrate now the ambiguity is gone, and keep only tasks whose outcome varies
+  for reasons the task is actually about.
+- Then the pilot proper, on the survivors, with enough repetitions per cell for a
+  variance rather than a spread.

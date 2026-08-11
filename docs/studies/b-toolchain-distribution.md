@@ -363,6 +363,41 @@ order the others have to be applied in — positions decided before gaps, not
 after. Rules that can be handled independently are a checklist; rules that
 constrain each other are a problem.
 
+### 6.2 Ambiguity is not difficulty, and it is easy to mistake one for the other
+
+Found 2026-08-11, in the second calibration. `topo-order` came back 1/5 and
+`merge-config` 4/5, and reading the *reasons* rather than the rates changed both
+numbers:
+
+```
+FAIL: cycle-with-tail: members ['a','b','c'], expected ['a','b','c','d']   ← the task
+FAIL: cannot import: No module named 'graph.graph'; 'graph' is not a package ← the instrument
+```
+
+Three of the six failures were the second kind. The layout puts a package's code
+at `src/<pkg>/<pkg>.py` and its own directory on the path, so `from graph import
+resolve` is right and `from graph.graph import resolve` is wrong — and **nothing
+told the agent which**. The two tasks that produced every one of those failures
+were exactly the two whose starting `report.py` contained no example import;
+`window-stats`, whose starting code shows `from stats import mean`, never hit it
+once in ten runs.
+
+So half the measured "difficulty" of the hard tasks was an agent guessing a
+convention the task never stated. That is noise of the worst kind: it is
+plausible, it looks like the effect being hunted, and it would have entered a
+factorial as a familiarity signal.
+
+**The convention is now stated in every toolchain's instruction**, in that
+toolchain's own vocabulary. Two rules follow:
+
+1. **A toolchain must be described well enough that a competent agent could not
+   reasonably guess wrong.** The study measures what it costs to *work* in an
+   unfamiliar toolchain, not what it costs to divine an undocumented one. The
+   second is easy to manufacture and worthless.
+2. **Read the failure reasons, never only the rate.** A pass rate in the usable
+   band is not evidence of a usable task; `topo-order` at 1/5 and at ~3/5 for
+   genuine reasons are different tasks wearing the same number.
+
 Candidate shape — each is a genuine multi-step change, not a function to complete:
 
 1. **Add a feature across a module boundary**, updating build targets and the dependent tests.
