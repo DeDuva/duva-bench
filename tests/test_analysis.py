@@ -349,3 +349,77 @@ def test_one_adapter_version_and_one_harness_is_not_banded() -> None:
     )
 
     assert digest_bands(outcomes)["split_arms"] == []
+
+
+# --- escape to familiar ------------------------------------------------------
+
+
+def _bash(command: str, **fields: Any) -> Any:
+    from duva_bench.adp.models import TrajectoryEvent
+
+    return TrajectoryEvent.model_validate(
+        {
+            "kind": "tool_call",
+            "type": "bash_command",
+            "payload": {"arguments": {"keystrokes": command}},
+            **fields,
+        }
+    )
+
+
+def test_reaching_for_a_toolchain_the_arm_was_not_given_is_counted() -> None:
+    """The measure that separated the arms when the outcome axis could not."""
+    metrics = compute(
+        [_bash("tomak vess"), _bash("python3 -m pytest brivols"), _bash("cat kelvra/stats.py")],
+        foreign_commands=("make", "pytest", "dbuild"),
+    )
+    assert metrics.escape_calls == 1
+    assert metrics.escaped is True
+    assert metrics.escaped_commands == ("pytest",)
+    assert metrics.escape_to_familiar_rate == pytest.approx(1 / 3)
+
+
+def test_an_arm_that_stays_inside_its_toolchain_scores_zero_not_none() -> None:
+    """Zero is a measurement here; `None` is the absence of one."""
+    metrics = compute(
+        [_bash("tomak vess"), _bash("ls")], foreign_commands=("make", "pytest", "dbuild")
+    )
+    assert metrics.escape_calls == 0
+    assert metrics.escaped is False
+    assert metrics.escape_to_familiar_rate == 0.0
+
+
+def test_without_declared_foreign_commands_the_rate_is_not_invented() -> None:
+    """Same rule as the hallucinated-call rate: no vocabulary, no number.
+
+    A study that declares nothing foreign would otherwise get a confident 0.0
+    for every arm, which reads as "never reached outside its toolchain" when it
+    means "nobody said what outside was".
+    """
+    metrics = compute([_bash("pytest")])
+    assert metrics.escape_calls is None
+    assert metrics.escaped is None
+    assert metrics.escape_to_familiar_rate is None
+
+
+def test_mentioning_a_command_is_not_invoking_it() -> None:
+    """`grep pytest` is a search, and counting it would inflate every arm.
+
+    Matched as a whole word at the start of a command or after a shell
+    separator, so an invocation counts and a substring does not.
+    """
+    metrics = compute(
+        [
+            _bash("echo 'we do not use makefiles here' > NOTES"),
+            _bash("ls /usr/bin/makeself"),
+            _bash("cat pytest.ini.example"),
+        ],
+        foreign_commands=("make", "pytest"),
+    )
+    assert metrics.escape_calls == 0
+
+    invoked = compute(
+        [_bash("cd /workspace && make test"), _bash("ls; pytest -q")],
+        foreign_commands=("make", "pytest"),
+    )
+    assert invoked.escape_calls == 2

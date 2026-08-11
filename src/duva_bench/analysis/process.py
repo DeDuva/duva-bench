@@ -4,7 +4,7 @@ An outcome score says whether the task got done. These say *how*, and they are
 where a controlled experiment earns its keep — two arms can pass at the same
 rate and differ completely in how many tool calls they got wrong on the way.
 
-Four metrics, computed from ADP trajectories:
+Five metrics, computed from ADP trajectories:
 
 ``tool_error_rate``
     Tool calls whose recorded status is a failure, over all tool calls. The
@@ -22,6 +22,43 @@ Four metrics, computed from ADP trajectories:
     arm's toolset. Computable only because the twin's rename map is kept: for a
     twinned arm, a call to the *original* vocabulary is a call to a tool that
     does not exist, and the map is what says so.
+
+``escape_to_familiar_rate`` and ``escaped``
+    Calls that invoke a toolchain the arm was **not** given — running `pytest`
+    in a project whose test runner is called something else, or `make` in a
+    depot that builds with `dbuild`.
+
+    This is not the hallucinated-call rate under another name. That one asks
+    whether a *tool the agent was handed* was used correctly; this asks whether
+    the agent reached past the tools it was handed for the one it has read a
+    million times. The first is about a vocabulary, the second about a habit.
+
+    It exists because of the 2026-08-11 pilot, where it was the only measure
+    that separated the arms at n=20 while the outcome axis showed nothing:
+
+    ==============  =================  =====================
+    arm             used its runner    ran `pytest` directly
+    ==============  =================  =====================
+    oss             20/20              0/20
+    twin            14/20              6/20
+    proprietary     19/20              3/20
+    ==============  =================  =====================
+
+    Note which arm escapes most. The *twin* — identical to `oss` in behaviour
+    and different only in names — abandons its own runner far more often than
+    the wholly foreign depot does. The depot is obviously alien, so the agent
+    reads the instructions; the twin looks like an ordinary project with odd
+    names, so habit fires and misfires. **Partial unfamiliarity may cost more
+    than total unfamiliarity**, which is a sharper claim than "unfamiliar is
+    worse" and the one worth testing.
+
+    That observation was made *after* looking at the data and is therefore a
+    hypothesis, not a result. It is pre-registered in the Study B design
+    document and must be tested on trials that did not generate it.
+
+    ``escaped`` — whether a trial reached out *at all* — is usually the better
+    unit than the per-call rate, which is diluted by however much other work a
+    trial happened to do.
 
 ``metaprogramming_rate``
     Calls that escape the toolset into general execution — writing a script and
@@ -68,6 +105,11 @@ class ProcessMetrics:
     hallucinated_calls: int = 0
     metaprogramming_calls: int = 0
     unknown_names: tuple[str, ...] = ()
+    # Commands invoking a toolchain this arm was not given. `None` where the arm
+    # declares no foreign commands — the rate is then not computed at all rather
+    # than reported as a flattering zero.
+    escape_calls: int | None = None
+    escaped_commands: tuple[str, ...] = ()
 
     @property
     def tool_error_rate(self) -> float | None:
@@ -80,6 +122,27 @@ class ProcessMetrics:
     @property
     def hallucinated_call_rate(self) -> float | None:
         return self.hallucinated_calls / self.tool_calls if self.tool_calls else None
+
+    @property
+    def escape_to_familiar_rate(self) -> float | None:
+        """Share of this trial's calls that reached outside its own toolchain.
+
+        See the module docstring for what this measures and why it is not the
+        hallucinated-call rate under another name.
+        """
+        if self.escape_calls is None or not self.tool_calls:
+            return None
+        return self.escape_calls / self.tool_calls
+
+    @property
+    def escaped(self) -> bool | None:
+        """Whether this trial reached outside its toolchain *at all*.
+
+        The per-call rate is diluted by however much other work a trial happened
+        to do; whether an agent abandoned its toolchain even once is the cleaner
+        unit, and it is the one that separated arms in the 2026-08-11 pilot.
+        """
+        return None if self.escape_calls is None else self.escape_calls > 0
 
     @property
     def metaprogramming_rate(self) -> float | None:
@@ -97,6 +160,10 @@ class ProcessMetrics:
             "metaprogramming_calls": self.metaprogramming_calls,
             "metaprogramming_rate": self.metaprogramming_rate,
             "unknown_names": list(self.unknown_names),
+            "escape_calls": self.escape_calls,
+            "escape_to_familiar_rate": self.escape_to_familiar_rate,
+            "escaped": self.escaped,
+            "escaped_commands": list(self.escaped_commands),
         }
 
 
@@ -104,12 +171,17 @@ def compute(
     events: tuple[TrajectoryEvent, ...] | list[TrajectoryEvent],
     *,
     toolset: frozenset[str] | set[str] | None = None,
+    foreign_commands: tuple[str, ...] | frozenset[str] | None = None,
 ) -> ProcessMetrics:
     """Process metrics for one trial's trajectory.
 
     ``toolset`` is the arm's *effective* tool names — the twin's, for a twinned
     arm. Without it the hallucinated-call rate is not computed at all rather
     than computed against an assumption.
+
+    ``foreign_commands`` are the command words that belong to a toolchain this
+    arm was **not** given. Same discipline: absent, the escape rate is `None`
+    rather than zero.
     """
     calls = [event for event in events if event.kind == "tool_call"]
     failures = sum(1 for call in calls if (call.status or "") in FAILED_STATUSES)
@@ -119,6 +191,8 @@ def compute(
     hallucinated = 0
     unknown: list[str] = []
     metaprogramming = 0
+    escapes = 0 if foreign_commands is not None else None
+    escaped: list[str] = []
 
     for call in calls:
         name = call.type or "unknown"
@@ -130,6 +204,12 @@ def compute(
         if toolset is not None and name not in toolset:
             hallucinated += 1
             unknown.append(name)
+
+        if foreign_commands is not None:
+            found = _foreign_in(call, foreign_commands)
+            if found:
+                escapes = (escapes or 0) + 1
+                escaped.extend(found)
 
         if _is_metaprogramming(call):
             metaprogramming += 1
@@ -143,7 +223,39 @@ def compute(
         # Sorted and deduplicated: this is evidence for a reader, and a bag of
         # repeats would bury the one name that matters.
         unknown_names=tuple(sorted(set(unknown))),
+        escape_calls=escapes,
+        escaped_commands=tuple(sorted(set(escaped))),
     )
+
+
+def _foreign_in(call: TrajectoryEvent, foreign: tuple[str, ...] | frozenset[str]) -> list[str]:
+    """Which foreign commands this call invoked, if any.
+
+    Matched on whole words at the start of a command or after a shell separator,
+    so `make test` counts and a path like `/usr/bin/makefile-lint` does not. The
+    point is to catch *invoking* a tool the arm was not given, not mentioning it.
+    """
+    text = _command_text(call)
+    if not text:
+        return []
+    found = []
+    for command in foreign:
+        if re.search(rf"(?:^|[|&;()\s]){re.escape(command)}(?=[\s;|&]|$)", text):
+            found.append(command)
+    return found
+
+
+def _command_text(call: TrajectoryEvent) -> str:
+    """The shell text a call ran, across the argument names agents use for it."""
+    payload = call.payload if isinstance(call.payload, dict) else {}
+    arguments = payload.get("arguments")
+    if not isinstance(arguments, dict):
+        return ""
+    for key in ("keystrokes", "command", "cmd", "input"):
+        value = arguments.get(key)
+        if isinstance(value, str):
+            return value
+    return ""
 
 
 def _arguments_key(call: TrajectoryEvent) -> str:
