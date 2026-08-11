@@ -23,6 +23,7 @@ Runs in the ordinary suite. No Harbor, no ADP, no model.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -238,3 +239,69 @@ def test_a_different_but_correct_solution_also_passes(task: Task) -> None:
         "so the check is over-constrained — it is testing one implementation rather than the "
         f"behaviour the task states.\n{completed.stdout}{completed.stderr}"
     )
+
+
+# --- the grader, against the layout a trial actually leaves behind ------------
+
+
+def _collected_workspace(root: Path, source_dir: str, task: Task) -> Path:
+    """What Harbor leaves for the grader: `<collected>/workspace/<source>/...`.
+
+    Built rather than mocked, because the two defects this catches were both
+    about the *shape* of that tree — where packages sit, and what is importable
+    from where.
+    """
+    workspace = root / "workspace"
+    for package in task.packages:
+        target = workspace / source_dir / package.name / "__init__.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        body = next(iter(package.modules.values()))
+        target.write_text(body, encoding="utf-8")
+    for key, content in task.oracle_files.items():
+        package, _, module = key.partition("/")
+        if package == "tests":
+            continue
+        target = workspace / source_dir / package / "__init__.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+    return root
+
+
+@pytest.mark.parametrize("source_dir", ["src", "kelvra", "depot"])
+def test_a_grader_scores_a_solved_trial_in_every_layout(source_dir: str, tmp_path: Path) -> None:
+    """The check whose absence let a 60-trial pilot come back entirely unscored.
+
+    `tests/test_study_b_specs.py` proved the acceptance *script* was right and
+    `tests/test_tasks_through_harbor.py` proved the *task* ran — and nothing
+    exercised the grader against the tree a finished trial leaves. So when
+    packages became packages, the grader kept looking for `report.py`, found
+    nothing, and reported every axis of every trial as unscored while every
+    trial had in fact been solved. Sixty trials, and not one number.
+
+    The second defect was subtler and the same shape: a package is reached
+    through its parent, and inside the container the agent's cwd is on the path
+    as well — so a grader with only the package directories marks solved work
+    unsolved. Both are shape, and shape is what this builds.
+    """
+    from hard_tasks import MERGE_CONFIG
+
+    task = MERGE_CONFIG
+    collected = _collected_workspace(tmp_path, source_dir, task)
+    grader = STUDY / "graders" / f"{task.slug}.py"
+    assert grader.is_file(), f"{grader} does not exist; run generate.py"
+
+    completed = subprocess.run(
+        [sys.executable, str(grader), str(collected)],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        cwd=tmp_path,
+    )
+    assert completed.returncode == 0, completed.stderr
+    axes = json.loads(completed.stdout)["axes"]
+
+    assert axes["acceptance"]["score"] == 1.0, (
+        f"the grader scored a solved trial {axes['acceptance']['score']!r} in a {source_dir} "
+        f"layout: {axes['acceptance'].get('summary')}"
+    )
+    assert axes["acceptance"]["passed"] is True

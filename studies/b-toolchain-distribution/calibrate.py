@@ -67,9 +67,7 @@ def failure_reason(trial_dir: Path) -> str:
 
     exception = trial_dir / "exception.txt"
     if exception.exists():
-        tail = [
-            line for line in exception.read_text(errors="replace").splitlines() if line.strip()
-        ]
+        tail = [line for line in exception.read_text(errors="replace").splitlines() if line.strip()]
         if tail:
             return f"(trial raised) {tail[-1].strip()[:140]}"
     return "no verifier output at all — the agent phase probably did not finish"

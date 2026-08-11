@@ -396,7 +396,7 @@ SPEC = {{
 # Where the container's /workspace was collected to. The verifier copies it, so
 # the grader sees the work product without needing the container to still exist.
 WORKSPACE = "workspace"
-ENTRY_MODULE = "{entry_module}.py"
+ENTRY_PACKAGE = "{entry_module}"
 
 # **The layout is discovered, not assumed.** One grader serves all three
 # toolchains: `src/report/report.py`, `kelvra/report/report.py` and
@@ -429,17 +429,46 @@ def main(argv: list[str]) -> int:
         json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
         return 0
 
-    entry = next(iter(sorted(root.rglob(ENTRY_MODULE))), None)
+    # A package's module is its `__init__.py`, so the entry is found by its
+    # *directory* name. Searching for `<entry>.py` found nothing once packages
+    # became packages, and every axis of a 60-trial pilot came back unscored
+    # while every trial had in fact been solved.
+    entry = next(
+        (
+            path / "__init__.py"
+            for path in sorted(root.rglob(ENTRY_PACKAGE))
+            if path.is_dir() and (path / "__init__.py").is_file()
+        ),
+        None,
+    )
     tests = sorted(root.rglob("test_*.py"))
     if entry is None:
-        reason = f"no {{ENTRY_MODULE}} anywhere under {{root}}"
+        reason = f"no {{ENTRY_PACKAGE}}/__init__.py anywhere under {{root}}"
         axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
         json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
         return 0
 
-    # Every directory holding a module is importable, which is what each
-    # toolchain arranges in its own way and what the grader must not care about.
-    roots = sorted({{str(path.parent) for path in root.rglob("*.py")}})
+    # A package is found through its *parent*, so the importable roots are the
+    # directories holding packages — `src`, `kelvra`, `depot` — not the package
+    # directories themselves. Adding the package directories instead made every
+    # import fail, which the grader then reported as work that was never done.
+    # Two kinds of root, because the container has both and a grader that has
+    # fewer scores solved work as unsolved:
+    #
+    #   * the directory holding the packages — `src`, `kelvra`, `depot` — since
+    #     a package is found through its parent;
+    #   * the workspace itself, because inside the container the agent's cwd is
+    #     /workspace and Python puts the cwd on the path. An agent that writes
+    #     `from kelvra.stats import mean` is therefore *correct in the
+    #     container*, and a grader without the workspace root marks it wrong.
+    roots = sorted(
+        {{
+            str(path.parent.parent)
+            for path in root.rglob("__init__.py")
+            if path.parent.parent != path.parent
+        }}
+        | {{str(root)}}
+    )
 
     script = CHECK
     for name, value in (
