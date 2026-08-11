@@ -38,7 +38,12 @@ check("ready-first", plan_build({"z": [], "y": ["z"], "x": []}), ["x", "z", "y"]
 for name, bad, expected in (
     ("self-edge", {"a": ["a"]}, ["a"]),
     ("two-cycle", {"a": ["b"], "b": ["a"]}, ["a", "b"]),
-    ("cycle-with-tail", {"a": ["b"], "b": ["c"], "c": ["a"], "d": ["a"]}, ["a", "b", "c", "d"]),
+    # `d` depends on the cycle and is not on it. This case is here because the
+    # first version of this task demanded `d`, an agent answered without it and
+    # was right, and the check scored a correct answer as a failure.
+    ("cycle-with-tail", {"a": ["b"], "b": ["c"], "c": ["a"], "d": ["a"]}, ["a", "b", "c"]),
+    ("two-disjoint-cycles", {"a": ["b"], "b": ["a"], "c": ["d"], "d": ["c"]},
+     ["a", "b", "c", "d"]),
 ):
     try:
         plan_build(bad)

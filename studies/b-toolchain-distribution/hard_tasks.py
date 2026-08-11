@@ -63,13 +63,32 @@ def resolve(graph):
     while remaining:
         ready = sorted(name for name, needs in remaining.items() if not needs)
         if not ready:
-            raise Cycle(remaining)
+            # Everything left is blocked, but only some of it is *on* a cycle:
+            # a name that merely depends on one is stuck, not guilty. Report the
+            # names that can reach themselves.
+            # A list, not a generator: `Cycle.__init__` reads `members` twice —
+            # once for the message and once to store it — and a generator is
+            # empty the second time, which reports a cycle with no members.
+            raise Cycle([name for name in remaining if _reaches_itself(name, remaining)])
         for name in ready:
             ordered.append(name)
             del remaining[name]
         for needs in remaining.values():
             needs.difference_update(ready)
     return ordered
+
+
+def _reaches_itself(start, edges):
+    seen, stack = set(), list(edges.get(start, ()))
+    while stack:
+        name = stack.pop()
+        if name == start:
+            return True
+        if name in seen:
+            continue
+        seen.add(name)
+        stack.extend(edges.get(name, ()))
+    return False
 '''
 
 TOPO_ORDER = Task(
@@ -78,8 +97,9 @@ TOPO_ORDER = Task(
     notes=(
         "Subtle algorithm plus cross-package work. A depth-first solution gets "
         "the common cases and misses deterministic ordering; a self-edge is a "
-        "cycle; and the exception has to name the members rather than merely "
-        "report that there was one."
+        "cycle; and the exception has to name the nodes *on* the cycle rather "
+        "than everything the cycle blocked — which is the distinction the first "
+        "version of this task got wrong, in the agent's favour."
     ),
     problem="""\
 Builds have to run in dependency order. Implement `resolve` in the **graph**
@@ -94,8 +114,9 @@ Rules, all of which are tested:
 - Among names that are equally ready to run, the result must be **alphabetical**,
   so the same graph always produces the same order.
 - A name that depends on itself is a cycle.
-- A cycle must raise `graph.Cycle`, and the exception's `members` attribute must
-  hold exactly the names taking part in it, sorted.
+- A cycle must raise `graph.Cycle`. The exception's `members` attribute holds,
+  sorted, exactly the names that are **on** a cycle — a name that merely depends
+  on one is not itself on it.
 - A name that appears only as a dependency is still part of the result.
 - An empty graph returns an empty list.
 
@@ -187,7 +208,12 @@ check("ready-first", plan_build({"z": [], "y": ["z"], "x": []}), ["x", "z", "y"]
 for name, bad, expected in (
     ("self-edge", {"a": ["a"]}, ["a"]),
     ("two-cycle", {"a": ["b"], "b": ["a"]}, ["a", "b"]),
-    ("cycle-with-tail", {"a": ["b"], "b": ["c"], "c": ["a"], "d": ["a"]}, ["a", "b", "c", "d"]),
+    # `d` depends on the cycle and is not on it. This case is here because the
+    # first version of this task demanded `d`, an agent answered without it and
+    # was right, and the check scored a correct answer as a failure.
+    ("cycle-with-tail", {"a": ["b"], "b": ["c"], "c": ["a"], "d": ["a"]}, ["a", "b", "c"]),
+    ("two-disjoint-cycles", {"a": ["b"], "b": ["a"], "c": ["d"], "d": ["c"]},
+     ["a", "b", "c", "d"]),
 ):
     try:
         plan_build(bad)

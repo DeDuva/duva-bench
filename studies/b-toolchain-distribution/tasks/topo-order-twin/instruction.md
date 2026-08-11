@@ -10,8 +10,9 @@ Rules, all of which are tested:
 - Among names that are equally ready to run, the result must be **alphabetical**,
   so the same graph always produces the same order.
 - A name that depends on itself is a cycle.
-- A cycle must raise `graph.Cycle`, and the exception's `members` attribute must
-  hold exactly the names taking part in it, sorted.
+- A cycle must raise `graph.Cycle`. The exception's `members` attribute holds,
+  sorted, exactly the names that are **on** a cycle — a name that merely depends
+  on one is not itself on it.
 - A name that appears only as a dependency is still part of the result.
 - An empty graph returns an empty list.
 
