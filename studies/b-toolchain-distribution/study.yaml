@@ -1,29 +1,34 @@
 # Study B pilot — one problem per task, posed in three toolchains.
 #
-# The design is docs/studies/b-toolchain-distribution.md. This is the *pilot*:
-# one model, one harness, three toolchains, no documentation variation. Its job
-# is an effect size and a noise floor, not an answer — with four tasks and two
-# repetitions it is far too small to rank anything, and the report is required
-# to print the noise floor before any contrast is read.
+# The design is docs/studies/b-toolchain-distribution.md. This is the second
+# pilot: one model, one harness, three toolchains, no documentation variation.
+#
+# The first pilot ran on claude-sonnet-4-5 and every arm solved every task twice
+# — pooled within-cell sd 0.0, no outcome signal, nothing to divide a contrast
+# by. Four calibration rounds then established that the saturation was the
+# model rather than the tasks: with corrected specs sonnet passes every task
+# 6/6, while claude-haiku-4-5 passes use-validator 3/5 for reasons that are the
+# task's own.
+#
+# So this runs on the smaller model. use-validator carries the outcome axis;
+# add-median is marginal at 4/5; fix-spread and strict-mode sit at ceiling and
+# are here as matched controls — an effect that shows up on those is not about
+# difficulty. Five repetitions, because two give a spread and not a variance.
+#
+# It is still a pilot. Its job is an effect size and a noise floor, and the
+# report prints the noise floor before any contrast is read.
 #
 # The three arms differ in exactly one factor: the substrate each runs. Same
 # model, same harness, same (absent) toolset, same environment.
 
-title: duva-bench Study B pilot — toolchain familiarity
+title: duva-bench Study B pilot 2 — toolchain familiarity on a model with headroom
 
 adp:
   owner: duva
-  repo: bench-studyb
+  repo: bench-studyb2
   orchestrator: duva-bench
 
 tasks:
-  - id: add-median
-    substrates:
-      oss: tasks/add-median-oss
-      twin: tasks/add-median-twin
-      proprietary: tasks/add-median-proprietary
-    grader_path: graders/add-median.py
-    grader_sha256: "c6d125c708437a3f054ba83f2d635cc07f5fe628188b58a6a3af39c69801dcd5"
   - id: use-validator
     substrates:
       oss: tasks/use-validator-oss
@@ -31,6 +36,13 @@ tasks:
       proprietary: tasks/use-validator-proprietary
     grader_path: graders/use-validator.py
     grader_sha256: "1a66753c1279aa442230834fb0786610a0c9e514628eb8d9a5181588f65680cc"
+  - id: add-median
+    substrates:
+      oss: tasks/add-median-oss
+      twin: tasks/add-median-twin
+      proprietary: tasks/add-median-proprietary
+    grader_path: graders/add-median.py
+    grader_sha256: "c6d125c708437a3f054ba83f2d635cc07f5fe628188b58a6a3af39c69801dcd5"
   - id: fix-spread
     substrates:
       oss: tasks/fix-spread-oss
@@ -51,7 +63,7 @@ arms:
     substrate: oss
     model:
       provider: anthropic
-      model: claude-sonnet-4-5-20250929
+      model: claude-haiku-4-5-20251001
       parameters:
         temperature: "0"
     harness:
@@ -67,7 +79,7 @@ arms:
     substrate: twin
     model:
       provider: anthropic
-      model: claude-sonnet-4-5-20250929
+      model: claude-haiku-4-5-20251001
       parameters:
         temperature: "0"
     harness:
@@ -83,7 +95,7 @@ arms:
     substrate: proprietary
     model:
       provider: anthropic
-      model: claude-sonnet-4-5-20250929
+      model: claude-haiku-4-5-20251001
       parameters:
         temperature: "0"
     harness:
@@ -96,8 +108,8 @@ arms:
     env:
       LANG: C.UTF-8
 
-repetitions: 2
-budget_usd_cap: "8.00"
+repetitions: 5
+budget_usd_cap: "15.00"
 concurrency: 3
 provider_rate_limits:
   anthropic: 30
@@ -106,7 +118,7 @@ pre_registration:
   primary_metric: acceptance
   secondary_metrics:
     - discipline
-  repetitions: 2
+  repetitions: 5
   control_arm: oss
   exclusion_rules:
     - A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.

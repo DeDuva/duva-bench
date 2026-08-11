@@ -302,23 +302,45 @@ it reported `['a','b']` for two disjoint cycles (stopping at the first) and
 spec now rejects). Genuine, and 0/5 — too hard here, in the same way 6/6 is too
 easy there. Both extremes have zero within-cell variance.
 
-`strict-mode` at **2/5** is the first task ever measured inside the usable band.
+`strict-mode` measured **2/5** here, which looked like the first task ever
+inside the usable band. **It was not, and the correction is the point.**
 
-### And a blind spot that nearly wasted it
+Three of those five failures reported `no FAIL line recorded`. A failure whose
+reason is unknown cannot be classified as the task or the instrument, and every
+round so far has turned on exactly that distinction — so 2/5 was an unusable
+number wearing a useful one. `calibrate.py` now falls back through the verifier's
+error output and then the trial's own exception before admitting it has nothing.
 
-Three of those five `strict-mode` runs reported `no FAIL line recorded`. A
-failure whose reason is unknown cannot be classified as the task or the
-instrument, and every previous round turned on exactly that distinction — so
-2/5 was, at that moment, an unusable number wearing a useful one.
+Re-measured with reasons captured, `strict-mode` is **5/5**. The three unexplained
+failures were trials that never finished, not a model failing a task. A
+calibration that cannot say *why* is worth about as much as one that cannot say
+*whether* — and this is the second time a plausible number turned out to be the
+instrument.
 
-`calibrate.py` now falls back through the verifier's error output, then the
-trial's own exception, before admitting it has nothing. A calibration that
-cannot say *why* is worth about as much as one that cannot say *whether*.
+## The sweep that found a real one, 5 reps, $2.55
+
+| task | `claude-haiku-4-5` | failures |
+|---|---|---|
+| `add-median` | 4/5 | 1, genuine — never added the median |
+| `use-validator` | **3/5** | 2, genuine — `TypeError, not NotNumeric` |
+| `fix-spread` | 5/5 | — |
+| `strict-mode` | 5/5 | — |
+
+**`use-validator` at 3/5 is the first task measured in the band for reasons that
+are the task's own.** Its failures are on-task and specific: the agent never
+routed through the validator, so a bad reading raised `TypeError` from arithmetic
+instead of the `NotNumeric` the task names. It is also the
+toolchain-differentiating task — the one whose work differs by substrate — which
+is the one worth having variance in.
+
+`add-median` at 4/5 is marginal but real. `fix-spread` and `strict-mode` sit at
+ceiling and serve as matched controls: if a substrate effect shows up there, it
+is not about difficulty.
 
 ## Next
 
-- Sweep the ordinary tasks on the smaller model to find every one in the band.
-- Then the pilot, on the in-band tasks and the model that puts them there.
+- The pilot, on `claude-haiku-4-5`, with `use-validator` carrying the outcome
+  axis and the ceiling tasks as matched controls.
 - If a stronger model is wanted later, tasks have to grow in **scope** — many
   files, many constraints, integration rather than logic. Trickiness produces
   ambiguity, and the third round is what ambiguity costs.
