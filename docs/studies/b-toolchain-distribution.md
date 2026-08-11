@@ -184,6 +184,50 @@ vary only model, agent, environment variables and agent kwargs. This study needs
 *directory* per arm, which is the tractable half of that gap (files, not tool definitions). See
 `docs/blockers.md`.
 
+### 4.1 The tool-vocabulary axis is reachable after all (spike, 2026-08-10)
+
+An earlier draft of this document said Study A's toolset axis needed a bespoke Harbor agent, on the
+strength of `terminus-2`'s fixed surface. **That was wrong**, and the correction matters because it
+was about to be used as grounds for dropping a pre-registered hypothesis.
+
+Harbor carries **MCP servers in task config** — `EnvironmentConfig.mcp_servers`, merged with the
+agent config's and passed to the agent (`harbor/trial/trial.py:789`). Two behaviours differ sharply
+by agent and the difference decides the axis:
+
+- **`terminus-2` only describes them.** It appends a text summary of the servers to the instruction
+  (`terminus_2.py:1578`); the model's callable surface is still `bash_command` and
+  `mark_task_complete`. Useless as a manipulation.
+- **`claude-code` registers them properly**, writing user-scoped `mcpServers` config
+  (`claude_code.py:1308`), so the tools arrive as genuine callable functions.
+
+A spike confirmed it end to end: one task, a ledger reachable *only* through MCP tools, two variants
+identical but for two environment variables the server reads to name its tools. The trajectory of
+the first run contains
+
+```
+2  mcp__ledger__ledger_append
+1  mcp__ledger__ledger_read
+1  Write
+1  ToolSearch
+```
+
+— the names chosen in `task.toml`, in the trace the bridge maps to ADP, on a trial that passed its
+verifier. **So the toolset axis is a task-config difference, exactly like this study's toolchain
+axis, and needs the same materialization wiring and no agent loop.**
+
+Three consequences worth carrying:
+
+1. **Names are prefixed `mcp__<server>__<tool>`.** Any hallucinated-call rate has to normalise that
+   prefix, or every legitimate MCP call reads as a call to a tool the arm did not have — the same
+   shape of defect as the one gate G2 found in the smoke study.
+2. **MCP adds tools; it does not replace the native ones.** `Write` and `ToolSearch` are there too.
+   A toolset arm is therefore "native tools plus a named set", and a clean manipulation needs tasks
+   where the named set is the *only* route to the goal — as this spike's ledger is. That is a task
+   design constraint, and it is a real one.
+3. **The agent becomes a covariate.** The axis needs an MCP-registering agent, so `terminus-2` is
+   out for arms that manipulate tools, and harness cannot be varied freely against toolset without
+   confounding. Study A's design has to account for that.
+
 ---
 
 ## 5. The instrument
