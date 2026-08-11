@@ -283,12 +283,42 @@ discriminates. The conclusion is not that they are too easy — it is that **a t
 of this size cannot discriminate this model**, and it took four rounds to see
 past our own defects to that.
 
+## The same tasks on a smaller model, 5 reps, $2.40
+
+Study B crosses model as a factor anyway, so the cheaper move than inventing a
+puzzle that defeats the strongest available model is to measure one the task set
+does not saturate.
+
+| task | `claude-sonnet-4-5` | `claude-haiku-4-5` |
+|---|---|---|
+| `topo-order` | 6/6 | **0/5** |
+| `window-stats` | 6/6 | 5/5 |
+| `merge-config` | 6/6 | 5/5 |
+| `strict-mode` | — | **2/5** |
+
+`topo-order`'s failures on the smaller model are the task, not the instrument:
+it reported `['a','b']` for two disjoint cycles (stopping at the first) and
+`['a','b','c','d']` for the cycle with a tail (the very answer the corrected
+spec now rejects). Genuine, and 0/5 — too hard here, in the same way 6/6 is too
+easy there. Both extremes have zero within-cell variance.
+
+`strict-mode` at **2/5** is the first task ever measured inside the usable band.
+
+### And a blind spot that nearly wasted it
+
+Three of those five `strict-mode` runs reported `no FAIL line recorded`. A
+failure whose reason is unknown cannot be classified as the task or the
+instrument, and every previous round turned on exactly that distinction — so
+2/5 was, at that moment, an unusable number wearing a useful one.
+
+`calibrate.py` now falls back through the verifier's error output, then the
+trial's own exception, before admitting it has nothing. A calibration that
+cannot say *why* is worth about as much as one that cannot say *whether*.
+
 ## Next
 
-- **Calibrate a smaller model.** Study B crosses model as a factor anyway, and a
-  study whose outcome axis is pinned at 1.0 measures nothing however good its
-  statistics. Choosing a model the task set does not saturate is cheaper and
-  more honest than hunting for a puzzle that defeats the strongest one.
-- If a stronger model is wanted, tasks have to grow in **scope** — many files,
-  many constraints, integration rather than logic. Trickiness produces
+- Sweep the ordinary tasks on the smaller model to find every one in the band.
+- Then the pilot, on the in-band tasks and the model that puts them there.
+- If a stronger model is wanted later, tasks have to grow in **scope** — many
+  files, many constraints, integration rather than logic. Trickiness produces
   ambiguity, and the third round is what ambiguity costs.

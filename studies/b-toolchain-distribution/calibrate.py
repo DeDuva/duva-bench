@@ -41,14 +41,38 @@ def failure_reason(trial_dir: Path) -> str:
     to design the next task. The verifier prints one `FAIL: ...` line naming the
     case it tripped on.
     """
-    stdout = trial_dir / "verifier" / "test-stdout.txt"
-    for candidate in (stdout, trial_dir / "verifier" / "test-stderr.txt"):
-        if not candidate.exists():
-            continue
-        for line in candidate.read_text(encoding="utf-8", errors="replace").splitlines():
+    verifier = trial_dir / "verifier"
+    texts = []
+    for candidate in (verifier / "test-stdout.txt", verifier / "test-stderr.txt"):
+        if candidate.exists():
+            texts.append(candidate.read_text(encoding="utf-8", errors="replace"))
+
+    for text in texts:
+        for line in text.splitlines():
             if line.startswith("FAIL:"):
                 return line[:160]
-    return "no FAIL line recorded"
+
+    # No FAIL line means the check never got as far as judging the work — a
+    # syntax error, an unfinished edit, a timeout. Reporting "no FAIL line
+    # recorded" hid three of five strict-mode failures on a smaller model, which
+    # is the difference between a task that discriminates and one that is simply
+    # broken for that arm.
+    for text in texts:
+        lines = [line for line in text.splitlines() if line.strip()]
+        for line in reversed(lines):
+            if any(marker in line for marker in ("Error", "error:", "Traceback", "Exception")):
+                return f"(no FAIL) {line.strip()[:150]}"
+        if lines:
+            return f"(no FAIL) last output: {lines[-1].strip()[:130]}"
+
+    exception = trial_dir / "exception.txt"
+    if exception.exists():
+        tail = [
+            line for line in exception.read_text(errors="replace").splitlines() if line.strip()
+        ]
+        if tail:
+            return f"(trial raised) {tail[-1].strip()[:140]}"
+    return "no verifier output at all — the agent phase probably did not finish"
 
 
 def run_once(
