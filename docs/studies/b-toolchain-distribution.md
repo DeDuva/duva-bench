@@ -283,6 +283,39 @@ of §3.1.
 **The twin is also the study's own null.** Reporting it is not optional: it is what makes H1 a claim
 about familiarity rather than about ceremony.
 
+### 5.3.1 What the pilot's one gap turned out to be — read this before designing a task
+
+The 2026-08-10 pilot produced exactly one cell with a cost gap: `strict-mode` cost the
+`proprietary` arm nearly double what it cost `oss`, while `twin` matched `oss`. By the logic
+of §5.3 that reads as **structural, not naming** — and the trajectories say precisely what the
+structure was.
+
+| arm | tool calls | what it did |
+|---|---|---|
+| `oss` | 20 | explored, edited three files, ran `make test` twice, stopped |
+| `proprietary` | 25 | explored, edited three files, **wrote a new test module for the library and declared a new `py_test` target for it**, then ran `dbuild test` twice and `dbuild presubmit` twice |
+
+The proprietary arm was not lost. It did **more work**, because the depot convention — every
+directory that produces something has a `BUILD` declaring its targets — invites a test target
+next to the library you just changed, and a named presubmit gate invites running it.
+
+**This is a confound, and it is the one §9 warns about**: the arms were not doing the same
+amount of work, so their costs are not comparable as a familiarity measure. It is also a
+finding in its own right, and an uncomfortable one for the study's framing — a convention that
+*asks for more work* raises cost without anybody being unfamiliar with anything.
+
+Two consequences for task design, both adopted:
+
+1. **A task must pin down its own scope**, or the substrate decides how much work there is.
+   State what to change and what "done" means tightly enough that a reasonable agent does the
+   same amount in every arm.
+2. **Where extra work is genuinely part of the convention, say so and measure it separately.**
+   Folding it into a cost contrast labelled "familiarity" is how a study reports one thing and
+   means another.
+
+That the twin arm made this legible — by *not* moving — is the best evidence so far that the
+instrument in §5.3 does its job.
+
 ### 5.4 Documentation grades
 
 `none` is no documentation. `reference` is complete, accurate reference material for the toolchain

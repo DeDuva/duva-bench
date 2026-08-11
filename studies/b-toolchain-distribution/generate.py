@@ -43,7 +43,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from tasks import TASKS, Task  # noqa: E402
+from hard_tasks import HARD_TASKS  # noqa: E402
+from tasks import TASKS as EASY_TASKS  # noqa: E402
+from tasks import Task  # noqa: E402
+
+TASKS = EASY_TASKS + HARD_TASKS
 
 STUDY = Path(__file__).resolve().parent
 TASK_ROOT = STUDY / "tasks"
@@ -477,6 +481,30 @@ def solution(edits: list[tuple[str, list[tuple[str, str]]]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def whole_file_oracle(task: Task, layout: dict[str, str]) -> str:
+    """An oracle that writes files outright.
+
+    For a task whose starting point is a stub that raises, there is nothing to
+    substitute into, and an oracle expressed as edits would be a fiction about
+    how the work is done.
+    """
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        "python3 - <<'ORACLE'",
+        "from pathlib import Path",
+    ]
+    for key, body in task.oracle_files.items():
+        target = layout.get(key)
+        if target is None:
+            raise SystemExit(f"{task.slug}: no place for oracle file {key!r} in this substrate")
+        lines.append(f"p = Path({target!r})")
+        lines.append("p.parent.mkdir(parents=True, exist_ok=True)")
+        lines.append(f"p.write_text({body!r})")
+    lines.append("ORACLE")
+    return "\n".join(lines) + "\n"
+
+
 def oracle_edits(
     task: Task, entry_source: str, test_path: str, roots: list[str]
 ) -> list[tuple[str, list[tuple[str, str]]]]:
@@ -641,11 +669,19 @@ def build_flat(task: Task, root: Path, words: dict[str, str]) -> None:
         verifier(task, roots, entry_source, test_path),
         executable=True,
     )
-    write(
-        root / "solution" / "solve.sh",
-        solution(oracle_edits(task, entry_source, test_path, roots)),
-        executable=True,
-    )
+    if task.oracle_files:
+        layout = {
+            f"{p.name}/{m}": f"/workspace/{words['src']}/{p.name}/{m}"
+            for p in task.packages
+            for m in p.modules
+        }
+        layout.update(
+            {f"tests/{name}": f"/workspace/{words['tests']}/{name}" for name in task.tests}
+        )
+        body = whole_file_oracle(task, layout)
+    else:
+        body = solution(oracle_edits(task, entry_source, test_path, roots))
+    write(root / "solution" / "solve.sh", body, executable=True)
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
     write_grader(task)
 
@@ -691,21 +727,41 @@ def build_proprietary(task: Task, root: Path) -> None:
         executable=True,
     )
 
-    body = solution(oracle_edits(task, entry_source, test_path, roots))
-    if task.slug == "use-validator":
-        # The declaration this toolchain requires and the other two do not. It is
-        # the task's whole point, and without it presubmit rejects a change that
-        # is otherwise correct.
+    if task.oracle_files:
+        layout = {
+            f"{p.name}/{m}": f"/workspace/depot/{p.name}/{m}"
+            for p in task.packages
+            for m in p.modules
+        }
+        # The depot keeps a package's tests beside it rather than in one tree.
+        layout.update(
+            {f"tests/{name}": f"/workspace/depot/{task.entry}/{name}" for name in task.tests}
+        )
+        body = whole_file_oracle(task, layout)
+    else:
+        body = solution(oracle_edits(task, entry_source, test_path, roots))
+    # Every package the entry does not already declare has to be declared, or
+    # presubmit rejects a change that is otherwise correct. That declaration *is*
+    # the toolchain work this arm exists to require, so the oracle has to do it —
+    # and generically, because a bespoke BUILD edit per task is easy to forget,
+    # and forgetting it turns a shared task into one only this arm fails.
+    entry_pkg = next(package for package in task.packages if package.name == task.entry)
+    undeclared = [
+        package.name
+        for package in task.packages
+        if package.name not in (task.entry, *entry_pkg.needs)
+    ]
+    if undeclared:
+        declarations = "".join(f'        "//depot/{name}:{name}",\n' for name in undeclared)
         body += (
-            "python3 - <<'PY'\n"
+            "python3 - <<'DEPS'\n"
             "from pathlib import Path\n"
             f"b = Path('/workspace/depot/{task.entry}/BUILD')\n"
             "body = b.read_text()\n"
-            "body = body.replace('        \"//depot/stats:stats\",\\n',\n"
-            '                    \'        "//depot/stats:stats",\\n'
-            '        "//depot/validate:validate",\\n\')\n'
+            "marker = '    deps = [\\n'\n"
+            f"body = body.replace(marker, marker + {declarations!r}, 1)\n"
             "b.write_text(body)\n"
-            "PY\n"
+            "DEPS\n"
         )
     write(root / "solution" / "solve.sh", body, executable=True)
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))

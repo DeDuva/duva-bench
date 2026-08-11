@@ -50,6 +50,12 @@ class Task:
     difficulty: str = "easy"
     notes: str = ""
     tests: dict[str, str] = field(default_factory=dict)
+    #: Whole files the oracle writes, keyed `<package>/<module>` or
+    #: `tests/<module>`. Used instead of substitutions where the starting point
+    #: is a stub that raises — there is nothing to substitute into — and it is
+    #: the honest form for a task whose answer is an implementation rather than
+    #: an edit.
+    oracle_files: dict[str, str] = field(default_factory=dict)
 
 
 STATS = '''\

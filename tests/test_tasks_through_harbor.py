@@ -143,7 +143,15 @@ def test_the_oracle_runs_through_harbor_and_satisfies_the_grader(
 STUDY_B = ROOT / "studies" / "b-toolchain-distribution" / "tasks"
 STUDY_B_VARIANTS = [
     f"{slug}-{kind}"
-    for slug in ("add-median", "use-validator", "fix-spread", "strict-mode")
+    for slug in (
+        "add-median",
+        "use-validator",
+        "fix-spread",
+        "strict-mode",
+        "topo-order",
+        "window-stats",
+        "merge-config",
+    )
     for kind in ("oss", "twin", "proprietary")
 ]
 

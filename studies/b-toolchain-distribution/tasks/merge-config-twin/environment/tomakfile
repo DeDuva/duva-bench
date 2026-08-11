@@ -1,0 +1,2 @@
+vess:
+	PYTHONPATH=kelvra/report python3 -m pytest -q brivols
