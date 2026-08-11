@@ -99,8 +99,33 @@ kind — introducing a dependency, fixing an under-declared build graph, satisfy
 a presubmit gate the change trips — which are the candidates the design document
 lists and the ones this run says to prioritise.
 
+## Task 2 — `use-validator`, the first with headroom
+
+`summarize` must reject non-numeric readings by calling `numeric` from the
+**validate** package — a package the summarizing package does not currently
+reach. The code change is three lines in all three variants. The *toolchain*
+work is where they diverge, and that is the whole design:
+
+| variant | what "make it reachable" means |
+|---|---|
+| `oss` | add the package to `PYTHONPATH` in the `Makefile` |
+| `twin` | the same, under names the model has never read |
+| `proprietary` | declare `//depot/validate:validate` in the entry target's `deps`, or presubmit rejects a change that otherwise works |
+
+The acceptance check requires the validator's own `NotNumeric` to propagate and
+rejects a home-grown `isinstance` check, so an arm that reimplemented the test
+has done different work from an arm that found the package.
+
+All six variants (two tasks × three toolchains) pass their own oracles through
+Harbor.
+
 ## Next
 
-Tasks with headroom, per above. Then a pilot on one model and one harness across
-the three toolchains, for an effect size and a noise floor, before committing to
-any factorial.
+More tasks with headroom — an under-declared build graph, a presubmit gate the
+change trips. Then a pilot on one model and one harness across the three
+toolchains, for an effect size and a noise floor, before committing to any
+factorial.
+
+**The pilot is currently blocked** on ADP, not on the tasks: a study recording
+into `~/dev/adp`'s ephemeral stack is destroyed when another workstream runs
+`make up` there. See [`docs/blockers.md`](../../docs/blockers.md).

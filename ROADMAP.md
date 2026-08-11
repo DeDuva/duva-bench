@@ -108,6 +108,9 @@ still marked *code landed* carries exactly that risk.
 - **The ADP contract suite has never run in CI.** It passes locally against a live server;
   `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
   pinned by a suite one person runs by hand.
+- **Studies cannot share the ADP dev stack.** Verified 2026-08-10 by losing 7 of 8 recorded
+  trials mid-run: another workstream ran `make up` in `~/dev/adp`, replacing the database.
+  The G2 re-run is blocked on this rather than on anything in duva-bench.
 - **The local ADP is ephemeral, so a cited run id is reproducible rather than durable.**
   G1's evidence lives in the `adp-test-*` stack that `make down` destroys, and this
   machine's `/tmp` is cleared between sessions. Anyone re-checking a run id in

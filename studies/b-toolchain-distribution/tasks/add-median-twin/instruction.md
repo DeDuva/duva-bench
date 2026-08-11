@@ -11,5 +11,6 @@ The median of an even-length series is the mean of its two middle values.
 
 This is a standard Python project.
 
-- Source is in `kelvra/`, tests are in `brivols/`.
-- Run the tests with `tomak vess`, which runs `pelmatest`.
+- Each package is a directory under `kelvra/`.
+- Tests are in `brivols/`.
+- Run the tests with `tomak vess`.

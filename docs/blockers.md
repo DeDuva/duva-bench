@@ -61,6 +61,32 @@ pinned by fixtures this project also wrote. That is the whole lesson of this gat
 against a recorded copy of its own output. The `harbor` marker had been declared since M0 and used
 by zero tests.
 
+## Studies cannot share the ADP dev stack · **OPEN, found 2026-08-10**
+
+**A study run against `~/dev/adp`'s ephemeral stack is destroyed by anyone else running
+`make up` in that checkout.** Re-running gate G2 to match the current spec got 7 of 8 trials
+recorded and then lost them: the ADP checkout moved from `c125db3` to `924d6d8` on branch
+`m4/m4-3-quotas-and-gc` and a fresh stack replaced the database mid-study. The symptoms
+arrive in this order and none of them names the cause:
+
+1. `Connection reset by peer` on a recording append;
+2. `401` from a token that worked a minute earlier — it belongs to a database that is gone;
+3. `404` for a repository that was created and no longer exists.
+
+Two aggravating factors of our own, both now known:
+
+- ADP's `GIT_ROOT` defaults **inside** its own checkout (`.adp-test/git`) and `npm run dev`
+  is `tsx watch`, so every artifact commit duva-bench publishes restarted the server under
+  the running study. Use the built server (`npm run build && npm start`) for anything that
+  publishes, never the watcher.
+- `make up` alone leaves an unmigrated database; `npm run migrate --prefix server` has to
+  follow it, or `bootstrap.ts` fails with a bare Postgres `parserOpenTable` error.
+
+**What this costs.** Any study whose results matter needs an ADP instance nobody else
+resets — a dedicated stack, a container of its own, or a durable deployment. Until then a
+run's evidence lives at the mercy of an unrelated workstream, which is the ephemerality
+already recorded in `/ROADMAP.md` arriving sooner and with less warning.
+
 ## Gate G2 — the smoke study end to end · **NOT RUN, and rehearsed**
 
 Downstream of G1: `duva-bench run` then `duva-bench report` needs eight real trials with a model.

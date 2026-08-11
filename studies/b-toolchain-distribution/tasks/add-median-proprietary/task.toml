@@ -6,7 +6,7 @@ difficulty = "easy"
 tags = ["study-b", "toolchain"]
 
 [agent]
-timeout_sec = 600
+timeout_sec = 900
 
 [verifier]
-timeout_sec = 120
+timeout_sec = 180

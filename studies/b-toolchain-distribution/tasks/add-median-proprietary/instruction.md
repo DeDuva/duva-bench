@@ -13,8 +13,8 @@ This is a monorepo. Code lives under `depot/`, and every directory that produces
 something has a `BUILD` file declaring its targets.
 
 - A target is named by its path from the depot root: `//depot/stats:stats`.
-- A target that uses another must **declare it** in its `deps`. A build with an
-  undeclared dependency fails even if the import would work.
+- A target that uses another must **declare it** in that target's `deps`. A
+  build with an undeclared dependency fails even if the import would work.
 - Build and test with the depot's driver:
 
   ```

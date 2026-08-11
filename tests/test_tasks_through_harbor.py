@@ -141,7 +141,14 @@ def test_the_oracle_runs_through_harbor_and_satisfies_the_grader(
 # --- Study B: one problem, three toolchains ----------------------------------
 
 STUDY_B = ROOT / "studies" / "b-toolchain-distribution" / "tasks"
-STUDY_B_VARIANTS = ["add-median-oss", "add-median-twin", "add-median-proprietary"]
+STUDY_B_VARIANTS = [
+    "add-median-oss",
+    "add-median-twin",
+    "add-median-proprietary",
+    "use-validator-oss",
+    "use-validator-twin",
+    "use-validator-proprietary",
+]
 
 
 @pytest.mark.parametrize("variant", STUDY_B_VARIANTS)
