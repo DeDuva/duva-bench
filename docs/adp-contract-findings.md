@@ -235,6 +235,39 @@ somebody else's source.
 
 ---
 
+## 8. Repository creation answers 422 both for "already exists" and for a rejected name
+
+**Severity: any caller that wants to be idempotent has to parse prose.**
+
+`POST /api/v3/repos/{owner}` returns **422** when the repository is already there:
+
+```json
+{"message": "Repository duva/bench-studyb3 already exists"}
+```
+
+and **422** when the name fails its regex:
+
+```json
+{"message": "Validation failed",
+ "errors": [{"validation": "regex", "code": "invalid_string", "path": ["name"]}]}
+```
+
+Same status, opposite meanings. "Already exists" is the success case for a create-if-missing
+helper and a typo is a stop; a caller that reads only the status either re-runs are fatal or
+typos are silent. `tools/adp-stack.sh repo` distinguishes them by substring-matching the
+message, which is exactly the kind of thing this file exists to stop people rediscovering —
+and it will break the day that wording changes.
+
+Found 2026-08-12 while adding that subcommand, after pilot 3's preflight died on
+`POST /api/v3/repos/{owner}/{repo}/issues -> 404`: ADP does not create a repository on first
+write, and a study whose `adp:` block names one nobody made fails with a 404 that names the
+symptom rather than the cause.
+
+**Fix ADP might consider:** 409 for the conflict, keeping 422 for validation. Failing that, a
+stable machine-readable `code` on the body.
+
+---
+
 ## Not an ADP finding, but recorded here because it was found the same way: Harbor 0.20.0's trace
 
 Four of the seven defects that gate G1 turned up were assumptions about **Harbor**, not ADP, and

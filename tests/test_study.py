@@ -496,3 +496,31 @@ def test_a_study_without_substrates_still_needs_a_source() -> None:
     del raw["tasks"][0]["substrates"]
     with pytest.raises(ValueError, match=r"needs \`path\`, \`git\`, or \`substrates\`"):
         parse_study(yaml.safe_dump(raw))
+
+
+# --- every study in the repository, not only the example --------------------
+
+STUDIES = sorted((EXAMPLE.parents[2] / "studies").glob("*/study.yaml"))
+
+
+@pytest.mark.parametrize("path", STUDIES, ids=[p.parent.name for p in STUDIES])
+def test_every_studys_grader_pins_match_the_files_they_name(path: Path) -> None:
+    """The same check as above, for the studies that cost money to run.
+
+    The example-only version of this said it was "the only place it is cheap:
+    at execution time the mismatch would surface after the money was spent" —
+    and then Study B's four graders drifted through two merged PRs without it
+    firing, because `generate.py` rewrites the graders and their comments carry
+    the twin vocabulary. It surfaced on the first real trial of pilot 3, which
+    cost $0.21 only because that trial was run before the other seventy-nine.
+    """
+    study = load_study(path)
+    for task in study.tasks:
+        grader = path.parent / task.grader_path
+        assert grader.exists(), f"{path.parent.name}: {task.grader_path} does not exist"
+        digest = hashlib.sha256(grader.read_bytes()).hexdigest()
+        assert digest == task.grader_sha256, (
+            f"{path.parent.name}: {task.grader_path} drifted from its pin. Regenerating a "
+            "study rewrites its graders; the pin has to move with them or every trial is "
+            "refused after it has been paid for."
+        )

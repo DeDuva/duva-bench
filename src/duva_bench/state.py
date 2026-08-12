@@ -1,14 +1,10 @@
 """Local state, and the rule about what may live in it.
 
-A result is a record reconstructible from ADP, not from local state. So what is
-on disk here is **pointers and progress**: which ADP run a trial became, whether
-its evidence verified, and how far the study got. No scores, no statistics, no
-trajectories.
-
-That rule is what makes the report trustworthy. If a number could come from a
-local file, then re-deriving the report on another machine could produce a
-different one, and nobody could tell which was the experiment. Everything M6
-prints is read back from ADP, and this directory only says where to look.
+A result is a record reconstructible from ADP, not from local state. **No number
+in a report comes from this directory** — not a score, not a statistic. If one
+could, re-deriving the report on another machine might produce a different one
+and nobody could tell which was the experiment. Everything M6 prints is read
+back from ADP, and this directory only says where to look.
 
 Layout, under ``.duva-bench/<study-digest[:12]>/``:
 
@@ -24,6 +20,23 @@ Layout, under ``.duva-bench/<study-digest[:12]>/``:
 ``intents.json``
     Task id to ADP intent id. Minting is idempotent per task per study, and
     this is the cache that makes it so without an extra round trip.
+
+``work/<label>/jobs/...``
+    Harbor's own job directories, written here by ``exec/trial.py``. **These
+    contain the agent trajectories**, and until 2026-08-12 this docstring said
+    the directory held "no trajectories" — which was true of the four entries
+    above and false of the tree as a whole.
+
+    The distinction that matters is not *where the bytes are* but *what a report
+    may read*: analysis takes trajectories from ADP, never from here, so the
+    rule above is intact. What was wrong was the inference people drew from it.
+    A directory believed to hold only pointers is a directory nobody thinks to
+    preserve, and pilot 2's entire evidentiary basis survived on the accident of
+    an un-pruned git worktree because of that belief.
+
+    So: this tree is **not** disposable, and ``make preserve`` is what copies the
+    irreplaceable part of it into the repository before an ephemeral ADP takes
+    the rest with it.
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= python3
 
-.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated adp-stack adp-status
+.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated adp-stack adp-status adp-repo preserve
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -42,6 +42,17 @@ adp-stack: ## Bring up the dedicated ADP studies record into (see tools/adp-stac
 
 adp-status: ## Is the dedicated ADP up, and at what contract version
 	sh tools/adp-stack.sh status
+
+adp-repo: ## Create the ADP repository a study's adp: block names (REPO=bench-studyb3)
+	@test -n "$(REPO)" || { echo "usage: make adp-repo REPO=<name>"; exit 2; }
+	sh tools/adp-stack.sh repo $(REPO)
+
+# A run's ADP record dies with `make down` and the local state is gitignored, so
+# a study's evidence outlives the session only where it is committed. Pilot 2
+# survived by accident; this is the target that stops the next one needing luck.
+preserve: ## Copy a run's trajectories and trial records into the tree (STUDY=... INTO=...)
+	@test -n "$(STUDY)" -a -n "$(INTO)" || { echo "usage: make preserve STUDY=<study.yaml> INTO=<dir>"; exit 2; }
+	$(PY) tools/preserve-run.py $(STUDY) --into $(INTO)
 
 check-docs: ## Assert CLAUDE.md still points at paths that exist
 	sh tools/check-claude-md.sh

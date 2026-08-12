@@ -1,0 +1,59 @@
+{
+  "arms": {
+    "oss": {
+      "arm": "oss",
+      "arm_digest": "sha256:3e9558266cc4cdcdc0bd256926b763d9b0bb98477e59584fd7ebb5ee1a6622cf",
+      "docs": "none",
+      "harness": "terminus-2@0.20.0",
+      "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+      "substrate": "oss",
+      "toolset": "shell",
+      "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+    },
+    "proprietary": {
+      "arm": "proprietary",
+      "arm_digest": "sha256:e068d194d5cd50a65c1a292ef01282514e1bcdcc7a5914f1de76da1cda9fd6d2",
+      "docs": "none",
+      "harness": "terminus-2@0.20.0",
+      "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+      "substrate": "proprietary",
+      "toolset": "shell",
+      "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+    },
+    "twin": {
+      "arm": "twin",
+      "arm_digest": "sha256:a2f563e2fc045341c5837c423b06266534d1d2dd519cf90026620a96414b8e86",
+      "docs": "none",
+      "harness": "terminus-2@0.20.0",
+      "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+      "substrate": "twin",
+      "toolset": "shell",
+      "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+    },
+    "twin-b": {
+      "arm": "twin-b",
+      "arm_digest": "sha256:2cae357ef4bb889183b67b67483d05acedc80dd8d5791cb7d5d38fd923365c24",
+      "docs": "none",
+      "harness": "terminus-2@0.20.0",
+      "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+      "substrate": "twin-b",
+      "toolset": "shell",
+      "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+    }
+  },
+  "preserved_at": "2026-08-12T05:34:29Z",
+  "preserved_from": ".duva-bench/91a72df7c091",
+  "study_digest": "sha256:91a72df7c0910b3c0f1b39962bff8e32a2d9c86f0b9b9aaa409d8aabddcf393a",
+  "study_title": "duva-bench Study B pilot 3 \u2014 toolchain familiarity, with the instrument's own floor",
+  "trajectories": 80,
+  "trajectories_missing": [],
+  "trial_records": 80
+}
