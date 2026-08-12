@@ -480,3 +480,83 @@ def test_the_escape_effect_is_concentrated_in_one_cell() -> None:
     assert max(twin.values()) == 4
     assert sum(twin.values()) == 6
     assert twin["strict-mode"] == 4
+
+
+# --- pilot 3, and the loop closed --------------------------------------------
+
+
+def test_pilot_3s_committed_evidence_reproduces_its_committed_report() -> None:
+    """The report is built from ADP; the evidence beside it must give the same answer.
+
+    Those are two different paths — one reads a server that no longer exists,
+    the other reads eighty JSON files in this repository — and a study whose
+    preserved evidence disagreed with its published report would be a study with
+    two answers and no way to choose. Pilot 2 could not be checked this way at
+    all for a day, which is the whole reason `make preserve` exists.
+    """
+    import json as _json
+
+    from duva_bench.analysis.process import compute
+    from duva_bench.exec.bridge import bridge_trajectory
+    from duva_bench.study.load import load_study
+
+    pilot = STUDY / "pilot-3"
+    report = _json.loads((STUDY / "report" / "report.json").read_text(encoding="utf-8"))
+    study = load_study(STUDY / "study.yaml")
+    assert report["study"]["digest"] == study.study_digest, "the report is of another study"
+
+    foreign = {arm.id: arm.foreign_commands for arm in study.arms}
+    escaped: dict[str, list[bool]] = {arm.id: [] for arm in study.arms}
+    passed: dict[str, list[bool]] = {arm.id: [] for arm in study.arms}
+
+    for record in sorted((pilot / "trials").glob("*.json")):
+        meta = _json.loads(record.read_text(encoding="utf-8"))
+        arm, task, rep = meta["arm_id"], meta["task_id"], meta["repetition"]
+        trajectory = _json.loads(
+            (pilot / "trajectories" / f"{arm}__{task}__r{rep}.json").read_text(encoding="utf-8")
+        )
+        metrics = compute(bridge_trajectory(trajectory), foreign_commands=foreign[arm])
+        escaped[arm].append(bool(metrics.escaped))
+        passed[arm].append(bool(meta["harbor_verifier_passed"]))
+
+    assert sum(len(v) for v in escaped.values()) == 80
+
+    for arm in escaped:
+        block = report["process"][arm]["escape"]
+        assert sum(escaped[arm]) == block["escaped_trials"], f"{arm}: escape count disagrees"
+
+        row = next(r for r in report["axes"]["acceptance"]["arms"] if r["arm"] == arm)
+        assert sum(passed[arm]) / len(passed[arm]) == pytest.approx(row["mean"]), (
+            f"{arm}: acceptance disagrees between the preserved verifier verdicts and the "
+            "report's graded means, so the graders and the verifier no longer agree"
+        )
+
+
+def test_the_instrument_floor_is_reported_and_is_what_the_pilot_measured() -> None:
+    """Pass rate's floor is 0.200 here, and no acceptance contrast clears it.
+
+    This is the study's actual finding and the reason amendment §7.1 stands on
+    evidence rather than argument. Pinned because a refactor that silently
+    stopped computing the floor would leave every contrast looking meaningful.
+    """
+    import json as _json
+
+    report = _json.loads((STUDY / "report" / "report.json").read_text(encoding="utf-8"))
+
+    acceptance = report["axes"]["acceptance"]
+    floor = acceptance["instrument_floor"]
+    assert floor["arms"] == ["twin", "twin-b"]
+    assert floor["magnitude"] == pytest.approx(0.2)
+
+    contrasts = acceptance["contrasts"]["arms"]
+    assert all(abs(row["delta"]) <= floor["magnitude"] for row in contrasts.values()), (
+        "an acceptance contrast now exceeds the instrument floor; the finding this study "
+        "reported was that none did"
+    )
+    # And the one contrast anywhere that does clear its floor.
+    assert (
+        report["axes"]["process:escaped"]["contrasts"]["arms"]["proprietary"][
+            "beyond_instrument_floor"
+        ]
+        is True
+    )
