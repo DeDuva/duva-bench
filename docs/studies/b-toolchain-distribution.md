@@ -613,8 +613,17 @@ authored tasks established is the binding constraint (§6.3, §6.4), and it does
 saturate when the model improves, which pass rate demonstrably will. That is the reason
 to accept, and it is the one to lead a write-up with.
 
-**2. The effect is concentrated in one cell, which is pilot 1's trap again.** Four of
-the twin arm's six escapes are the `strict-mode × twin` cell. The bootstrap resamples
+**2. The effect is concentrated in one cell, which is pilot 1's trap again.** Measured,
+not inferred, from the recovered trajectories (§7.1.3):
+
+| task | oss | twin | proprietary |
+|---|---|---|---|
+| `add-median` | 0/5 | 1/5 | 0/5 |
+| `fix-spread` | 0/5 | 0/5 | 2/5 |
+| `strict-mode` | 0/5 | **4/5** | 0/5 |
+| `use-validator` | 0/5 | 1/5 | 1/5 |
+
+Four of the twin arm's six escapes are `strict-mode × twin`. The bootstrap resamples
 tasks whole and McNemar pairs on tasks, so the effective *n* behind H5 is **four tasks,
 not twenty trials** — the same shape as the cost ordering that turned out to be one
 task of four (§5.3.1). With a fixed budget, more tasks buys more here than more
@@ -689,6 +698,45 @@ Three things this cost, all of them worth having found before spending:
 
 The study is now 4 tasks × 4 arms × 5 repetitions = 80 trials, roughly $16.60 at pilot
 2's $0.208 per trial.
+
+## 7.1.3 The evidence, nearly lost and now committed (2026-08-11)
+
+Everything §7.1 argues from came out of a session's scratch directory. Three things were
+separately true: the committed report has **120 of 120** axis scores `null` (the grader
+searched for `report.py` after packages had become `report/__init__.py`); the ADP evals
+were deliberately left unscored against an instance that dies with `make down`; and the
+local artifacts the re-grade ran over lived in a gitignored `.duva-bench/` inside a git
+worktree on an **already-merged** branch — one `git worktree remove` from gone.
+
+For a day this project recorded them as destroyed, on the strength of a search that did
+not go deep enough to find them. That is worth keeping in the record beside the rest:
+evidence that lives only in a gitignored scratch directory has a countdown on it, and a
+claim that evidence is *gone* deserves exactly the scepticism a claim that it is fine
+would get.
+
+The trajectories and trial records are now committed under
+`studies/b-toolchain-distribution/pilot-2/`, with a `recover.py` that recomputes the
+numbers from them and two tests that pin the results. **Everything reproduces:**
+
+| arm | acceptance | escaped | escape calls | reached for |
+|---|---|---|---|---|
+| `oss` | 0.850 | 0/20 | 0 | — |
+| `twin` | 0.950 | **6/20** | 29 | `pytest` |
+| `proprietary` | 0.850 | 3/20 | 3 | `pytest` |
+
+The escape row is the one that most needed this. It was counted **by hand**, under the
+matcher §7.1.1 describes as broken in both directions, and it comes back identical under
+the rewritten detector — which is evidence the rewrite did not move the finding it was
+written to protect. The new detector also finds zero probes and no false positives, and
+`pytest` is the only foreign command invoked in any arm: nobody typed `tomak` in `oss` or
+`make` in the depot, so the effect is one habit rather than a scatter. Note `twin`'s 29
+escape *calls* against `proprietary`'s 3 — the twin arm did not merely reach for `pytest`,
+it reached repeatedly.
+
+**Still not recovered, and it does not matter for the above:** the collected workspaces a
+grader reads (6.2 MB, uncommitted). All 60 were re-graded on 2026-08-11 and the graders
+agreed with the verifier on every one, which is why the verifier's own verdict reproduces
+the acceptance means exactly.
 
 ## 8. Pre-registration and analysis
 

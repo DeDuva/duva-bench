@@ -430,3 +430,53 @@ def test_no_twin_name_is_an_english_word() -> None:
     for twin, words in manifest["twin_words"].items():
         for role, name in words.items():
             assert name not in DICTIONARY, f"{twin}/{role} is {name!r}"
+
+
+# --- pilot 2, recovered ------------------------------------------------------
+
+
+def test_pilot_2s_numbers_recompute_from_its_own_committed_artifacts() -> None:
+    """The amendment's rationale, made checkable rather than remembered.
+
+    Every number §7.1 argues from came out of a session's scratch. The committed
+    report beside them has 120 of 120 axis scores `null`, the ADP evals were left
+    unscored, and this repository spent a day recording the artifacts as lost —
+    they were in a worktree on an already-merged branch, one `git worktree
+    remove` from gone. They are checked in now, and this is what makes checking
+    them in worth anything.
+
+    The escape row matters most: it was counted **by hand**, under a detector
+    that has since been rewritten. That it reproduces exactly is evidence the
+    rewrite did not move the finding it was written to protect.
+    """
+    sys.path.insert(0, str(STUDY / "pilot-2"))
+    from recover import recover
+
+    result = recover()
+    assert result["trials"] == 60
+
+    arms = result["arms"]
+    assert [arms[a]["escaped_trials"] for a in ("oss", "twin", "proprietary")] == [0, 6, 3]
+    assert [arms[a]["acceptance"] for a in ("oss", "twin", "proprietary")] == [0.85, 0.95, 0.85]
+    # `pytest` and nothing else: nobody typed `tomak` in `oss` or `make` in the
+    # depot, so the whole effect is one habit rather than a scatter.
+    assert arms["twin"]["escaped_commands"] == ["pytest"]
+    assert arms["oss"]["escaped_commands"] == []
+
+
+def test_the_escape_effect_is_concentrated_in_one_cell() -> None:
+    """Four of the twin arm's six escapes are `strict-mode`, and that is the caveat.
+
+    The statistics resample tasks whole, so the effective n behind H5 is four
+    tasks rather than twenty trials — the same shape as pilot 1's cost ordering,
+    which turned out to be one task of four. This test exists so the caveat
+    cannot quietly stop being true while the prose still says it.
+    """
+    sys.path.insert(0, str(STUDY / "pilot-2"))
+    from recover import recover
+
+    cells = recover()["escaped_by_cell"]
+    twin = {task: n for key, n in cells.items() if (task := key.split("/")[0]) and "/twin" in key}
+    assert max(twin.values()) == 4
+    assert sum(twin.values()) == 6
+    assert twin["strict-mode"] == 4

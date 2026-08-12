@@ -393,17 +393,17 @@ Three notes that belong with the number rather than in a design document:
 
 ## Next
 
-- **Pilot 3, and it is the only way to get a pilot-2 number back.** The report in
-  `report/` is the pre-fix one — 120 of 120 axis scores are `null` — the ADP
-  evals were left unscored, and the local artifacts the re-grade ran over are not
-  on this machine. Nothing quoted from pilot 2 anywhere in this repository can be
-  re-derived from anything checked in. That is not recoverable by re-reporting;
-  it needs the run. 4 tasks × 4 arms × 5 repetitions = **80 trials, ~$16.60** at
-  pilot 2's $0.208 per trial.
+- **Pilot 3**, with the second twin carrying the instrument floor. 4 tasks ×
+  4 arms × 5 repetitions = **80 trials, ~$16.60** at pilot 2's $0.208 per trial.
+  This is the next thing that costs money, and the first study whose primary
+  measure has a floor to be read against.
 
-  What has been fixed is the silence, not the loss: a report with no scored trial
-  on an axis, or with no grader axis at all, is now a loud warning in the JSON
-  and on the page, with two tests reproducing pilot 2's exact shape.
+  Pilot 2's own numbers no longer wait on it: its trajectories and trial records
+  are committed under [`pilot-2/`](pilot-2/README.md) and everything recomputes,
+  including the escape table, which was counted by hand under a detector since
+  rewritten and comes back identical. What is separately fixed is the silence
+  that nearly cost them — a report with no scored trial on an axis, or with no
+  grader axis at all, is now a loud warning in the JSON and on the page.
 - Spend the next increment on **more tasks rather than more repetitions**: the
   effect behind the amendment was four of six events in one cell, and the
   statistics resample tasks whole.
