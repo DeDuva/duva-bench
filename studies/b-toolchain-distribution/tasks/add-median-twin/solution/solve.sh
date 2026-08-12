@@ -2,7 +2,7 @@
 set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
-p = Path('/workspace/kelvra/report/report.py')
+p = Path('/workspace/kelvra/report/__init__.py')
 body = p.read_text()
 body = body.replace('from stats import mean', 'from stats import mean, median')
 body = body.replace('"mean": mean(readings)}', '"mean": mean(readings), "median": median(readings)}')

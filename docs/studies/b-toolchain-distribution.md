@@ -283,6 +283,39 @@ of §3.1.
 **The twin is also the study's own null.** Reporting it is not optional: it is what makes H1 a claim
 about familiarity rather than about ceremony.
 
+### 5.3.1 What the pilot's one gap turned out to be — read this before designing a task
+
+The 2026-08-10 pilot produced exactly one cell with a cost gap: `strict-mode` cost the
+`proprietary` arm nearly double what it cost `oss`, while `twin` matched `oss`. By the logic
+of §5.3 that reads as **structural, not naming** — and the trajectories say precisely what the
+structure was.
+
+| arm | tool calls | what it did |
+|---|---|---|
+| `oss` | 20 | explored, edited three files, ran `make test` twice, stopped |
+| `proprietary` | 25 | explored, edited three files, **wrote a new test module for the library and declared a new `py_test` target for it**, then ran `dbuild test` twice and `dbuild presubmit` twice |
+
+The proprietary arm was not lost. It did **more work**, because the depot convention — every
+directory that produces something has a `BUILD` declaring its targets — invites a test target
+next to the library you just changed, and a named presubmit gate invites running it.
+
+**This is a confound, and it is the one §9 warns about**: the arms were not doing the same
+amount of work, so their costs are not comparable as a familiarity measure. It is also a
+finding in its own right, and an uncomfortable one for the study's framing — a convention that
+*asks for more work* raises cost without anybody being unfamiliar with anything.
+
+Two consequences for task design, both adopted:
+
+1. **A task must pin down its own scope**, or the substrate decides how much work there is.
+   State what to change and what "done" means tightly enough that a reasonable agent does the
+   same amount in every arm.
+2. **Where extra work is genuinely part of the convention, say so and measure it separately.**
+   Folding it into a cost contrast labelled "familiarity" is how a study reports one thing and
+   means another.
+
+That the twin arm made this legible — by *not* moving — is the best evidence so far that the
+instrument in §5.3 does its job.
+
 ### 5.4 Documentation grades
 
 `none` is no documentation. `reference` is complete, accurate reference material for the toolchain
@@ -303,6 +336,146 @@ documentation, and the docs axis is how we would see that.
 Six to eight tasks, authored not scraped, each with an oracle and a multi-axis grader, each
 expressible in **all three toolchains without changing what is being asked**. That last constraint
 is the hard one and it should drive selection.
+
+### 6.1 A task is admitted on a measured pass rate, not on an author's opinion
+
+Added 2026-08-10, after the pilot. Every task in the first set was described in
+its own notes as having headroom and every arm solved all of them twice: pooled
+within-cell sd `0.0`, no outcome signal, nothing to divide a contrast by. The
+description was sincere and wrong, and there was no step at which it could have
+been caught.
+
+So difficulty is now measured before a task is admitted. `calibrate.py` runs a
+candidate N times on the `oss` substrate alone — the cheapest arm and the one a
+model should find easiest — and reports the pass rate together with the
+verifier's reason for each failure.
+
+- **n/n is a smoke task.** Useful for checking a pipeline, useless for measuring
+  anything. `add-median` is kept on exactly those terms.
+- **0/n is not a study task either.** A task nothing passes measures the task.
+- **The band in between is the point**, because that is where repetitions of one
+  cell differ and a within-cell variance exists at all.
+
+What makes a task land in that band, from the three built for it: rules that
+**interact** rather than sit beside one another. `window-stats` passed 3/3 while
+its rules could be satisfied one at a time, and needed a rule that changes the
+order the others have to be applied in — positions decided before gaps, not
+after. Rules that can be handled independently are a checklist; rules that
+constrain each other are a problem.
+
+### 6.2 Ambiguity is not difficulty, and it is easy to mistake one for the other
+
+Found 2026-08-11, in the second calibration. `topo-order` came back 1/5 and
+`merge-config` 4/5, and reading the *reasons* rather than the rates changed both
+numbers:
+
+```
+FAIL: cycle-with-tail: members ['a','b','c'], expected ['a','b','c','d']   ← the task
+FAIL: cannot import: No module named 'graph.graph'; 'graph' is not a package ← the instrument
+```
+
+Three of the six failures were the second kind. The layout puts a package's code
+at `src/<pkg>/<pkg>.py` and its own directory on the path, so `from graph import
+resolve` is right and `from graph.graph import resolve` is wrong — and **nothing
+told the agent which**. The two tasks that produced every one of those failures
+were exactly the two whose starting `report.py` contained no example import;
+`window-stats`, whose starting code shows `from stats import mean`, never hit it
+once in ten runs.
+
+So half the measured "difficulty" of the hard tasks was an agent guessing a
+convention the task never stated. That is noise of the worst kind: it is
+plausible, it looks like the effect being hunted, and it would have entered a
+factorial as a familiarity signal.
+
+**The convention is now stated in every toolchain's instruction**, in that
+toolchain's own vocabulary. Two rules follow:
+
+1. **A toolchain must be described well enough that a competent agent could not
+   reasonably guess wrong.** The study measures what it costs to *work* in an
+   unfamiliar toolchain, not what it costs to divine an undocumented one. The
+   second is easy to manufacture and worthless.
+2. **Read the failure reasons, never only the rate.** A pass rate in the usable
+   band is not evidence of a usable task; `topo-order` at 1/5 and at ~3/5 for
+   genuine reasons are different tasks wearing the same number.
+
+### 6.3 Three attempts at a hard task produced three instrument defects and no difficulty
+
+The uncomfortable result of 2026-08-11, and the one most worth acting on.
+
+`topo-order`, `window-stats` and `merge-config` were written specifically to be
+failable. Measured, they produced a pass rate of 1/5, 5/5 and 4/5 — and reading
+every failure, **not one of them was the task being hard**:
+
+| apparent failure | what it actually was |
+|---|---|
+| `cannot import: No module named 'graph.graph'` (×3) | the layout never said how packages import each other (§6.2) |
+| `cycle-with-tail: members ['a','b','c'], expected ['a','b','c','d']` (×2) | **the task was wrong and the agent was right** |
+
+The second is worth spelling out. For `{a:[b], b:[c], c:[a], d:[a]}` the cycle is
+`a→b→c→a`; `d` merely depends on it. The task said `members` must hold "exactly
+the names taking part in it", the agent answered `['a','b','c']`, and the
+acceptance check demanded `d` as well — because the reference implementation
+lazily raised with *everything left unordered*. A correct answer was scored as a
+failure.
+
+That is the SWE-bench failure this design cites in §3.3 — a test admitting or
+rejecting the wrong thing — arriving in our own instrument within a day of
+citing it. It is also worse than the contamination it was written to avoid: a
+weak test inflates a score, a *wrong* test invents an effect.
+
+**So the honest state is: three deliberate attempts at a discriminating task
+yielded none.** Every point of apparent difficulty was an authoring defect. That
+is a fact about how hard it is to author these, not a fact about the model, and
+it argues for:
+
+1. **An oracle is not a specification.** Both defects would have been caught by
+   asking "would a competent engineer answer differently, and be right?" of every
+   acceptance case before spending anything.
+2. **A second opinion on the spec is cheap and the run is not.** Calibration
+   costs dollars per task; re-reading the acceptance cases costs minutes.
+3. **Budget for the task set being the hard part.** The machinery — gates,
+   substrates, graders, materialization — is done. Authoring tasks that
+   discriminate for the right reason is the open problem.
+
+### 6.4 With the defects removed, every task saturates — and that is the real result
+
+Calibrated 2026-08-11 on corrected, unambiguous specs, 6 repetitions each on the
+`oss` substrate:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | **6/6** | 0.267 | 23.8 |
+| `window-stats` | **6/6** | 0.143 | 16.8 |
+| `merge-config` | **6/6** | 0.170 | 16.3 |
+
+Seven tasks have now been authored — four ordinary, three built specifically to
+be failable — and **not one of them discriminates**. Every point of apparent
+difficulty across four calibration rounds traced to an authoring defect, and
+each defect cost real money to find:
+
+| round | topo | window | merge | what it was measuring |
+|---|---|---|---|---|
+| 1 | 2/3 | 3/3 | 1/3 | unknown — reasons were not recorded |
+| 2 | 1/5 | 5/5 | 4/5 | import ambiguity, and a spec that demanded a wrong answer |
+| 3 | 4/5 | 5/5 | 3/5 | import ambiguity again; prose had not fixed it |
+| 4 | **6/6** | **6/6** | **6/6** | the tasks |
+
+**So the honest conclusion is not "these tasks are too easy". It is that a task
+of this size cannot discriminate this model, and four rounds of measurement were
+needed to see past our own defects to that fact.**
+
+Two consequences, and neither is "write a cleverer puzzle":
+
+1. **The model is the wrong constant.** Study B always crossed *model* as a
+   factor; saturation says to choose one where the task set is not at ceiling
+   rather than to keep hunting for a task that defeats the strongest available
+   one. A study whose outcome axis is pinned at 1.0 measures nothing however
+   good its statistics are.
+2. **Scale, not trickiness.** If a stronger model is wanted, the tasks have to
+   grow in *scope* — many files, many constraints, integration rather than
+   logic — because a small closed-world problem with well-stated rules is
+   something this class of model simply does. Trickiness produces ambiguity, and
+   §6.2 is what ambiguity costs.
 
 Candidate shape — each is a genuine multi-step change, not a function to complete:
 
@@ -345,6 +518,71 @@ trajectory, and it is a direct behavioural signature of out-of-distribution oper
 inference from a score. It requires the rename map, which the twin generator already produces.
 
 ---
+
+## 7.1 Amendment 1 — the primary measure moves to behaviour (2026-08-11)
+
+**Recorded before the trials that will test it, and after the trials that suggested
+it.** Both halves of that sentence matter, and §8's amendment discipline applies: the
+pre-amendment reading stays computable and any report prints both.
+
+### What the pilots established
+
+| | pilot 1 (`sonnet-4-5`, 24 trials) | pilot 2 (`haiku-4-5`, 60 trials) |
+|---|---|---|
+| outcome axis | every arm solved every task — pooled sd `0.0` | oss 0.850, twin **0.950**, proprietary 0.850 |
+| aggregate cost | ordering matched H2, and was one task of four | within-cell CV **0.62**; twin 50% above oss |
+
+The twin arm is identical to `oss` in behaviour and differs only in names, so
+**twin-minus-oss is a direct reading of measurement noise**. At n=20 it is 0.10 on the
+outcome axis and ~50% on cost — in both cases larger than the oss↔proprietary
+difference, which was 0.00 and −7% respectively. Neither measure can see an effect
+this design would call small.
+
+Detecting a 10-point difference at a base rate of 0.85 needs roughly **200 trials per
+arm**. That is affordable, and it buys power in a measure that will saturate again the
+moment the model improves.
+
+### What did separate the arms, at n=20
+
+| arm | used its own runner | invoked `pytest` directly |
+|---|---|---|
+| `oss` | 20/20 | 0/20 |
+| `twin` | 14/20 | **6/20** |
+| `proprietary` | 19/20 | 3/20 |
+
+Concentrated and mechanistic: `strict-mode` × `twin` produced the four most expensive
+trials in the study — 4 of that cell's 5 repetitions, 1.2–1.75M input tokens each —
+with `python3 -m pytest` retried four times in a single trial after the project's own
+runner was abandoned.
+
+### The amendment
+
+1. **Primary metric becomes `escaped`** — whether a trial invoked a toolchain its arm
+   was not given. Behavioural, mechanistic, and it does not require a task to be
+   failable, which removes task authoring as the binding constraint (§6.3).
+2. **Pass rate becomes a gate, not a metric.** A trial that did not produce valid work
+   is excluded; among those that did, the question is *how* they got there.
+3. **Cost and tokens stay secondary and are reported as medians with the within-cell
+   CV beside them.** A mean over a distribution with CV 0.62 and a 5× max/median ratio
+   is not a summary.
+4. **The twin's contrast with `oss` is reported first, on every measure**, as the
+   noise floor. No contrast is interpreted that does not exceed it.
+
+### H5, registered now and untested
+
+> **Partial unfamiliarity costs more than total unfamiliarity.** An environment that
+> *resembles* a familiar one but is renamed invites habitual actions that fail;
+> an obviously foreign environment causes the agent to read its instructions instead.
+> Predicted ordering on `escaped`: `twin` > `proprietary` > `oss`.
+
+This is the inverse of the naive expectation and of H1–H3, which predict monotone
+degradation with distance from the training distribution.
+
+**It was generated by looking at pilot 2 after the fact and must not be reported from
+that data.** It is testable on fresh tasks and a fresh run; if it survives, it is the
+most useful thing this study could produce, because it says something actionable about
+naming inside a private codebase. If it does not, the pilot found a coincidence in
+twenty trials, which is exactly what twenty trials are for.
 
 ## 8. Pre-registration and analysis
 

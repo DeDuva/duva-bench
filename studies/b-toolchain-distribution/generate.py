@@ -43,7 +43,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from tasks import TASKS, Task  # noqa: E402
+from hard_tasks import HARD_TASKS  # noqa: E402
+from tasks import TASKS as EASY_TASKS  # noqa: E402
+from tasks import Task  # noqa: E402
+
+TASKS = EASY_TASKS + HARD_TASKS
 
 STUDY = Path(__file__).resolve().parent
 TASK_ROOT = STUDY / "tasks"
@@ -64,6 +68,8 @@ OSS_TOOLCHAIN = """\
 This is a standard Python project.
 
 - Each package is a directory under `{src}/`.
+- A package's module is imported by its own name: the code in `{src}/stats/` is
+  reached with `from stats import ...`, not `from stats.stats import ...`.
 - Tests are in `{tests}/`.
 - Run the tests with `{runner} {verb}`.
 """
@@ -75,6 +81,8 @@ This is a monorepo. Code lives under `depot/`, and every directory that produces
 something has a `BUILD` file declaring its targets.
 
 - A target is named by its path from the depot root: `//depot/stats:stats`.
+- A package's module is imported by its own name: the code in `depot/stats/` is
+  reached with `from stats import ...`, not `from depot.stats import ...`.
 - A target that uses another must **declare it** in that target's `deps`. A
   build with an undeclared dependency fails even if the import would work.
 - Build and test with the depot's driver:
@@ -105,8 +113,10 @@ limitation.
 """
 
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # Overridable so the driver can be tested against a temporary depot. The default
@@ -167,33 +177,59 @@ def resolve(label):
     return package, targets[name]
 
 
-def roots_for(label, seen=None):
-    """Directories a target may import from, following declared deps only."""
+def packages_for(label, seen=None):
+    """Package names a target may import, following declared deps only."""
     seen = seen if seen is not None else set()
     if label in seen:
         return []
     seen.add(label)
     package, target = resolve(label)
-    roots = [str(DEPOT / package)]
+    names = [package]
     for dep in target["deps"]:
-        roots.extend(roots_for(dep, seen))
-    return roots
+        names.extend(packages_for(dep, seen))
+    return names
+
+
+def declared_root(label):
+    """A directory holding exactly the packages `label` declared.
+
+    Packages are real Python packages, so a package is found by its *parent*
+    being on the path — and putting the depot root there would make every
+    package importable and the declaration rule decorative. So the parent is
+    built: a directory of symlinks to the declared packages and nothing else.
+
+    An import that works by accident of the filesystem is precisely what a
+    declared build exists to prevent, and this is where that is enforced.
+    """
+    root = Path(tempfile.mkdtemp(prefix="dbuild-"))
+    for package in sorted(set(packages_for(label))):
+        link = root / package
+        if not link.exists():
+            link.symlink_to(DEPOT / package)
+    return root
 
 
 def run_test(label):
     package, target = resolve(label)
     if target["kind"] != "py_test":
         raise SystemExit(f"{label} is not a py_test")
-    # Only declared dependencies are importable. An import that works by
-    # accident of the filesystem is exactly what a declared build prevents.
-    completed = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", *target["srcs"]],
-        cwd=str(DEPOT / package),
-        env={
-            "PATH": "/usr/local/bin:/usr/bin:/bin",
-            "PYTHONPATH": ":".join(sorted(set(roots_for(label)))),
-        },
-    )
+    root = declared_root(label)
+    try:
+        completed = subprocess.run(
+            # `--import-mode=importlib` is load-bearing. Packages carry an
+            # `__init__.py`, so pytest's default mode walks up past them looking
+            # for a directory without one, finds the depot root, and puts *that*
+            # on sys.path — which makes every package importable and the
+            # declaration rule decorative. importlib mode imports the test
+            # without touching sys.path, so PYTHONPATH decides, which is the
+            # whole point.
+            [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+             "--import-mode=importlib", *target["srcs"]],
+            cwd=str(DEPOT / package),
+            env={"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONPATH": str(root)},
+        )
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
     return completed.returncode
 
 
@@ -229,7 +265,7 @@ def main(argv):
     if command in ("test", "build") and len(argv) > 2:
         label = argv[2]
         if command == "build":
-            roots_for(label)
+            packages_for(label)
             print(f"BUILD OK {label}")
             return 0
         return run_test(label)
@@ -255,6 +291,22 @@ timeout_sec = 900
 [verifier]
 timeout_sec = 180
 """
+
+
+def module_name(package_name: str, module: str) -> str:
+    """Where a package's module lives on disk.
+
+    A package's own module becomes ``__init__.py``. Writing it as
+    ``config/config.py`` made `config` look like a package containing a module,
+    and agents repeatedly wrote `from config.config import merge` — which is
+    wrong, because only the package's *own* directory was on the path. Stating
+    the convention in the instruction reduced it and did not stop it: the layout
+    says one thing and prose says another, and the layout wins.
+
+    As `__init__.py` there is nothing to be wrong about. `from config import
+    merge` is the only reading, and it is the ordinary one.
+    """
+    return "__init__.py" if module == f"{package_name}.py" else module
 
 
 def write(path: Path, body: str, executable: bool = False) -> None:
@@ -344,7 +396,7 @@ SPEC = {{
 # Where the container's /workspace was collected to. The verifier copies it, so
 # the grader sees the work product without needing the container to still exist.
 WORKSPACE = "workspace"
-ENTRY_MODULE = "{entry_module}.py"
+ENTRY_PACKAGE = "{entry_module}"
 
 # **The layout is discovered, not assumed.** One grader serves all three
 # toolchains: `src/report/report.py`, `kelvra/report/report.py` and
@@ -377,17 +429,46 @@ def main(argv: list[str]) -> int:
         json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
         return 0
 
-    entry = next(iter(sorted(root.rglob(ENTRY_MODULE))), None)
+    # A package's module is its `__init__.py`, so the entry is found by its
+    # *directory* name. Searching for `<entry>.py` found nothing once packages
+    # became packages, and every axis of a 60-trial pilot came back unscored
+    # while every trial had in fact been solved.
+    entry = next(
+        (
+            path / "__init__.py"
+            for path in sorted(root.rglob(ENTRY_PACKAGE))
+            if path.is_dir() and (path / "__init__.py").is_file()
+        ),
+        None,
+    )
     tests = sorted(root.rglob("test_*.py"))
     if entry is None:
-        reason = f"no {{ENTRY_MODULE}} anywhere under {{root}}"
+        reason = f"no {{ENTRY_PACKAGE}}/__init__.py anywhere under {{root}}"
         axes = {{"acceptance": unscored(reason), "discipline": unscored(reason)}}
         json.dump({{"spec": SPEC, "axes": axes}}, sys.stdout, sort_keys=True)
         return 0
 
-    # Every directory holding a module is importable, which is what each
-    # toolchain arranges in its own way and what the grader must not care about.
-    roots = sorted({{str(path.parent) for path in root.rglob("*.py")}})
+    # A package is found through its *parent*, so the importable roots are the
+    # directories holding packages — `src`, `kelvra`, `depot` — not the package
+    # directories themselves. Adding the package directories instead made every
+    # import fail, which the grader then reported as work that was never done.
+    # Two kinds of root, because the container has both and a grader that has
+    # fewer scores solved work as unsolved:
+    #
+    #   * the directory holding the packages — `src`, `kelvra`, `depot` — since
+    #     a package is found through its parent;
+    #   * the workspace itself, because inside the container the agent's cwd is
+    #     /workspace and Python puts the cwd on the path. An agent that writes
+    #     `from kelvra.stats import mean` is therefore *correct in the
+    #     container*, and a grader without the workspace root marks it wrong.
+    roots = sorted(
+        {{
+            str(path.parent.parent)
+            for path in root.rglob("__init__.py")
+            if path.parent.parent != path.parent
+        }}
+        | {{str(root)}}
+    )
 
     script = CHECK
     for name, value in (
@@ -477,6 +558,30 @@ def solution(edits: list[tuple[str, list[tuple[str, str]]]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def whole_file_oracle(task: Task, layout: dict[str, str]) -> str:
+    """An oracle that writes files outright.
+
+    For a task whose starting point is a stub that raises, there is nothing to
+    substitute into, and an oracle expressed as edits would be a fiction about
+    how the work is done.
+    """
+    lines = [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        "python3 - <<'ORACLE'",
+        "from pathlib import Path",
+    ]
+    for key, body in task.oracle_files.items():
+        target = layout.get(key)
+        if target is None:
+            raise SystemExit(f"{task.slug}: no place for oracle file {key!r} in this substrate")
+        lines.append(f"p = Path({target!r})")
+        lines.append("p.parent.mkdir(parents=True, exist_ok=True)")
+        lines.append(f"p.write_text({body!r})")
+    lines.append("ORACLE")
+    return "\n".join(lines) + "\n"
+
+
 def oracle_edits(
     task: Task, entry_source: str, test_path: str, roots: list[str]
 ) -> list[tuple[str, list[tuple[str, str]]]]:
@@ -539,7 +644,7 @@ def oracle_edits(
     if task.slug == "fix-spread":
         # The defect is in the library, which is a different file from the one
         # the failure is reported in — that is the task.
-        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        stats_source = f"{roots[0]}/stats/__init__.py"
         return [
             (
                 stats_source,
@@ -547,7 +652,7 @@ def oracle_edits(
             )
         ]
     if task.slug == "strict-mode":
-        stats_source = next(r for r in roots if r.endswith("/stats")) + "/stats.py"
+        stats_source = f"{roots[0]}/stats/__init__.py"
         return [
             (
                 stats_source,
@@ -599,20 +704,27 @@ def build_flat(task: Task, root: Path, words: dict[str, str]) -> None:
     env = root / "environment"
     for package in task.packages:
         for name, body in package.modules.items():
-            write(env / words["src"] / package.name / name, body)
+            write(env / words["src"] / package.name / module_name(package.name, name), body)
     for name, body in task.tests.items():
         write(env / words["tests"] / name, body)
 
     # Only the packages the entry already needs are on the path. A task that
     # requires reaching a *new* one is a task about this toolchain's way of
     # making a package reachable, which is the contrast the study draws.
-    entry = next(p for p in task.packages if p.name == task.entry)
-    reachable = [entry.name, *entry.needs]
-    path = ":".join(f"{words['src']}/{name}" for name in reachable)
+    # The source root, not each package directory: packages are packages now.
+    # A task that requires reaching a *new* package is still about the
+    # toolchain's way of making one reachable — here that is the source root
+    # being on the path at all, and in the depot it is a declared dependency.
+    path = words["src"]
     runner_file = "Makefile" if words["runner"] == "make" else f"{words['runner']}file"
     write(
         env / runner_file,
-        f"{words['verb']}:\n\tPYTHONPATH={path} python3 -m pytest -q {words['tests']}\n",
+        # `--import-mode=importlib` for the same reason the depot needs it: with
+        # packages carrying an `__init__.py`, pytest's default mode rewrites
+        # sys.path on its own, and a suite that passes for a reason the project
+        # did not arrange is a suite that will surprise somebody later.
+        f"{words['verb']}:\n\tPYTHONPATH={path} python3 -m pytest -q "
+        f"--import-mode=importlib {words['tests']}\n",
     )
 
     copies = [
@@ -633,19 +745,27 @@ def build_flat(task: Task, root: Path, words: dict[str, str]) -> None:
     write(env / "Dockerfile", dockerfile("".join(copies)))
     write(root / "instruction.md", task.problem + "\n" + OSS_TOOLCHAIN.format(**words))
 
-    roots = [f"/workspace/{words['src']}/{p.name}" for p in task.packages]
-    entry_source = f"/workspace/{words['src']}/{task.entry}/{task.entry}.py"
+    roots = [f"/workspace/{words['src']}"]
+    entry_source = f"/workspace/{words['src']}/{task.entry}/__init__.py"
     test_path = f"/workspace/{words['tests']}/{next(iter(task.tests))}"
     write(
         root / "tests" / "test.sh",
         verifier(task, roots, entry_source, test_path),
         executable=True,
     )
-    write(
-        root / "solution" / "solve.sh",
-        solution(oracle_edits(task, entry_source, test_path, roots)),
-        executable=True,
-    )
+    if task.oracle_files:
+        layout = {
+            f"{p.name}/{m}": f"/workspace/{words['src']}/{p.name}/{module_name(p.name, m)}"
+            for p in task.packages
+            for m in p.modules
+        }
+        layout.update(
+            {f"tests/{name}": f"/workspace/{words['tests']}/{name}" for name in task.tests}
+        )
+        body = whole_file_oracle(task, layout)
+    else:
+        body = solution(oracle_edits(task, entry_source, test_path, roots))
+    write(root / "solution" / "solve.sh", body, executable=True)
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))
     write_grader(task)
 
@@ -654,9 +774,11 @@ def build_proprietary(task: Task, root: Path) -> None:
     env = root / "environment"
     for package in task.packages:
         for name, body in package.modules.items():
-            write(env / "depot" / package.name / name, body)
+            write(env / "depot" / package.name / module_name(package.name, name), body)
         deps = "".join(f'        "//depot/{need}:{need}",\n' for need in package.needs)
-        srcs = "".join(f'        "{name}",\n' for name in package.modules)
+        srcs = "".join(
+            f'        "{module_name(package.name, name)}",\n' for name in package.modules
+        )
         build = (
             f'py_library(\n    name = "{package.name}",\n    srcs = [\n{srcs}    ],\n'
             f"    deps = [\n{deps}    ],\n)\n"
@@ -679,8 +801,8 @@ def build_proprietary(task: Task, root: Path) -> None:
     )
     write(root / "instruction.md", task.problem + "\n" + PROPRIETARY_TOOLCHAIN)
 
-    roots = [f"/workspace/depot/{p.name}" for p in task.packages]
-    entry_source = f"/workspace/depot/{task.entry}/{task.entry}.py"
+    roots = ["/workspace/depot"]
+    entry_source = f"/workspace/depot/{task.entry}/__init__.py"
     test_path = f"/workspace/depot/{task.entry}/{next(iter(task.tests))}"
     # The depot's own gate, on top of the shared acceptance check: a change that
     # works but leaves the build graph undeclared has not landed here.
@@ -691,21 +813,41 @@ def build_proprietary(task: Task, root: Path) -> None:
         executable=True,
     )
 
-    body = solution(oracle_edits(task, entry_source, test_path, roots))
-    if task.slug == "use-validator":
-        # The declaration this toolchain requires and the other two do not. It is
-        # the task's whole point, and without it presubmit rejects a change that
-        # is otherwise correct.
+    if task.oracle_files:
+        layout = {
+            f"{p.name}/{m}": f"/workspace/depot/{p.name}/{module_name(p.name, m)}"
+            for p in task.packages
+            for m in p.modules
+        }
+        # The depot keeps a package's tests beside it rather than in one tree.
+        layout.update(
+            {f"tests/{name}": f"/workspace/depot/{task.entry}/{name}" for name in task.tests}
+        )
+        body = whole_file_oracle(task, layout)
+    else:
+        body = solution(oracle_edits(task, entry_source, test_path, roots))
+    # Every package the entry does not already declare has to be declared, or
+    # presubmit rejects a change that is otherwise correct. That declaration *is*
+    # the toolchain work this arm exists to require, so the oracle has to do it —
+    # and generically, because a bespoke BUILD edit per task is easy to forget,
+    # and forgetting it turns a shared task into one only this arm fails.
+    entry_pkg = next(package for package in task.packages if package.name == task.entry)
+    undeclared = [
+        package.name
+        for package in task.packages
+        if package.name not in (task.entry, *entry_pkg.needs)
+    ]
+    if undeclared:
+        declarations = "".join(f'        "//depot/{name}:{name}",\n' for name in undeclared)
         body += (
-            "python3 - <<'PY'\n"
+            "python3 - <<'DEPS'\n"
             "from pathlib import Path\n"
             f"b = Path('/workspace/depot/{task.entry}/BUILD')\n"
             "body = b.read_text()\n"
-            "body = body.replace('        \"//depot/stats:stats\",\\n',\n"
-            '                    \'        "//depot/stats:stats",\\n'
-            '        "//depot/validate:validate",\\n\')\n'
+            "marker = '    deps = [\\n'\n"
+            f"body = body.replace(marker, marker + {declarations!r}, 1)\n"
             "b.write_text(body)\n"
-            "PY\n"
+            "DEPS\n"
         )
     write(root / "solution" / "solve.sh", body, executable=True)
     write(root / "task.toml", TASK_TOML.format(difficulty=task.difficulty))

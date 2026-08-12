@@ -1,0 +1,3793 @@
+{
+  "axes": {
+    "acceptance": {
+      "arms": [
+        {
+          "arm": "oss",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        },
+        {
+          "arm": "twin",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        }
+      ],
+      "axis": "acceptance",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "add-median/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "add-median/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "unavailable": "no task has scored trials in both 'oss' and 'proprietary'"
+          },
+          "twin": {
+            "unavailable": "no task has scored trials in both 'oss' and 'twin'"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "unavailable": "ICC needs at least two tasks"
+      },
+      "noise_floor": {
+        "unavailable": "no cell has two or more repetitions, so there is no within-cell variation to measure; a study with one repetition per cell has no noise floor"
+      },
+      "unscored_trials": {
+        "oss": 20,
+        "proprietary": 20,
+        "twin": 20
+      }
+    },
+    "discipline": {
+      "arms": [
+        {
+          "arm": "oss",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        },
+        {
+          "arm": "twin",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "unavailable": "no scored trials"
+          },
+          "mean": null,
+          "n": 0,
+          "unscored": 20
+        }
+      ],
+      "axis": "discipline",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "add-median/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "add-median/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "fix-spread/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "strict-mode/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/oss": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/proprietary": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        },
+        "use-validator/twin": {
+          "mean": null,
+          "n": 0,
+          "values": []
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "unavailable": "no task has scored trials in both 'oss' and 'proprietary'"
+          },
+          "twin": {
+            "unavailable": "no task has scored trials in both 'oss' and 'twin'"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "unavailable": "ICC needs at least two tasks"
+      },
+      "noise_floor": {
+        "unavailable": "no cell has two or more repetitions, so there is no within-cell variation to measure; a study with one repetition per cell has no noise floor"
+      },
+      "unscored_trials": {
+        "oss": 20,
+        "proprietary": 20,
+        "twin": 20
+      }
+    },
+    "process:hallucinated_call_rate": {
+      "arms": [
+        {
+          "arm": "oss",
+          "ci": {
+            "confidence": 0.95,
+            "high": 1.0,
+            "low": 1.0
+          },
+          "mean": 1.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "twin",
+          "ci": {
+            "confidence": 0.95,
+            "high": 1.0,
+            "low": 1.0
+          },
+          "mean": 1.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "confidence": 0.95,
+            "high": 1.0,
+            "low": 1.0
+          },
+          "mean": 1.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        }
+      ],
+      "axis": "process:hallucinated_call_rate",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "add-median/proprietary": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "add-median/twin": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "fix-spread/oss": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "fix-spread/proprietary": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "fix-spread/twin": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "strict-mode/oss": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "strict-mode/proprietary": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "strict-mode/twin": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "use-validator/oss": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "use-validator/proprietary": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        "use-validator/twin": {
+          "mean": 1.0,
+          "n": 5,
+          "values": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.0,
+              "low": 0.0
+            },
+            "delta": 0.0,
+            "delta_in_sd": {
+              "unavailable": "every repetition of every cell gave the same value"
+            },
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          },
+          "twin": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.0,
+              "low": 0.0
+            },
+            "delta": 0.0,
+            "delta_in_sd": {
+              "unavailable": "every repetition of every cell gave the same value"
+            },
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "between_tasks": 0.0,
+        "icc": 0.0,
+        "observations": 60,
+        "tasks": 12,
+        "within_tasks": 1.0
+      },
+      "noise_floor": {
+        "cells": 12,
+        "degrees_of_freedom": 48,
+        "pooled_sd": 0.0
+      },
+      "unscored_trials": {
+        "oss": 0,
+        "proprietary": 0,
+        "twin": 0
+      }
+    },
+    "process:metaprogramming_rate": {
+      "arms": [
+        {
+          "arm": "oss",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.0,
+            "low": 0.0
+          },
+          "mean": 0.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "twin",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.0,
+            "low": 0.0
+          },
+          "mean": 0.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.0,
+            "low": 0.0
+          },
+          "mean": 0.0,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        }
+      ],
+      "axis": "process:metaprogramming_rate",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "add-median/proprietary": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "add-median/twin": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fix-spread/oss": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fix-spread/proprietary": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fix-spread/twin": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "strict-mode/oss": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "strict-mode/proprietary": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "strict-mode/twin": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "use-validator/oss": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "use-validator/proprietary": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "use-validator/twin": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.0,
+              "low": 0.0
+            },
+            "delta": 0.0,
+            "delta_in_sd": {
+              "unavailable": "every repetition of every cell gave the same value"
+            },
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          },
+          "twin": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.0,
+              "low": 0.0
+            },
+            "delta": 0.0,
+            "delta_in_sd": {
+              "unavailable": "every repetition of every cell gave the same value"
+            },
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "between_tasks": 0.0,
+        "icc": 0.0,
+        "observations": 60,
+        "tasks": 12,
+        "within_tasks": 1.0
+      },
+      "noise_floor": {
+        "cells": 12,
+        "degrees_of_freedom": 48,
+        "pooled_sd": 0.0
+      },
+      "unscored_trials": {
+        "oss": 0,
+        "proprietary": 0,
+        "twin": 0
+      }
+    },
+    "process:retry_rate": {
+      "arms": [
+        {
+          "arm": "oss",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.09558242411183587,
+            "low": 0.055511363636363636
+          },
+          "mean": 0.07361002151443327,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "twin",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.09738095238095239,
+            "low": 0.029726053100666103
+          },
+          "mean": 0.06940859278320578,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.0878214329530119,
+            "low": 0.05423734005932149
+          },
+          "mean": 0.06937065415664487,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        }
+      ],
+      "axis": "process:retry_rate",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": 0.07121212121212121,
+          "n": 5,
+          "values": [
+            0.09090909090909091,
+            0.0,
+            0.09090909090909091,
+            0.08333333333333333,
+            0.09090909090909091
+          ]
+        },
+        "add-median/proprietary": {
+          "mean": 0.07011904761904761,
+          "n": 5,
+          "values": [
+            0.08333333333333333,
+            0.0625,
+            0.06666666666666667,
+            0.07142857142857142,
+            0.06666666666666667
+          ]
+        },
+        "add-median/twin": {
+          "mean": 0.07666666666666667,
+          "n": 5,
+          "values": [
+            0.1,
+            0.1,
+            0.08333333333333333,
+            0.0,
+            0.1
+          ]
+        },
+        "fix-spread/oss": {
+          "mean": 0.10468975468975468,
+          "n": 5,
+          "values": [
+            0.07142857142857142,
+            0.125,
+            0.125,
+            0.09090909090909091,
+            0.1111111111111111
+          ]
+        },
+        "fix-spread/proprietary": {
+          "mean": 0.09888888888888889,
+          "n": 5,
+          "values": [
+            0.1111111111111111,
+            0.1,
+            0.1,
+            0.1,
+            0.08333333333333333
+          ]
+        },
+        "fix-spread/twin": {
+          "mean": 0.10428571428571429,
+          "n": 5,
+          "values": [
+            0.07142857142857142,
+            0.08333333333333333,
+            0.16666666666666666,
+            0.1,
+            0.1
+          ]
+        },
+        "strict-mode/oss": {
+          "mean": 0.050277777777777775,
+          "n": 5,
+          "values": [
+            0.06666666666666667,
+            0.0625,
+            0.05555555555555555,
+            0.06666666666666667,
+            0.0
+          ]
+        },
+        "strict-mode/proprietary": {
+          "mean": 0.053855614973262037,
+          "n": 5,
+          "values": [
+            0.04,
+            0.045454545454545456,
+            0.0625,
+            0.0625,
+            0.058823529411764705
+          ]
+        },
+        "strict-mode/twin": {
+          "mean": 0.01111111111111111,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.05555555555555555
+          ]
+        },
+        "use-validator/oss": {
+          "mean": 0.06826043237807944,
+          "n": 5,
+          "values": [
+            0.06666666666666667,
+            0.058823529411764705,
+            0.08333333333333333,
+            0.05555555555555555,
+            0.07692307692307693
+          ]
+        },
+        "use-validator/proprietary": {
+          "mean": 0.05461906514538093,
+          "n": 5,
+          "values": [
+            0.045454545454545456,
+            0.07692307692307693,
+            0.05263157894736842,
+            0.05263157894736842,
+            0.045454545454545456
+          ]
+        },
+        "use-validator/twin": {
+          "mean": 0.08557087906933109,
+          "n": 5,
+          "values": [
+            0.05263157894736842,
+            0.11764705882352941,
+            0.06666666666666667,
+            0.1,
+            0.09090909090909091
+          ]
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.0012423818012053285,
+              "low": -0.010504293822792282
+            },
+            "delta": -0.004239367357788411,
+            "delta_in_sd": -0.16346456785547328,
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          },
+          "twin": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.012881824917428637,
+              "low": -0.028011363636363636
+            },
+            "delta": -0.004201428731227488,
+            "delta_in_sd": -0.16200170307579856,
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "between_tasks": 0.4627112832660846,
+        "icc": 0.4627112832660846,
+        "observations": 60,
+        "tasks": 12,
+        "within_tasks": 0.5372887167339153
+      },
+      "noise_floor": {
+        "cells": 12,
+        "degrees_of_freedom": 48,
+        "pooled_sd": 0.025934472610215045
+      },
+      "unscored_trials": {
+        "oss": 0,
+        "proprietary": 0,
+        "twin": 0
+      }
+    },
+    "process:tool_error_rate": {
+      "arms": [
+        {
+          "arm": "twin",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.1170006584216101,
+            "low": 0.04371794871794872
+          },
+          "mean": 0.08035930356977941,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "oss",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.05215011961722488,
+            "low": 0.03128079436902966
+          },
+          "mean": 0.04050908736086754,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        },
+        {
+          "arm": "proprietary",
+          "ci": {
+            "confidence": 0.95,
+            "high": 0.040655462184873946,
+            "low": 0.00875046006624954
+          },
+          "mean": 0.027679731774933013,
+          "n": 20,
+          "tasks": 4,
+          "unscored": 0
+        }
+      ],
+      "axis": "process:tool_error_rate",
+      "banded": false,
+      "cells": {
+        "add-median/oss": {
+          "mean": 0.028431372549019607,
+          "n": 5,
+          "values": [
+            0.0,
+            0.058823529411764705,
+            0.0,
+            0.08333333333333333,
+            0.0
+          ]
+        },
+        "add-median/proprietary": {
+          "mean": 0.04345238095238095,
+          "n": 5,
+          "values": [
+            0.08333333333333333,
+            0.0625,
+            0.0,
+            0.07142857142857142,
+            0.0
+          ]
+        },
+        "add-median/twin": {
+          "mean": 0.05076923076923077,
+          "n": 5,
+          "values": [
+            0.0,
+            0.1,
+            0.0,
+            0.15384615384615385,
+            0.0
+          ]
+        },
+        "fix-spread/oss": {
+          "mean": 0.03636363636363636,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.18181818181818182,
+            0.0
+          ]
+        },
+        "fix-spread/proprietary": {
+          "mean": 0.0,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "fix-spread/twin": {
+          "mean": 0.03666666666666667,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0,
+            0.08333333333333333,
+            0.1,
+            0.0
+          ]
+        },
+        "strict-mode/oss": {
+          "mean": 0.05741228070175438,
+          "n": 5,
+          "values": [
+            0.0,
+            0.0625,
+            0.0,
+            0.06666666666666667,
+            0.15789473684210525
+          ]
+        },
+        "strict-mode/proprietary": {
+          "mean": 0.03226470588235294,
+          "n": 5,
+          "values": [
+            0.04,
+            0.0,
+            0.0,
+            0.0625,
+            0.058823529411764705
+          ]
+        },
+        "strict-mode/twin": {
+          "mean": 0.10580917874396137,
+          "n": 5,
+          "values": [
+            0.08695652173913043,
+            0.043478260869565216,
+            0.1875,
+            0.1,
+            0.1111111111111111
+          ]
+        },
+        "use-validator/oss": {
+          "mean": 0.039829059829059835,
+          "n": 5,
+          "values": [
+            0.06666666666666667,
+            0.0,
+            0.0,
+            0.05555555555555555,
+            0.07692307692307693
+          ]
+        },
+        "use-validator/proprietary": {
+          "mean": 0.03500184026499816,
+          "n": 5,
+          "values": [
+            0.0,
+            0.07692307692307693,
+            0.0,
+            0.05263157894736842,
+            0.045454545454545456
+          ]
+        },
+        "use-validator/twin": {
+          "mean": 0.12819213809925883,
+          "n": 5,
+          "values": [
+            0.15789473684210525,
+            0.058823529411764705,
+            0.13333333333333333,
+            0.2,
+            0.09090909090909091
+          ]
+        }
+      },
+      "contrasts": {
+        "arms": {
+          "proprietary": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.005096894419649835,
+              "low": -0.0307556055915189
+            },
+            "delta": -0.012829355585934534,
+            "delta_in_sd": -0.2521367316865414,
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          },
+          "twin": {
+            "ci": {
+              "confidence": 0.95,
+              "high": 0.07185677325770204,
+              "low": 0.011320444261620733
+            },
+            "delta": 0.03985021620891186,
+            "delta_in_sd": 0.7831806675413123,
+            "mcnemar": {
+              "unavailable": "this metric is a rate rather than a pass/fail outcome, so there is no discordance table; read the interval"
+            },
+            "tasks": 4,
+            "vs": "oss"
+          }
+        },
+        "control": "oss",
+        "correction": "holm"
+      },
+      "icc": {
+        "between_tasks": 0.21065260330666424,
+        "icc": 0.21065260330666424,
+        "observations": 60,
+        "tasks": 12,
+        "within_tasks": 0.7893473966933358
+      },
+      "noise_floor": {
+        "cells": 12,
+        "degrees_of_freedom": 48,
+        "pooled_sd": 0.05088253306100637
+      },
+      "unscored_trials": {
+        "oss": 0,
+        "proprietary": 0,
+        "twin": 0
+      }
+    }
+  },
+  "cost": {
+    "by_arm": {
+      "oss": {
+        "cost_micro_usd": 3640699,
+        "priced_micro_usd": 3640699,
+        "tokens_in": 7260452,
+        "tokens_out": 410739,
+        "trials": 20,
+        "unpriced_trials": 0
+      },
+      "proprietary": {
+        "cost_micro_usd": 3408625,
+        "priced_micro_usd": 3408625,
+        "tokens_in": 8749860,
+        "tokens_out": 331921,
+        "trials": 20,
+        "unpriced_trials": 0
+      },
+      "twin": {
+        "cost_micro_usd": 5437159,
+        "priced_micro_usd": 5437159,
+        "tokens_in": 10927339,
+        "tokens_out": 653075,
+        "trials": 20,
+        "unpriced_trials": 0
+      }
+    },
+    "priced_micro_usd": 12486483,
+    "priced_trials": 60,
+    "priced_usd": 12.486483,
+    "tokens_in": 26937651,
+    "tokens_out": 1395735,
+    "total_micro_usd": 12486483,
+    "total_usd": 12.486483,
+    "unpriced_trials": 0
+  },
+  "evidence": {
+    "digests": {
+      "grader_spec_digests": {
+        "acceptance": [
+          "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7",
+          "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c",
+          "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5",
+          "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        ],
+        "discipline": [
+          "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7",
+          "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c",
+          "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5",
+          "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        ]
+      },
+      "grader_spec_digests_by_task": {
+        "add-median/acceptance": [
+          "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        ],
+        "add-median/discipline": [
+          "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        ],
+        "fix-spread/acceptance": [
+          "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        ],
+        "fix-spread/discipline": [
+          "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        ],
+        "strict-mode/acceptance": [
+          "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        ],
+        "strict-mode/discipline": [
+          "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        ],
+        "use-validator/acceptance": [
+          "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        ],
+        "use-validator/discipline": [
+          "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        ]
+      },
+      "harness_digests": {
+        "oss": [
+          "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211+duva-bench/2"
+        ],
+        "proprietary": [
+          "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211+duva-bench/2"
+        ],
+        "twin": [
+          "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211+duva-bench/2"
+        ]
+      },
+      "split_arms": [],
+      "split_axes": [],
+      "split_cells": []
+    },
+    "error_refs": [],
+    "errors": 0,
+    "missing_tasks": [],
+    "out_of_scope": [],
+    "out_of_scope_runs": 0,
+    "read_errors": [],
+    "trials": 60,
+    "verified": 60
+  },
+  "pre_registration": {
+    "amended": false,
+    "amendments": [],
+    "as_analyzed": {
+      "amendments": [],
+      "control_arm": "oss",
+      "exclusion_rules": [
+        "A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.",
+        "A trial whose grader crashed is unscored and is excluded from that axis, never scored zero.",
+        "The twin arm is the instrument's own control; a difference between twin and oss is measurement noise or a familiarity effect, and the report states the noise floor before either is read."
+      ],
+      "metaprogramming_allowed": true,
+      "primary_metric": "acceptance",
+      "repetitions": 5,
+      "secondary_metrics": [
+        "discipline"
+      ]
+    },
+    "as_registered": {
+      "amendments": [],
+      "control_arm": "oss",
+      "exclusion_rules": [
+        "A trial whose ADP /verify is not ok:true is ERROR and is excluded from statistics, counted separately.",
+        "A trial whose grader crashed is unscored and is excluded from that axis, never scored zero.",
+        "The twin arm is the instrument's own control; a difference between twin and oss is measurement noise or a familiarity effect, and the report states the noise floor before either is read."
+      ],
+      "metaprogramming_allowed": true,
+      "primary_metric": "acceptance",
+      "repetitions": 5,
+      "secondary_metrics": [
+        "discipline"
+      ]
+    },
+    "digest": "sha256:4215f18fae9008d5acb21724af9c5632933f9ae037e11ec467e660d887228c6a",
+    "original_digest": "sha256:4215f18fae9008d5acb21724af9c5632933f9ae037e11ec467e660d887228c6a"
+  },
+  "process": {
+    "oss": {
+      "hallucinated_call_rate": 1.0,
+      "metaprogramming_rate": 0.0,
+      "retry_rate": 0.06666666666666667,
+      "tool_calls": 270,
+      "tool_error_rate": 0.044444444444444446,
+      "tool_failures": 12,
+      "trials": 20,
+      "unknown_names": [
+        "bash_command",
+        "mark_task_complete"
+      ]
+    },
+    "proprietary": {
+      "hallucinated_call_rate": 1.0,
+      "metaprogramming_rate": 0.0,
+      "retry_rate": 0.06369426751592357,
+      "tool_calls": 314,
+      "tool_error_rate": 0.028662420382165606,
+      "tool_failures": 9,
+      "trials": 20,
+      "unknown_names": [
+        "bash_command",
+        "mark_task_complete"
+      ]
+    },
+    "twin": {
+      "hallucinated_call_rate": 1.0,
+      "metaprogramming_rate": 0.0,
+      "retry_rate": 0.05964912280701754,
+      "tool_calls": 285,
+      "tool_error_rate": 0.08421052631578947,
+      "tool_failures": 24,
+      "trials": 20,
+      "unknown_names": [
+        "bash_command",
+        "mark_task_complete"
+      ]
+    }
+  },
+  "study": {
+    "adp": {
+      "owner": "duva",
+      "repo": "bench-studyb2"
+    },
+    "arms": {
+      "oss": {
+        "arm": "oss",
+        "arm_digest": "sha256:722286dca0fb05b0212dfdd4e9599a43a8bc080bf351c47b800580b9df23e646",
+        "docs": "none",
+        "harness": "terminus-2@0.20.0",
+        "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+        "model": "anthropic/claude-haiku-4-5-20251001",
+        "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+        "substrate": "oss",
+        "toolset": "shell",
+        "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+      },
+      "proprietary": {
+        "arm": "proprietary",
+        "arm_digest": "sha256:ff1508514eadc6cb9d1af5c1f65bc2f9c9537578db30cf03109598c5251975c3",
+        "docs": "none",
+        "harness": "terminus-2@0.20.0",
+        "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+        "model": "anthropic/claude-haiku-4-5-20251001",
+        "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+        "substrate": "proprietary",
+        "toolset": "shell",
+        "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+      },
+      "twin": {
+        "arm": "twin",
+        "arm_digest": "sha256:11702d75308ea103da46c1831f66ca1cc7f101d0103a25329505649a5bdcfda7",
+        "docs": "none",
+        "harness": "terminus-2@0.20.0",
+        "harness_digest": "sha256:820ad62b0073c9da940e61750aeee8ac329de46a6a80aed15924d3da74de3211",
+        "model": "anthropic/claude-haiku-4-5-20251001",
+        "model_digest": "sha256:2423a6bcb8b7f376621e3bdc55b4252325744596aef4304ec767965761087ad4",
+        "substrate": "twin",
+        "toolset": "shell",
+        "toolset_digest": "sha256:1873a5561729c8a1fe8b7f537e598931cdc459d56baf0fa5846e77d3e1771178"
+      }
+    },
+    "bootstrap_seed": 20260807,
+    "budget_usd_cap": "15.00",
+    "digest": "sha256:ed1bb8235a36f1852f2edd977ccb99eb380196f483019c49455a3d149d40a80b",
+    "repetitions": 5,
+    "tasks": [
+      "use-validator",
+      "add-median",
+      "fix-spread",
+      "strict-mode"
+    ],
+    "title": "duva-bench Study B pilot 2 \u2014 toolchain familiarity on a model with headroom"
+  },
+  "trials": [
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 42520,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:use-validator:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 22,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.045454545454545456,
+        "tool_calls": 22,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "e7f59457-8ddc-47a0-bc4f-25eeb69911fd",
+      "task": "use-validator",
+      "tokens_in": 56892,
+      "tokens_out": 3597,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 101448,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:use-validator:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 13,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.07692307692307693,
+        "tool_calls": 13,
+        "tool_error_rate": 0.07692307692307693,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "1cac12d3-51d6-4ef0-a882-6c84da21b631",
+      "task": "use-validator",
+      "tokens_in": 150575,
+      "tokens_out": 13534,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 234483,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:use-validator:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 19,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05263157894736842,
+        "tool_calls": 19,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "855d98da-e3f9-45f4-9aeb-b69b9814b7fd",
+      "task": "use-validator",
+      "tokens_in": 521031,
+      "tokens_out": 29088,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 200807,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:use-validator:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 19,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05263157894736842,
+        "tool_calls": 19,
+        "tool_error_rate": 0.05263157894736842,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "dbe62a27-eb32-4258-9a4c-77e831783b77",
+      "task": "use-validator",
+      "tokens_in": 353895,
+      "tokens_out": 26267,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 239392,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:use-validator:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 22,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.045454545454545456,
+        "tool_calls": 22,
+        "tool_error_rate": 0.045454545454545456,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "7c5a2176-d77b-441d-b9ae-342fdf5a242d",
+      "task": "use-validator",
+      "tokens_in": 1414033,
+      "tokens_out": 3373,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 275992,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:use-validator:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 19,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05263157894736842,
+        "tool_calls": 19,
+        "tool_error_rate": 0.15789473684210525,
+        "tool_failures": 3,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "766d1fcf-5d40-4722-9c1c-b2f3466f2dc8",
+      "task": "use-validator",
+      "tokens_in": 491885,
+      "tokens_out": 36374,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 311702,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:use-validator:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 17,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 2,
+        "retry_rate": 0.11764705882352941,
+        "tool_calls": 17,
+        "tool_error_rate": 0.058823529411764705,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "87165a36-973b-4f5b-a085-90eaea2011ab",
+      "task": "use-validator",
+      "tokens_in": 499091,
+      "tokens_out": 42698,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 85161,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:use-validator:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.13333333333333333,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "e989ccf6-ff82-4676-bbd9-10e0435469c6",
+      "task": "use-validator",
+      "tokens_in": 134966,
+      "tokens_out": 11260,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 275504,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:use-validator:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.2,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "ff344a81-2f6a-436e-8054-03b8bec465a7",
+      "task": "use-validator",
+      "tokens_in": 268255,
+      "tokens_out": 40224,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 150905,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:use-validator:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 11,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.09090909090909091,
+        "tool_calls": 11,
+        "tool_error_rate": 0.09090909090909091,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "816c36f0-33d2-4356-a637-cc896c3b5847",
+      "task": "use-validator",
+      "tokens_in": 652962,
+      "tokens_out": 1758,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 170908,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:use-validator:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.06666666666666667,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "b9d91e04-d251-478b-b285-54efd3b2d5af",
+      "task": "use-validator",
+      "tokens_in": 862135,
+      "tokens_out": 2328,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 49257,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:use-validator:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 17,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.058823529411764705,
+        "tool_calls": 17,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "0e4e2b9f-30e9-4e3a-b394-569452f84054",
+      "task": "use-validator",
+      "tokens_in": 50686,
+      "tokens_out": 6595,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 115862,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:use-validator:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "f337e3a8-aa25-458e-80b2-288da506ec66",
+      "task": "use-validator",
+      "tokens_in": 116093,
+      "tokens_out": 16555,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 129992,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:use-validator:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 18,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05555555555555555,
+        "tool_calls": 18,
+        "tool_error_rate": 0.05555555555555555,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "4ed55bc3-6f1a-4836-982f-44dfc793c6f3",
+      "task": "use-validator",
+      "tokens_in": 136199,
+      "tokens_out": 18782,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "8fc5ae645fd9be6a0bf45333c447b725059e780facdb701e73ff997c8b432db5"
+        }
+      },
+      "cost_micro_usd": 423148,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:use-validator:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 13,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.07692307692307693,
+        "tool_calls": 13,
+        "tool_error_rate": 0.07692307692307693,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "427ca823-f05e-4c5b-9789-4fc6478374ea",
+      "task": "use-validator",
+      "tokens_in": 530410,
+      "tokens_out": 60364,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 38592,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:add-median:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.08333333333333333,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "7d2463d3-941e-4721-87be-2d0e5afddb82",
+      "task": "add-median",
+      "tokens_in": 32593,
+      "tokens_out": 2485,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 46657,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:add-median:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 16,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.0625,
+        "tool_calls": 16,
+        "tool_error_rate": 0.0625,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "18c49bb1-1145-471c-9cdb-76c6d3ef4e75",
+      "task": "add-median",
+      "tokens_in": 51542,
+      "tokens_out": 3004,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 46219,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:add-median:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "bfeb20a6-0b5b-4669-bb93-ff297e296b06",
+      "task": "add-median",
+      "tokens_in": 51773,
+      "tokens_out": 2868,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 45072,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:add-median:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 14,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.07142857142857142,
+        "tool_calls": 14,
+        "tool_error_rate": 0.07142857142857142,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "e5d63c24-353f-4e6a-a8c6-ffc86c30d4f0",
+      "task": "add-median",
+      "tokens_in": 42414,
+      "tokens_out": 2748,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 222538,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:add-median:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "57619069-1643-4f2f-8152-6cc8735b3dab",
+      "task": "add-median",
+      "tokens_in": 389569,
+      "tokens_out": 29701,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 23146,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:add-median:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "92f55dbe-b1a4-448a-9fff-6bdac5ac95e3",
+      "task": "add-median",
+      "tokens_in": 13851,
+      "tokens_out": 1859,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 31239,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:add-median:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.1,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "c399b606-b002-4521-9d94-b8fc4872f919",
+      "task": "add-median",
+      "tokens_in": 21389,
+      "tokens_out": 1970,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 125627,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:add-median:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "db7305aa-c6d0-493a-aa8b-eb6a249248a6",
+      "task": "add-median",
+      "tokens_in": 476844,
+      "tokens_out": 1592,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 261518,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:add-median:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 13,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 13,
+        "tool_error_rate": 0.15384615384615385,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "0fbbf733-b5b9-47a1-b697-232a905bf192",
+      "task": "add-median",
+      "tokens_in": 720916,
+      "tokens_out": 22125,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 24386,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:add-median:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "7b1d78d9-4dd3-424d-836f-0e3ea561e313",
+      "task": "add-median",
+      "tokens_in": 14321,
+      "tokens_out": 2013,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 198674,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:add-median:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 11,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.09090909090909091,
+        "tool_calls": 11,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "29b663f4-f039-45ed-9256-f41ac28d1cd1",
+      "task": "add-median",
+      "tokens_in": 250657,
+      "tokens_out": 28103,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 104419,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:add-median:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 17,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 17,
+        "tool_error_rate": 0.058823529411764705,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "aab6c31b-53c8-40b8-89a9-59a9853dced1",
+      "task": "add-median",
+      "tokens_in": 101044,
+      "tokens_out": 15018,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 162498,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:add-median:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 11,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.09090909090909091,
+        "tool_calls": 11,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "03fb18c2-0eaf-406d-a2c7-3e2b0793a7e4",
+      "task": "add-median",
+      "tokens_in": 225259,
+      "tokens_out": 22507,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 150711,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:add-median:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.08333333333333333,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "e3df586d-f0ad-4642-a175-52711c354d12",
+      "task": "add-median",
+      "tokens_in": 144437,
+      "tokens_out": 21981,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "22a2a2893520e3095fcdcd5b394fb937554d53df52442a4c72da2a18960aec7c"
+        }
+      },
+      "cost_micro_usd": 39203,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:add-median:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 11,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.09090909090909091,
+        "tool_calls": 11,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "cb9feae2-a08c-4754-b33b-db446598edb7",
+      "task": "add-median",
+      "tokens_in": 28908,
+      "tokens_out": 2059,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 389467,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:fix-spread:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 9,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1111111111111111,
+        "tool_calls": 9,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "2af52260-397e-424e-99ea-c4deddc79882",
+      "task": "fix-spread",
+      "tokens_in": 399327,
+      "tokens_out": 57456,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 151923,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:fix-spread:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "4ea37b1a-8aae-4a33-97a3-5ebde167ae5d",
+      "task": "fix-spread",
+      "tokens_in": 686425,
+      "tokens_out": 1973,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 465241,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:fix-spread:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "7a52f98f-5731-4a92-8288-8eb98377b052",
+      "task": "fix-spread",
+      "tokens_in": 557319,
+      "tokens_out": 66842,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 58137,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:fix-spread:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "a092deaa-53c5-4409-9c42-629bee887664",
+      "task": "fix-spread",
+      "tokens_in": 74675,
+      "tokens_out": 7846,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 149700,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:fix-spread:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "425b2049-2fc6-4fbc-88ed-a80f3ba19dd3",
+      "task": "fix-spread",
+      "tokens_in": 716537,
+      "tokens_out": 1543,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 31976,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:fix-spread:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 14,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.07142857142857142,
+        "tool_calls": 14,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "fbee3551-42df-44fd-8c43-2f173cac4c82",
+      "task": "fix-spread",
+      "tokens_in": 22568,
+      "tokens_out": 2481,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 44163,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:fix-spread:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.08333333333333333,
+        "tool_calls": 12,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "af663c60-6e39-4da8-8b1c-d894d6e0fc49",
+      "task": "fix-spread",
+      "tokens_in": 44138,
+      "tokens_out": 6022,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 168207,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:fix-spread:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 12,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 2,
+        "retry_rate": 0.16666666666666666,
+        "tool_calls": 12,
+        "tool_error_rate": 0.08333333333333333,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "593a1141-c842-4cf5-8c03-ff4bc594af11",
+      "task": "fix-spread",
+      "tokens_in": 122176,
+      "tokens_out": 25206,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 146929,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:fix-spread:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.1,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "c6960c45-2d45-478b-8d7f-4121b8afcbb7",
+      "task": "fix-spread",
+      "tokens_in": 84803,
+      "tokens_out": 22514,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 90806,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:fix-spread:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 10,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1,
+        "tool_calls": 10,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "f082149b-6994-494e-be37-4185788a0443",
+      "task": "fix-spread",
+      "tokens_in": 338185,
+      "tokens_out": 1425,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 344182,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:fix-spread:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 14,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.07142857142857142,
+        "tool_calls": 14,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "136f0344-cb02-4541-b6aa-8c826293ef33",
+      "task": "fix-spread",
+      "tokens_in": 557587,
+      "tokens_out": 47290,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 123147,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:fix-spread:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 8,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.125,
+        "tool_calls": 8,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "ee04ad55-1b81-45a4-bc5d-396073d14829",
+      "task": "fix-spread",
+      "tokens_in": 475715,
+      "tokens_out": 1235,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 122468,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:fix-spread:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 8,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.125,
+        "tool_calls": 8,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "a3a5ff9f-385f-4641-b81c-211abed4d0bc",
+      "task": "fix-spread",
+      "tokens_in": 474527,
+      "tokens_out": 1156,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 106761,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:fix-spread:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 11,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.09090909090909091,
+        "tool_calls": 11,
+        "tool_error_rate": 0.18181818181818182,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "46d6d278-3c92-4a7c-9c13-3024e7d43fd0",
+      "task": "fix-spread",
+      "tokens_in": 119734,
+      "tokens_out": 15105,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "0619ed50be28e0cb4f8624ad0a8377e3c6d3bf0709da713e208e4e7bbd2598b7"
+        }
+      },
+      "cost_micro_usd": 130149,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:fix-spread:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 9,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.1111111111111111,
+        "tool_calls": 9,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "83e7b058-c304-4518-a18b-eab7e83122cc",
+      "task": "fix-spread",
+      "tokens_in": 537566,
+      "tokens_out": 1310,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 244183,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:strict-mode:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 25,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.04,
+        "tool_calls": 25,
+        "tool_error_rate": 0.04,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "42e8526d-1f73-469e-83a0-1649524f16f7",
+      "task": "strict-mode",
+      "tokens_in": 1504643,
+      "tokens_out": 3968,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 66031,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:strict-mode:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 22,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.045454545454545456,
+        "tool_calls": 22,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "352e92f4-79cd-40e0-b851-973ed50525ed",
+      "task": "strict-mode",
+      "tokens_in": 126648,
+      "tokens_out": 5493,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 200556,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:strict-mode:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 16,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.0625,
+        "tool_calls": 16,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "478c4c50-40bf-478f-938c-6dacc5f0114e",
+      "task": "strict-mode",
+      "tokens_in": 374086,
+      "tokens_out": 25980,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 274452,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:strict-mode:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 16,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.0625,
+        "tool_calls": 16,
+        "tool_error_rate": 0.0625,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "73551949-ed9b-48ab-ae7f-27f9de3a6635",
+      "task": "strict-mode",
+      "tokens_in": 280572,
+      "tokens_out": 40088,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "proprietary",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 191207,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:proprietary:strict-mode:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 17,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.058823529411764705,
+        "tool_calls": 17,
+        "tool_error_rate": 0.058823529411764705,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "524262f4-5300-46b1-897d-6b3830d2f5eb",
+      "task": "strict-mode",
+      "tokens_in": 965311,
+      "tokens_out": 4067,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 776730,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:strict-mode:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 23,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 23,
+        "tool_error_rate": 0.08695652173913043,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "fc90b9c5-37c4-41ce-ab5b-160a2b58614a",
+      "task": "strict-mode",
+      "tokens_in": 1750710,
+      "tokens_out": 96509,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 618634,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:strict-mode:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 23,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 23,
+        "tool_error_rate": 0.043478260869565216,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "402a59bd-3d67-43de-9411-b7cf7ccb8a8b",
+      "task": "strict-mode",
+      "tokens_in": 1399882,
+      "tokens_out": 78092,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 503724,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:strict-mode:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 16,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 16,
+        "tool_error_rate": 0.1875,
+        "tool_failures": 3,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "4df18357-bd3e-45ed-87df-3b8434e3159e",
+      "task": "strict-mode",
+      "tokens_in": 1295785,
+      "tokens_out": 57683,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 791377,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:strict-mode:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 20,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 20,
+        "tool_error_rate": 0.1,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "cca835f5-8d24-449a-99c4-955a53eb4c99",
+      "task": "strict-mode",
+      "tokens_in": 1406308,
+      "tokens_out": 106142,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "twin",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 699433,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:twin:strict-mode:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 18,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05555555555555555,
+        "tool_calls": 18,
+        "tool_error_rate": 0.1111111111111111,
+        "tool_failures": 2,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "737465ae-a7fe-4cc0-a6cd-251bbc17ef2e",
+      "task": "strict-mode",
+      "tokens_in": 1168304,
+      "tokens_out": 95128,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 266284,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:strict-mode:r5",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 5,
+      "run_id": "d02d90a7-5137-43cb-9512-be06dad1a5d5",
+      "task": "strict-mode",
+      "tokens_in": 1120712,
+      "tokens_out": 13661,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 48514,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:strict-mode:r4",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 16,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.0625,
+        "tool_calls": 16,
+        "tool_error_rate": 0.0625,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 4,
+      "run_id": "49d67cae-d9cf-4a9d-b05e-bae65ff1dd28",
+      "task": "strict-mode",
+      "tokens_in": 62874,
+      "tokens_out": 6194,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 155782,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:strict-mode:r3",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 18,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.05555555555555555,
+        "tool_calls": 18,
+        "tool_error_rate": 0.0,
+        "tool_failures": 0,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 3,
+      "run_id": "ab8cb569-a7be-429b-9f49-6b2086f1eb94",
+      "task": "strict-mode",
+      "tokens_in": 225581,
+      "tokens_out": 20970,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 273437,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:strict-mode:r2",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 15,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 1,
+        "retry_rate": 0.06666666666666667,
+        "tool_calls": 15,
+        "tool_error_rate": 0.06666666666666667,
+        "tool_failures": 1,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 2,
+      "run_id": "5c10592c-0cc2-4a17-a55e-255ec7801a85",
+      "task": "strict-mode",
+      "tokens_in": 404065,
+      "tokens_out": 37596,
+      "verdict": "VERIFIED"
+    },
+    {
+      "arm": "oss",
+      "axes": {
+        "acceptance": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        },
+        "discipline": {
+          "passed": false,
+          "score": null,
+          "spec_digest": "eb097d4de2bec274dd1abe80a3d33ca15b829a47ce741bae73d30b8aea04b984"
+        }
+      },
+      "cost_micro_usd": 525303,
+      "duration_ms": 0,
+      "external_ref": "ed1bb8235a36:oss:strict-mode:r1",
+      "failures": [],
+      "process": {
+        "hallucinated_call_rate": 1.0,
+        "hallucinated_calls": 19,
+        "metaprogramming_calls": 0,
+        "metaprogramming_rate": 0.0,
+        "retries": 0,
+        "retry_rate": 0.0,
+        "tool_calls": 19,
+        "tool_error_rate": 0.15789473684210525,
+        "tool_failures": 3,
+        "unknown_names": [
+          "bash_command",
+          "mark_task_complete"
+        ]
+      },
+      "repetition": 1,
+      "run_id": "9e45cd2a-e703-4aa3-9bac-e9c95fae1677",
+      "task": "strict-mode",
+      "tokens_in": 836263,
+      "tokens_out": 71930,
+      "verdict": "VERIFIED"
+    }
+  ],
+  "warnings": []
+}

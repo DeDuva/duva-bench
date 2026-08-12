@@ -3,7 +3,10 @@
     "add-median",
     "use-validator",
     "fix-spread",
-    "strict-mode"
+    "strict-mode",
+    "topo-order",
+    "window-stats",
+    "merge-config"
   ],
   "variants": [
     "add-median-oss",
@@ -12,12 +15,21 @@
     "fix-spread-oss",
     "fix-spread-proprietary",
     "fix-spread-twin",
+    "merge-config-oss",
+    "merge-config-proprietary",
+    "merge-config-twin",
     "strict-mode-oss",
     "strict-mode-proprietary",
     "strict-mode-twin",
+    "topo-order-oss",
+    "topo-order-proprietary",
+    "topo-order-twin",
     "use-validator-oss",
     "use-validator-proprietary",
-    "use-validator-twin"
+    "use-validator-twin",
+    "window-stats-oss",
+    "window-stats-proprietary",
+    "window-stats-twin"
   ],
   "twin_words": {
     "src": "kelvra",

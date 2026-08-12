@@ -2,11 +2,11 @@
 set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
-p = Path('/workspace/kelvra/stats/stats.py')
+p = Path('/workspace/kelvra/stats/__init__.py')
 body = p.read_text()
 body = body.replace('def mean(values):\n    if not values:\n        raise ValueError("mean of no values")\n    return sum(values) / len(values)', 'def mean(values, *, strict=False):\n    if strict and any(value is None for value in values):\n        raise ValueError("mean of a series holding None")\n    kept = [value for value in values if value is not None]\n    if not kept:\n        raise ValueError("mean of no values")\n    return sum(kept) / len(kept)')
 p.write_text(body)
-p = Path('/workspace/kelvra/report/report.py')
+p = Path('/workspace/kelvra/report/__init__.py')
 body = p.read_text()
 body = body.replace('mean(clean)', 'mean(clean, strict=True)')
 body = body.replace('mean([mean(one) for one in series])', 'mean([mean(one, strict=True) for one in series], strict=True)')

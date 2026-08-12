@@ -1,2 +1,2 @@
 vess:
-	PYTHONPATH=kelvra/report:kelvra/stats python3 -m pytest -q brivols
+	PYTHONPATH=kelvra python3 -m pytest -q --import-mode=importlib brivols

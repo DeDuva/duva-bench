@@ -1,7 +1,7 @@
 py_library(
     name = "report",
     srcs = [
-        "report.py",
+        "__init__.py",
     ],
     deps = [
         "//depot/stats:stats",

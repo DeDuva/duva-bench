@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/depot/stats", "/workspace/depot/validate", "/workspace/depot/report"]:
+for root in ["/workspace/depot"]:
     sys.path.insert(0, root)
 try:
     from report import summarize
@@ -39,7 +39,7 @@ for bad in (["x", 1], [1, None], [1, True]):
     print(f"FAIL: summarize({bad}) was accepted", file=sys.stderr)
     raise SystemExit(1)
 
-source = open("/workspace/depot/report/report.py").read()
+source = open("/workspace/depot/report/__init__.py").read()
 if "numeric" not in source:
     print("FAIL: the entry module does not call the validator", file=sys.stderr)
     raise SystemExit(1)

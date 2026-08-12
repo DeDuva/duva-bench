@@ -189,10 +189,158 @@ by. `strict-mode` is the one task showing anything and is the place to look firs
 None of the above is a result about agents, toolchains, or familiarity. It is a
 result about this task set.
 
+## What the pilot's one gap was, 2026-08-10
+
+`strict-mode` cost the `proprietary` arm nearly double while `twin` matched
+`oss`, which by the twin's own logic means *structural, not naming*. The
+trajectories say what the structure was:
+
+| arm | tool calls | what it did |
+|---|---|---|
+| `oss` | 20 | explored, edited three files, ran the suite twice, stopped |
+| `proprietary` | 25 | the same edits, **plus a new test module for the library and a new `py_test` target for it**, then two `dbuild test` runs and two `dbuild presubmit` runs |
+
+The proprietary arm was not lost. It did **more work**, because the depot
+convention — every directory that produces something declares its targets —
+invites a test beside the library you just changed, and a named gate invites
+running it.
+
+That is the confound the design document's §9 warns about, caught on real data:
+**the arms were not doing the same amount of work**, so the cost gap is not a
+familiarity measure. It is also a finding in its own right — a convention that
+asks for more work costs more without anyone being unfamiliar with anything.
+The twin arm made it legible by *not* moving, which is the best evidence so far
+that the control does its job.
+
+## Calibration — difficulty is measured now, not asserted
+
+`calibrate.py` runs a task N times on the `oss` substrate alone (the cheapest
+arm, and the one a model should find easiest) and reports the pass rate and the
+verifier's reason for each failure. A task at 0/n or n/n cannot carry an outcome
+axis whatever the other arms do; the useful band is where repetitions of one
+cell actually differ.
+
+First pass, 3 reps, $1.43:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | 2/3 | 0.189 | 23.0 |
+| `window-stats` | 3/3 | 0.136 | 18.7 |
+| `merge-config` | 1/3 | 0.154 | 17.7 |
+
+Two of three landed in a usable band on the first attempt. `window-stats`
+saturated and was hardened rather than dropped: a rule was added that
+*interacts* with the others instead of sitting beside them — a gap removes a
+window without shifting the ones after it, which rules out the natural
+implementation of filtering the series before slicing it.
+
+Second pass, 5 reps, $3.23 — and the reasons mattered more than the rates:
+
+| task | pass rate | of the failures |
+|---|---|---|
+| `topo-order` | 1/5 | 2 were the `cycle-with-tail` rule, **2 were an import the task never explained** |
+| `window-stats` | 5/5 | — |
+| `merge-config` | 4/5 | **1, and it was the same import** |
+
+Three of six failures were the instrument, not the task. A package's code sits at
+`src/<pkg>/<pkg>.py` with its own directory on the path, so `from graph import
+resolve` is right and `from graph.graph import resolve` is wrong — and nothing
+said so. The two tasks that produced every one of those failures were exactly the
+two whose starting code contained no example import; `window-stats`, which shows
+`from stats import mean`, never hit it in ten runs.
+
+**Every toolchain's instruction now states the convention** in its own
+vocabulary. Half the measured difficulty of the hard tasks was an agent guessing
+something the task never told it — plausible noise, shaped exactly like the
+effect being hunted, and it would have entered a factorial as a familiarity
+signal.
+
+The lasting rule: **read the reasons, never only the rate.** `topo-order` at 1/5
+for mixed reasons and at 1/5 for the rule it was built around are different tasks
+wearing the same number.
+
+Fourth pass, 6 reps, on corrected specs — the decisive one:
+
+| task | pass rate | mean $ | mean steps |
+|---|---|---|---|
+| `topo-order` | **6/6** | 0.267 | 23.8 |
+| `window-stats` | **6/6** | 0.143 | 16.8 |
+| `merge-config` | **6/6** | 0.170 | 16.3 |
+
+Every task saturates. Across four rounds, **100% of the apparent difficulty was
+authoring defects** — an import convention the layout never explained, and an
+acceptance check that demanded a wrong answer:
+
+| round | topo | window | merge | measuring |
+|---|---|---|---|---|
+| 1 | 2/3 | 3/3 | 1/3 | unknown — reasons not recorded |
+| 2 | 1/5 | 5/5 | 4/5 | ambiguity, and a wrong spec |
+| 3 | 4/5 | 5/5 | 3/5 | ambiguity again; prose had not fixed it |
+| 4 | 6/6 | 6/6 | 6/6 | the tasks |
+
+Seven tasks authored, three of them built specifically to be failable, and none
+discriminates. The conclusion is not that they are too easy — it is that **a task
+of this size cannot discriminate this model**, and it took four rounds to see
+past our own defects to that.
+
+## The same tasks on a smaller model, 5 reps, $2.40
+
+Study B crosses model as a factor anyway, so the cheaper move than inventing a
+puzzle that defeats the strongest available model is to measure one the task set
+does not saturate.
+
+| task | `claude-sonnet-4-5` | `claude-haiku-4-5` |
+|---|---|---|
+| `topo-order` | 6/6 | **0/5** |
+| `window-stats` | 6/6 | 5/5 |
+| `merge-config` | 6/6 | 5/5 |
+| `strict-mode` | — | **2/5** |
+
+`topo-order`'s failures on the smaller model are the task, not the instrument:
+it reported `['a','b']` for two disjoint cycles (stopping at the first) and
+`['a','b','c','d']` for the cycle with a tail (the very answer the corrected
+spec now rejects). Genuine, and 0/5 — too hard here, in the same way 6/6 is too
+easy there. Both extremes have zero within-cell variance.
+
+`strict-mode` measured **2/5** here, which looked like the first task ever
+inside the usable band. **It was not, and the correction is the point.**
+
+Three of those five failures reported `no FAIL line recorded`. A failure whose
+reason is unknown cannot be classified as the task or the instrument, and every
+round so far has turned on exactly that distinction — so 2/5 was an unusable
+number wearing a useful one. `calibrate.py` now falls back through the verifier's
+error output and then the trial's own exception before admitting it has nothing.
+
+Re-measured with reasons captured, `strict-mode` is **5/5**. The three unexplained
+failures were trials that never finished, not a model failing a task. A
+calibration that cannot say *why* is worth about as much as one that cannot say
+*whether* — and this is the second time a plausible number turned out to be the
+instrument.
+
+## The sweep that found a real one, 5 reps, $2.55
+
+| task | `claude-haiku-4-5` | failures |
+|---|---|---|
+| `add-median` | 4/5 | 1, genuine — never added the median |
+| `use-validator` | **3/5** | 2, genuine — `TypeError, not NotNumeric` |
+| `fix-spread` | 5/5 | — |
+| `strict-mode` | 5/5 | — |
+
+**`use-validator` at 3/5 is the first task measured in the band for reasons that
+are the task's own.** Its failures are on-task and specific: the agent never
+routed through the validator, so a bad reading raised `TypeError` from arithmetic
+instead of the `NotNumeric` the task names. It is also the
+toolchain-differentiating task — the one whose work differs by substrate — which
+is the one worth having variance in.
+
+`add-median` at 4/5 is marginal but real. `fix-spread` and `strict-mode` sit at
+ceiling and serve as matched controls: if a substrate effect shows up there, it
+is not about difficulty.
+
 ## Next
 
-- Harder tasks, chosen for headroom rather than coverage: the outcome axis has to
-  vary before anything else matters.
-- More repetitions per cell — two gives a spread, not a variance.
-- Investigate `strict-mode`: it is the only cell with a gap worth explaining, and
-  understanding it is cheaper than running more of everything.
+- The pilot, on `claude-haiku-4-5`, with `use-validator` carrying the outcome
+  axis and the ceiling tasks as matched controls.
+- If a stronger model is wanted later, tasks have to grow in **scope** — many
+  files, many constraints, integration rather than logic. Trickiness produces
+  ambiguity, and the third round is what ambiguity costs.

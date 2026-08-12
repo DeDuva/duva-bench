@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/src/stats", "/workspace/src/report"]:
+for root in ["/workspace/src"]:
     sys.path.insert(0, root)
 try:
     from report import summarize

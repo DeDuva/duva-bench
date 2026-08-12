@@ -61,18 +61,17 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** Study B's pilot is **run** — 24 trials, 24 verified, 0 errors, $2.156. It says
-  the instrument cannot yet answer the question: every arm solved every task twice, so the
-  pooled within-cell sd is 0.0 and there is no outcome signal at all. The cost ordering
-  looks like the predicted effect in aggregate and is driven by one task of four, while the
-  task built to be toolchain-differentiating went the *other* way. Details in
+- **Now:** building Study B a task set whose outcome axis actually varies, and measuring
+  difficulty rather than asserting it. `calibrate.py` runs a candidate on the `oss`
+  substrate alone and reports its pass rate; a task is admitted on that number.
+  First results: `topo-order` 2/3, `merge-config` 1/3, `window-stats` 3/3 (hardened and
+  being re-measured). Details in
   [`studies/b-toolchain-distribution/README.md`](studies/b-toolchain-distribution/README.md).
-- **Next:** harder tasks — headroom before coverage, since an outcome axis that never varies
-  makes everything downstream moot — and more than two repetitions per cell, which gives a
-  spread rather than a variance. `strict-mode` is the one cell with a gap worth explaining
-  and is cheaper to investigate than running more of everything.
-- **Not next:** the factorial. The pilot exists to say when that is worth its money, and it
-  says not yet.
+- **Next:** the pilot proper on the surviving tasks, with enough repetitions per cell for a
+  variance rather than a spread.
+- **Not next:** the factorial. The 2026-08-10 pilot exists to say when that is worth its
+  money and it said not yet — every arm solved every task twice, pooled within-cell sd 0.0,
+  and an aggregate cost ordering that turned out to be one task of four.
 - **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
   on Study B's evidence rather than on convenience, since a sibling project has a
   pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
@@ -147,6 +146,24 @@ still marked *code landed* carries exactly that risk.
 - **Open decision — Study A's cost has never been estimated.** 480 trials at the probe's
   $0.28 is roughly $135 in model spend before retries, plus hours of container wall
   clock. Estimate it properly at G2, not at G3.
+
+## What has been spent, and on what
+
+Recorded because a study's cost is part of its design, and because three runs were paid
+for twice.
+
+| | |
+|---|---|
+| Gate G1 — first verified trial | ~$0.25 |
+| Gate G2 — three runs destroyed by a shared ADP | ~$0.43 |
+| Gate G2 — the run that stood | $0.4686 |
+| MCP spike (toolset axis reachable) | ~$0.20 |
+| Study B first task, three toolchains | $0.21 |
+| Study B pilot, 24 trials | $2.156 |
+| Task calibration, first pass | $1.434 |
+
+Oracle runs — every task admitted, every variant checked — cost **$0** by construction:
+the oracle agent runs the task's own solution instead of a model.
 
 ## Plan documents
 

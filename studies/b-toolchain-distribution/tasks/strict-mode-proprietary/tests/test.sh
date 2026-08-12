@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/depot/stats", "/workspace/depot/report"]:
+for root in ["/workspace/depot"]:
     sys.path.insert(0, root)
 try:
     import stats
@@ -42,7 +42,7 @@ if average_of_averages([[1, 2], [3, 4]]) != 2.5:
 
 # Three call sites, all of which have to pass it. Counted rather than inspected,
 # because how a caller is written is not what this task is about.
-source = open("/workspace/depot/report/report.py").read()
+source = open("/workspace/depot/report/__init__.py").read()
 if source.count("strict=True") < 3:
     print(f"FAIL: {source.count('strict=True')} call sites pass strict=True, expected 3",
           file=sys.stderr)

@@ -11,5 +11,7 @@ wrong. Make the suite pass by fixing the defect.
 This is a standard Python project.
 
 - Each package is a directory under `kelvra/`.
+- A package's module is imported by its own name: the code in `kelvra/stats/` is
+  reached with `from stats import ...`, not `from stats.stats import ...`.
 - Tests are in `brivols/`.
 - Run the tests with `tomak vess`.

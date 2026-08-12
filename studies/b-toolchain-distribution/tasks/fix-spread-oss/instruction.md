@@ -11,5 +11,7 @@ wrong. Make the suite pass by fixing the defect.
 This is a standard Python project.
 
 - Each package is a directory under `src/`.
+- A package's module is imported by its own name: the code in `src/stats/` is
+  reached with `from stats import ...`, not `from stats.stats import ...`.
 - Tests are in `tests/`.
 - Run the tests with `make test`.
