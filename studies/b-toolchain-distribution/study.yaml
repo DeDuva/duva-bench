@@ -35,7 +35,7 @@ title: duva-bench Study B pilot 3 — toolchain familiarity, with the instrument
 
 adp:
   owner: duva
-  repo: bench-studyb2
+  repo: bench-studyb3
   orchestrator: duva-bench
 
 tasks:
@@ -46,7 +46,7 @@ tasks:
       twin-b: tasks/use-validator-twin-b
       proprietary: tasks/use-validator-proprietary
     grader_path: graders/use-validator.py
-    grader_sha256: "1a66753c1279aa442230834fb0786610a0c9e514628eb8d9a5181588f65680cc"
+    grader_sha256: "343c8eb9d854a78a6c5251e920716ba01ae396bc73b02b823dc0471c37d472da"
   - id: add-median
     substrates:
       oss: tasks/add-median-oss
@@ -54,7 +54,7 @@ tasks:
       twin-b: tasks/add-median-twin-b
       proprietary: tasks/add-median-proprietary
     grader_path: graders/add-median.py
-    grader_sha256: "c6d125c708437a3f054ba83f2d635cc07f5fe628188b58a6a3af39c69801dcd5"
+    grader_sha256: "4940c1b9b1ae36b4b5cd364f6f61a319668104e8bee35e13f3687a9ed7051134"
   - id: fix-spread
     substrates:
       oss: tasks/fix-spread-oss
@@ -62,7 +62,7 @@ tasks:
       twin-b: tasks/fix-spread-twin-b
       proprietary: tasks/fix-spread-proprietary
     grader_path: graders/fix-spread.py
-    grader_sha256: "f6f87be6d33a2cede97677c3f92d3f70db3967f660068eb9196c50d6f4660675"
+    grader_sha256: "9bec29f50068c5758100b3e554a94aeafe610bcf3d33da7d482be32af8386469"
   - id: strict-mode
     substrates:
       oss: tasks/strict-mode-oss
@@ -70,7 +70,7 @@ tasks:
       twin-b: tasks/strict-mode-twin-b
       proprietary: tasks/strict-mode-proprietary
     grader_path: graders/strict-mode.py
-    grader_sha256: "e9709ac7e0468adc857b6e7856dc1db06156b51801d05d9893828c03fb29c2b2"
+    grader_sha256: "77aa616d9ba930ac7b48d74f9ce051b1e571cb60c2620e82ebba12cd3cc0666b"
 
 arms:
   - id: oss

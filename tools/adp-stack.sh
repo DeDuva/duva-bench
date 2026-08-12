@@ -27,6 +27,7 @@
 #   tools/adp-stack.sh start    # start an existing stack's server
 #   tools/adp-stack.sh status   # is it up, and at what contract version
 #   tools/adp-stack.sh creds    # write the env file this repo's tools source
+#   tools/adp-stack.sh repo N   # create the ADP repository a study's adp: block names
 #   tools/adp-stack.sh down     # stop the server and tear the stack down
 set -euo pipefail
 
@@ -123,6 +124,46 @@ creds)
 		-d '{"name":"bench-smoke"}' >/dev/null 2>&1 || true
 	say "wrote $CREDS (two principals, repo duva/bench-smoke)"
 	;;
+repo)
+	# `creds` creates one repository, `duva/bench-smoke`, because that is what
+	# the smoke study records into. Every other study declares its own `adp:`
+	# block, and ADP will not create a repository on first write — so a study
+	# pointed at a repository nobody made fails preflight with
+	# `POST /api/v3/repos/{owner}/{repo}/issues -> 404`, which names the symptom
+	# and not the cause. Pilot 3 lost a preflight to exactly that.
+	name="${2:-}"
+	[ -n "$name" ] || { say "usage: $0 repo <name> — the repo a study's adp: block names"; exit 2; }
+	[ -f "$CREDS" ] || { say "no $CREDS; run '$0 creds' first"; exit 1; }
+	# shellcheck disable=SC1090
+	. "$CREDS"
+	# Status and body captured separately rather than with a `\n%{http_code}`
+	# trailer: the Makefile invokes this file as `sh tools/adp-stack.sh`, so the
+	# bash shebang above is not what runs it and `$'\n'` splits nothing.
+	response=$(mktemp)
+	trap 'rm -f "$response"' EXIT
+	code=$(curl -sS -o "$response" -w '%{http_code}' -X POST "$BASE_URL/api/v3/repos/duva" \
+		-H "Authorization: Bearer $DUVA_ADP_RUNNER_TOKEN" -H "Content-Type: application/json" \
+		-d "{\"name\":\"$name\"}")
+	message=$(cat "$response")
+	case "$code" in
+	201)
+		say "created duva/$name"
+		;;
+	422)
+		# ADP answers 422 both for "already exists" and for a name it rejects,
+		# so the status alone cannot tell an idempotent re-run from a typo. The
+		# body is the only thing that distinguishes them.
+		case "$message" in
+		*"already exists"*) say "duva/$name already exists" ;;
+		*) say "ADP refused the name $name: $message"; exit 1 ;;
+		esac
+		;;
+	*)
+		say "creating duva/$name failed with HTTP $code: $message"
+		exit 1
+		;;
+	esac
+	;;
 down)
 	[ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null || true
 	rm -f "$PIDFILE"
@@ -130,7 +171,7 @@ down)
 	say "stack $PROJECT is down"
 	;;
 *)
-	say "usage: $0 [up|start|status|creds|down]"
+	say "usage: $0 [up|start|status|creds|repo <name>|down]"
 	exit 2
 	;;
 esac

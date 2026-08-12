@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= python3
 
-.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated adp-stack adp-status
+.PHONY: help setup lint fmt types test test-contract check check-docs clean sync-spec generate check-generated adp-stack adp-status adp-repo
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -42,6 +42,10 @@ adp-stack: ## Bring up the dedicated ADP studies record into (see tools/adp-stac
 
 adp-status: ## Is the dedicated ADP up, and at what contract version
 	sh tools/adp-stack.sh status
+
+adp-repo: ## Create the ADP repository a study's adp: block names (REPO=bench-studyb3)
+	@test -n "$(REPO)" || { echo "usage: make adp-repo REPO=<name>"; exit 2; }
+	sh tools/adp-stack.sh repo $(REPO)
 
 check-docs: ## Assert CLAUDE.md still points at paths that exist
 	sh tools/check-claude-md.sh
