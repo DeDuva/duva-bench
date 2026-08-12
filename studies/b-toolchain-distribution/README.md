@@ -391,22 +391,35 @@ Three notes that belong with the number rather than in a design document:
   trajectories by hand, under a matcher that scored `grep -rn pytest .` as an
   escape and missed `python3 -m pytest`. They have not been recomputed.
 
+## Pilot 3 ran, 2026-08-12 — and measured the instrument
+
+80 trials, four arms, **$16.737**, 0 errors, 0 warnings. Full numbers in
+[`pilot-3/README.md`](pilot-3/README.md); the report is in [`report/`](report/).
+
+The headline is the floor. `twin` and `twin-b` differ only in which nonsense
+words their seeds drew, and on the outcome axis they differ by **0.200** — more
+than any acceptance contrast this study contains. On `escaped` the same two arms
+differ by 0.050, and `proprietary` vs `oss` (+0.100) is the only contrast
+anywhere in three pilots that exceeds its own instrument floor.
+
+So amendment §7.1's move off pass rate is now an empirical result rather than an
+argument: on this task set, renaming `src/` to `fiz/` moves the pass rate more
+than replacing the whole toolchain does.
+
+**H5 remains untested.** Its ordering held — twin-b 0.300, twin 0.250,
+proprietary 0.150, oss 0.050 — but on the same four tasks that generated it from
+pilot 2. That is a replication of the observation, not a test of the hypothesis,
+and nothing is significant at four tasks and 20 trials per arm.
+
 ## Next
 
-- **Pilot 3**, with the second twin carrying the instrument floor. 4 tasks ×
-  4 arms × 5 repetitions = **80 trials, ~$16.60** at pilot 2's $0.208 per trial.
-  This is the next thing that costs money, and the first study whose primary
-  measure has a floor to be read against.
-
-  Pilot 2's own numbers no longer wait on it: its trajectories and trial records
-  are committed under [`pilot-2/`](pilot-2/README.md) and everything recomputes,
-  including the escape table, which was counted by hand under a detector since
-  rewritten and comes back identical. What is separately fixed is the silence
-  that nearly cost them — a report with no scored trial on an axis, or with no
-  grader axis at all, is now a loud warning in the JSON and on the page.
-- Spend the next increment on **more tasks rather than more repetitions**: the
-  effect behind the amendment was four of six events in one cell, and the
-  statistics resample tasks whole.
+- **Fresh tasks.** This is now the only thing standing between the design and a
+  real test of H5, and four tasks is too few to estimate a floor whose interval
+  a reader can use. More tasks, not more repetitions — the statistics resample
+  tasks whole, and both the effect and the floor turned out to live in single
+  cells.
+- **Not the factorial.** Three pilots exist to say when it is worth its money
+  and none of them says yet.
 - If a stronger model is wanted later, tasks have to grow in **scope** — many
   files, many constraints, integration rather than logic. Trickiness produces
-  ambiguity, and the third round is what ambiguity costs.
+  ambiguity, and the third calibration round is what ambiguity costs.

@@ -738,6 +738,47 @@ grader reads (6.2 MB, uncommitted). All 60 were re-graded on 2026-08-11 and the 
 agreed with the verifier on every one, which is why the verifier's own verdict reproduces
 the acceptance means exactly.
 
+## 7.1.4 What the floor said when it was first measured (pilot 3, 2026-08-12)
+
+80 trials, four arms, $16.737, 0 errors. Full numbers in
+`studies/b-toolchain-distribution/pilot-3/README.md`; what belongs here is what it does to
+the design.
+
+**The amendment is vindicated, and not by the argument it was made with.** §7.1 moved the
+primary measure off pass rate because pass rate saturated and because task authoring was
+the binding constraint. Pilot 3 supplies a harder reason:
+
+| axis | instrument floor (twin ↔ twin-b) | every contrast in the study |
+|---|---|---|
+| `acceptance` | **0.200** | −0.050, −0.100, +0.100 |
+| `process:escaped` | **0.050** | +0.100, +0.200, +0.250 |
+
+On this task set, **renaming `src/` to `fiz/` moves the pass rate more than replacing the
+entire toolchain does.** Not one acceptance contrast clears its own floor. Pilot 2's
+oss↔proprietary difference of 0.00 and oss↔twin of 0.10 were both inside a floor that did
+not exist yet — which is the concrete form of §7.1.2's argument that the control arm cannot
+supply one.
+
+**H5 is still untested.** Its predicted ordering held descriptively — twin-b 0.300, twin
+0.250, proprietary 0.150, oss 0.050 — but pilot 3 ran **the same four tasks that generated
+the hypothesis from pilot 2**. §7.1 registers H5 as testable on fresh tasks *and* a fresh
+run; this was the second without the first, so it replicates the observation on its own
+data-generating process and confirms nothing. Every McNemar p is 1.000 besides, at four
+tasks and 20 trials per arm — which §7.1.1 predicted, having put the twin↔proprietary leg
+at ~120 trials per arm.
+
+**A limit of the floor itself, found by measuring it.** The twins agree in aggregate on
+`escaped` (5/20 against 6/20) and disagree per cell by up to 0.40 in both directions, which
+cancels. So the aggregate floor understates the noise a *per-task* reading carries, and the
+CI (−0.250, 0.300) rather than the point estimate is the honest number. The 0.200 acceptance
+floor is likewise almost entirely one cell — `use-validator`, twin 0.40 against twin-b 1.00.
+**A floor is an arm-level quantity; it does not license task-level claims**, and §5.3.1's
+lesson about single cells applies to the instrument exactly as it applies to the effect.
+
+**Consequences for what to run next.** More *tasks*, not more repetitions, and fresh ones.
+Four tasks is too few to estimate a floor whose CI a reader can use, and it is the wrong
+number for a hypothesis whose statistics resample tasks whole.
+
 ## 8. Pre-registration and analysis
 
 Following this repository's existing discipline (`docs/execution-plan.md` §0.6), fixed before

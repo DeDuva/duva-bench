@@ -15,6 +15,9 @@ dist/
 
 # Local state
 .duva-bench/
+# A study run's console log. The report is the artifact; this is the scrollback,
+# and a `git add -A` during a long run swept one into a commit on 2026-08-12.
+*-run.log
 # Generated reports. A report is a *rendering* of what ADP holds, so a committed
 # one is a second source of truth that can disagree with the system of record —
 # and a stale one is indistinguishable from a fresh one. The exception is a
