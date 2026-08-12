@@ -416,6 +416,92 @@ def test_a_rate_contrast_reports_an_interval_and_no_invented_p_value(
     assert "holm_p" not in contrast
 
 
+def _with_foreign(study: Study, commands: dict[str, list[str]]) -> Study:
+    """The same study with foreign commands declared per arm.
+
+    Declaring them moves the arm digest and therefore the study digest, which is
+    why every test here runs the amended study rather than re-reporting the
+    original: extraction matches runs by the study label, so re-reading old runs
+    under a new definition of "foreign" would find nothing. That is the
+    "digest mismatch ⇒ no comparison" rule doing exactly what it is for — a
+    retuned escape list is a different instrument.
+    """
+    payload = study.model_dump()
+    for arm in payload["arms"]:
+        arm["foreign_commands"] = commands.get(arm["id"], [])
+    return Study.model_validate(payload)
+
+
+def _report_with_foreign(
+    study: Study, client: AdpClient, tmp_path: Path, commands: dict[str, list[str]]
+) -> dict[str, Any]:
+    amended = _with_foreign(study, commands)
+    state = StateDir(tmp_path)
+    _run(amended, client, state, SmokeExecutor())
+    return build_report(amended, state=state, client=client).as_dict()
+
+
+def test_the_escape_metric_is_computed_when_the_study_declares_what_is_foreign(
+    study: Study, client: AdpClient, tmp_path: Path
+) -> None:
+    """Study B's primary metric after the 2026-08-11 amendment, end to end.
+
+    The fixture trial runs `python3 /app/normalize.py < /dev/null`, so declaring
+    `python3` foreign gives an arm that reached outside its toolchain exactly
+    once — which is what the wiring has to carry from the spec, through
+    `compute`, to a per-arm block and a rankable axis.
+    """
+    report = _report_with_foreign(
+        study, client, tmp_path, {"standard": ["python3"], "twin": ["python3"]}
+    )
+
+    escape = report["process"]["standard"]["escape"]
+    assert escape["escaped_trials"] == escape["measured_trials"]
+    assert escape["escaped_rate"] == pytest.approx(1.0)
+    assert escape["escaped_commands"] == ["python3"]
+    assert escape["probe_calls"] == 0
+
+    assert report["axes"]["process:escaped"]["arms"][0]["mean"] == pytest.approx(1.0)
+
+
+def test_the_escape_axis_carries_an_exact_test_and_the_rates_do_not(
+    study: Study, client: AdpClient, tmp_path: Path
+) -> None:
+    """`escaped` is a per-trial yes/no, so it is the one process metric with a 2×2.
+
+    The others are rates, where the interval is the inference. Getting this
+    wrong in either direction matters: a p-value on a rate is invented, and
+    withholding one from a genuine binary throws away the test the design
+    pre-registered.
+    """
+    report = _report_with_foreign(
+        study, client, tmp_path, {"standard": ["python3"], "twin": ["cat"]}
+    )
+
+    escaped = report["axes"]["process:escaped"]["contrasts"]["arms"]["twin"]
+    assert "p" in escaped["mcnemar"]
+    assert "holm_p" in escaped
+
+    rate = report["axes"]["process:escape_to_familiar_rate"]["contrasts"]["arms"]["twin"]
+    assert "unavailable" in rate["mcnemar"]
+
+
+def test_an_arm_declaring_nothing_foreign_reports_no_escape_rather_than_zero(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    """The same discipline as every other rate here: no vocabulary, no number.
+
+    A confident 0.0 would read as "never reached outside its toolchain" when it
+    means "nobody said what outside was" — and this metric is now primary, so
+    that reading would be the headline.
+    """
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+
+    assert "unavailable" in report["process"]["standard"]["escape"]
+    assert report["axes"]["process:escaped"]["arms"][0]["mean"] is None
+
+
 def test_a_grader_axis_still_carries_its_exact_test(
     study: Study, client: AdpClient, executed: tuple[StateDir, Any]
 ) -> None:

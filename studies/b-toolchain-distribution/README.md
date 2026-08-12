@@ -337,10 +337,54 @@ is the one worth having variance in.
 ceiling and serve as matched controls: if a substrate effect shows up there, it
 is not about difficulty.
 
+## The primary measure is now behaviour, 2026-08-11
+
+Amendment §7.1 is accepted and registered in `study.yaml`. The primary metric is
+**`process:escaped`** — whether a trial invoked a toolchain its arm was not
+given — with pass rate demoted to a gate that is *reported beside* it and never
+applied to it. Each arm declares the command words foreign to it:
+
+| arm | its runner | declared foreign |
+|---|---|---|
+| `oss` | `make test` | `dbuild`, `tomak`, `pytest` |
+| `twin` | `tomak vess` | `dbuild`, `make`, `pytest` |
+| `proprietary` | `dbuild test` | `make`, `tomak`, `pytest` |
+
+`pytest` is foreign to all three: no toolchain here names it as its runner, and
+it is what the pilot saw the twin arm reach for.
+
+The list lives on the **arm**, so it rides inside the arm digest and therefore
+the study digest. Retuning it is not a config change — it moves the digest, and
+this project's "digest mismatch ⇒ no comparison" rule then refuses to compare
+across it. That is the point: the definition of the primary measure is the last
+thing that should be adjustable after the runs are in.
+
+Three notes that belong with the number rather than in a design document:
+
+- **Pass rate is a stratification, not an exclusion.** Escaping causes flailing
+  causes failing, so dropping failed trials would delete escapers from exactly
+  the arms predicted to escape most.
+- **A probe is not an escape.** `which pytest` asks whether a tool exists; an
+  agent that looks and then uses its own runner did not reach past it. Counted
+  separately.
+- **The pilot's escape counts predate the detector.** They were read off
+  trajectories by hand, under a matcher that scored `grep -rn pytest .` as an
+  escape and missed `python3 -m pytest`. They have not been recomputed.
+
 ## Next
 
+- **Re-run `report` over the preserved pilot-2 artifacts and commit it.** The
+  report in `report/` is the pre-fix one — 120 of 120 axis scores are `null` —
+  so every number this directory and the design document quote from pilot 2 is
+  currently unre-derivable from anything checked in.
+- **A second twin, on a different rename seed.** Two twins differ only in which
+  nonsense names they drew, so the gap between them is the escape metric's noise
+  floor. Nothing on `escaped` should be interpreted before there is one, and
+  `oss` cannot serve: it differs from the others in more than measurement error.
 - The pilot, on `claude-haiku-4-5`, with `use-validator` carrying the outcome
-  axis and the ceiling tasks as matched controls.
+  axis and the ceiling tasks as matched controls — on **more tasks rather than
+  more repetitions**, since the effect behind the amendment was four of six
+  events in one cell and the statistics resample tasks whole.
 - If a stronger model is wanted later, tasks have to grow in **scope** — many
   files, many constraints, integration rather than logic. Trickiness produces
   ambiguity, and the third round is what ambiguity costs.

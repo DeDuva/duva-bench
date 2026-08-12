@@ -328,6 +328,45 @@ def _process(block: dict[str, Any]) -> str:
         "denominator is zero — an arm that made no tool calls has no tool-error rate, which "
         "is not the same as a rate of zero.</p>"
         f'<div class="scroll"><table>{header}{body}</table></div>'
+        f"{_escape(block)}"
+    )
+
+
+def _escape(block: dict[str, Any]) -> str:
+    """Escape-to-familiar, per arm — Study B's primary measure after the 2026-08-11 amendment."""
+    measured = {arm: row["escape"] for arm, row in block.items() if "escape" in row}
+    if not measured or all("unavailable" in row for row in measured.values()):
+        return ""
+    header = (
+        '<tr><th>arm</th><th class="num">escaped</th><th class="num">of</th>'
+        '<th class="num">rate</th><th class="num">escape calls</th>'
+        '<th class="num">probes</th><th>reached for</th></tr>'
+    )
+    rows = []
+    for arm, row in sorted(measured.items()):
+        if "unavailable" in row:
+            rows.append(
+                f'<tr><td>{esc(arm)}</td><td class="dim" colspan="6">'
+                f"{esc(row['unavailable'])}</td></tr>"
+            )
+            continue
+        rows.append(
+            f"<tr><td>{esc(arm)}</td>"
+            f'<td class="num">{row["escaped_trials"]}</td>'
+            f'<td class="num">{row["measured_trials"]}</td>'
+            f'<td class="num">{_number(row["escaped_rate"])}</td>'
+            f'<td class="num">{row["escape_calls"]}</td>'
+            f'<td class="num">{row["probe_calls"]}</td>'
+            f'<td class="mono dim">{esc(", ".join(row["escaped_commands"]))}</td></tr>'
+        )
+    return (
+        "<h3>escape to familiar</h3>"
+        "<p>Trials that invoked a toolchain the arm was not given. The unit is the trial, "
+        "not the call: whether an agent abandoned its own runner even once is the cleaner "
+        "question, and the per-call rate is diluted by however much other work a trial did. "
+        "A <em>probe</em> — <code>which pytest</code> — is counted apart, because looking a "
+        "tool up is not reaching for it.</p>"
+        f'<div class="scroll"><table>{header}{"".join(rows)}</table></div>'
     )
 
 

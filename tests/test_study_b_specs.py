@@ -305,3 +305,51 @@ def test_a_grader_scores_a_solved_trial_in_every_layout(source_dir: str, tmp_pat
         f"layout: {axes['acceptance'].get('summary')}"
     )
     assert axes["acceptance"]["passed"] is True
+
+
+# --- the pre-registration, amended ------------------------------------------
+
+# The digest pilot 2 actually ran under, taken from its own report artifact
+# (`report/report.json`, `pre_registration.original_digest`). It is here so the
+# amendment is checkable against the run it amends rather than against itself.
+PILOT_2_PRE_REGISTRATION = "sha256:4215f18fae9008d5acb21724af9c5632933f9ae037e11ec467e660d887228c6a"
+
+
+def test_the_amendment_keeps_the_pre_amendment_reading_computable() -> None:
+    """§8's rule, and the only thing that separates an amendment from no pre-registration.
+
+    Amendment 1 (design doc §7.1) moves the primary measure to `escaped`. The
+    reading a reader would have computed before it must survive unchanged — and
+    "unchanged" is checkable here, because pilot 2 recorded its own
+    pre-registration digest and this is that digest.
+    """
+    from duva_bench.study.load import load_study
+
+    registration = load_study(STUDY / "study.yaml").pre_registration
+    original = registration.original()
+
+    assert registration.amended
+    assert registration.primary_metric == "process:escaped"
+    assert original.primary_metric == "acceptance"
+    assert registration.original_digest == PILOT_2_PRE_REGISTRATION
+    assert registration.digest != registration.original_digest
+
+
+def test_every_arm_declares_the_toolchains_it_was_not_given() -> None:
+    """The escape metric's vocabulary, pinned in the spec rather than in an analysis script.
+
+    An arm's own runner must not be in its own foreign list — that would score
+    every ordinary trial as an escape — and every other toolchain's runner must
+    be, or an arm reaching for it would go unmeasured. `pytest` is foreign to
+    all three: no toolchain here names it as its runner, and it is what the
+    2026-08-11 pilot actually saw the twin arm reach for.
+    """
+    from duva_bench.study.load import load_study
+
+    runners = {"oss": "make", "twin": "tomak", "proprietary": "dbuild"}
+    arms = {arm.id: set(arm.foreign_commands) for arm in load_study(STUDY / "study.yaml").arms}
+
+    assert set(arms) == set(runners)
+    for arm, own in runners.items():
+        assert own not in arms[arm], f"{arm} declares its own runner foreign"
+        assert arms[arm] == (set(runners.values()) - {own}) | {"pytest"}

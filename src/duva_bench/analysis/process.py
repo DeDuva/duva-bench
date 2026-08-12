@@ -60,6 +60,23 @@ Five metrics, computed from ADP trajectories:
     unit than the per-call rate, which is diluted by however much other work a
     trial happened to do.
 
+    **Only invocations count.** The detector reads a call's shell text as a
+    shell would: :mod:`shlex` with quoting respected, split into commands at
+    the separators, environment assignments and wrapper prefixes dropped, and
+    the *head* of each command judged. `grep -rn pytest .`,
+    `echo "do not use pytest"` and `cat Makefile` name a foreign tool without
+    running it and are not escapes; `python3 -m pytest` and
+    `bash -c "pytest -q"` are. A bare word match caught all five, which is what
+    the first version of this did — and the pilot separated the arms by six
+    events out of twenty, so a single miscounted `grep` would have moved it.
+
+``probe_calls`` and ``probed_commands``
+    `which pytest`, `command -v make`, `type dbuild` — checking whether a
+    foreign tool *exists*. Behaviourally interesting and not an escape: an
+    agent that looks and then uses its own runner did not reach past it.
+    Counted separately so the distinction survives, rather than being folded
+    into a metric that is now primary.
+
 ``metaprogramming_rate``
     Calls that escape the toolset into general execution — writing a script and
     running it rather than using the tool provided. Study B's variable, and a
@@ -76,6 +93,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from dataclasses import dataclass
 from typing import Any
 
@@ -94,6 +112,31 @@ METAPROGRAMMING = re.compile(
 
 FAILED_STATUSES = frozenset({"failure", "error", "rejected"})
 
+# Where one command ends and the next begins, for the fallback path only.
+SEGMENTS = re.compile(r"[\n;&|()`]")
+
+# Separator tokens as `shlex` emits them: `;`, `|`, `||`, `&`, `&&`, and the
+# parentheses that bound a subshell or a `$(…)` substitution.
+SEPARATOR_CHARACTERS = frozenset(";|&()")
+
+# `FOO=bar cmd` — an assignment is not the command.
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+# Prefixes that run another command: the tool being invoked is what follows.
+PREFIX_COMMANDS = frozenset({"env", "time", "nohup", "stdbuf", "nice", "sudo", "exec", "xargs"})
+
+# Interpreters whose `-m <module>` form invokes a tool without naming it in
+# command position. `python3 -m pytest` is the escape the 2026-08-11 pilot
+# actually saw, four times in one trial, and a head-of-segment rule alone would
+# score it as no escape at all.
+MODULE_RUNNERS = frozenset({"python", "python3", "py", "uv", "pipx", "poetry"})
+
+# Shells that take a command as a string argument.
+SHELL_RUNNERS = frozenset({"bash", "sh", "zsh", "dash", "ksh"})
+
+# Asking whether a tool exists is not using it.
+PROBE_COMMANDS = frozenset({"which", "command", "type", "hash", "whereis", "whatis"})
+
 
 @dataclass(frozen=True)
 class ProcessMetrics:
@@ -110,6 +153,11 @@ class ProcessMetrics:
     # than reported as a flattering zero.
     escape_calls: int | None = None
     escaped_commands: tuple[str, ...] = ()
+    # Calls that asked whether a foreign tool exists without running it. Kept
+    # apart from `escape_calls` because a probe is a different behaviour, and
+    # folding it in would inflate the metric this study now leads with.
+    probe_calls: int | None = None
+    probed_commands: tuple[str, ...] = ()
 
     @property
     def tool_error_rate(self) -> float | None:
@@ -164,6 +212,8 @@ class ProcessMetrics:
             "escape_to_familiar_rate": self.escape_to_familiar_rate,
             "escaped": self.escaped,
             "escaped_commands": list(self.escaped_commands),
+            "probe_calls": self.probe_calls,
+            "probed_commands": list(self.probed_commands),
         }
 
 
@@ -193,6 +243,8 @@ def compute(
     metaprogramming = 0
     escapes = 0 if foreign_commands is not None else None
     escaped: list[str] = []
+    probes = 0 if foreign_commands is not None else None
+    probed: list[str] = []
 
     for call in calls:
         name = call.type or "unknown"
@@ -206,10 +258,13 @@ def compute(
             unknown.append(name)
 
         if foreign_commands is not None:
-            found = _foreign_in(call, foreign_commands)
-            if found:
+            invoked, looked_up = _foreign_in(call, foreign_commands)
+            if invoked:
                 escapes = (escapes or 0) + 1
-                escaped.extend(found)
+                escaped.extend(invoked)
+            if looked_up:
+                probes = (probes or 0) + 1
+                probed.extend(looked_up)
 
         if _is_metaprogramming(call):
             metaprogramming += 1
@@ -225,24 +280,124 @@ def compute(
         unknown_names=tuple(sorted(set(unknown))),
         escape_calls=escapes,
         escaped_commands=tuple(sorted(set(escaped))),
+        probe_calls=probes,
+        probed_commands=tuple(sorted(set(probed))),
     )
 
 
-def _foreign_in(call: TrajectoryEvent, foreign: tuple[str, ...] | frozenset[str]) -> list[str]:
-    """Which foreign commands this call invoked, if any.
+def _foreign_in(
+    call: TrajectoryEvent, foreign: tuple[str, ...] | frozenset[str]
+) -> tuple[list[str], list[str]]:
+    """Which foreign commands this call *invoked*, and which it merely probed.
 
-    Matched on whole words at the start of a command or after a shell separator,
-    so `make test` counts and a path like `/usr/bin/makefile-lint` does not. The
-    point is to catch *invoking* a tool the arm was not given, not mentioning it.
+    Read as a shell reads: split the text into segments at separators, drop
+    leading environment assignments and wrapper prefixes, and judge the head of
+    each segment. Naming a tool is not running it — `grep -rn pytest .` and
+    `echo "no pytest here"` are not escapes — and running one without naming it
+    in command position still is, which is why `python3 -m pytest` and
+    `bash -c "pytest -q"` are followed through.
+
+    Returns ``(invoked, probed)``, both deduplicated by the caller.
     """
     text = _command_text(call)
     if not text:
-        return []
-    found = []
-    for command in foreign:
-        if re.search(rf"(?:^|[|&;()\s]){re.escape(command)}(?=[\s;|&]|$)", text):
-            found.append(command)
-    return found
+        return [], []
+    return _scan(text, frozenset(foreign), depth=0)
+
+
+def _scan(text: str, foreign: frozenset[str], *, depth: int) -> tuple[list[str], list[str]]:
+    """The recursive half of :func:`_foreign_in`. ``depth`` bounds `sh -c` nesting."""
+    invoked: list[str] = []
+    probed: list[str] = []
+    for tokens in _segments(text):
+        while tokens and (
+            _basename(tokens[0]) in PREFIX_COMMANDS or ASSIGNMENT.match(tokens[0]) is not None
+        ):
+            tokens = tokens[1:]
+        if not tokens:
+            continue
+
+        head = _basename(tokens[0])
+        rest = tokens[1:]
+
+        if head in foreign:
+            invoked.append(head)
+            continue
+
+        if head in PROBE_COMMANDS:
+            # `command -v pytest` — the flag is not the thing being asked about.
+            probed.extend(_basename(token) for token in rest if _basename(token) in foreign)
+            continue
+
+        if head in MODULE_RUNNERS and "-m" in rest:
+            index = rest.index("-m")
+            if index + 1 < len(rest):
+                module = _basename(rest[index + 1])
+                if module in foreign:
+                    invoked.append(module)
+            continue
+
+        if head in SHELL_RUNNERS and depth < 2:
+            inner = _shell_command_argument(rest)
+            if inner:
+                deeper_invoked, deeper_probed = _scan(inner, foreign, depth=depth + 1)
+                invoked.extend(deeper_invoked)
+                probed.extend(deeper_probed)
+    return invoked, probed
+
+
+def _segments(text: str) -> list[list[str]]:
+    """One shell line as a list of commands, each a list of tokens.
+
+    Tokenized by :mod:`shlex` rather than by splitting on separator characters,
+    because quoting is the whole difficulty: `sh -c "cd x && pytest"` is one
+    command whose argument happens to contain a separator, and a character split
+    tears it in half. Redirections and their targets are dropped, so
+    `cat notes > make` writes a file and does not run one.
+
+    Unbalanced quotes — which an agent does type — make :mod:`shlex` raise. The
+    fallback is the naive split, which under-reads a quoted inner command rather
+    than inventing one.
+    """
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return [segment.split() for segment in SEGMENTS.split(text)]
+
+    segments: list[list[str]] = [[]]
+    skip = False
+    for token in tokens:
+        if skip:
+            skip = False
+            continue
+        if "<" in token or ">" in token:
+            skip = True  # the redirection's target is not a command
+            continue
+        if token and set(token) <= SEPARATOR_CHARACTERS:
+            segments.append([])
+            continue
+        segments[-1].append(token)
+    return segments
+
+
+def _shell_command_argument(tokens: list[str]) -> str:
+    """The string `sh -c` was asked to run.
+
+    Quoting has already been resolved by :func:`_segments`, so the command
+    arrives as a single token; the flag before it is `-c` or one of the bundled
+    forms an agent actually types (`-lc`, `-euc`).
+    """
+    for index, token in enumerate(tokens[:-1]):
+        if token.startswith("-") and token.endswith("c"):
+            return tokens[index + 1]
+    return ""
+
+
+def _basename(token: str) -> str:
+    """`/usr/local/bin/dbuild` is `dbuild`; an absolute path is still an invocation."""
+    return token.rsplit("/", 1)[-1]
 
 
 def _command_text(call: TrajectoryEvent) -> str:

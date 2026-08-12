@@ -185,10 +185,37 @@ class Arm(Spec):
     # is a manipulated factor: two arms differing only in substrate are the same
     # problem posed two ways, which is exactly the contrast Study B draws.
     substrate: str | None = None
+    # Command words belonging to a toolchain this arm was **not** given, for the
+    # escape-to-familiar metric. On the arm, and therefore inside `arm_digest`,
+    # on purpose: it is the definition of the measure, and a definition that
+    # could be retuned between a run and its analysis is a researcher degree of
+    # freedom wearing a config key. Changing it moves the study digest, which is
+    # this project's existing "digest mismatch ⇒ no comparison" rule doing its
+    # job — a retuned escape list is a different instrument.
+    #
+    # Empty means this arm does not manipulate a toolchain, and the escape rate
+    # is then not computed at all rather than reported as a flattering zero.
+    foreign_commands: tuple[str, ...] = ()
     # Environment pins. Values are strings because that is what an environment
     # holds; a number here would be a number that gets stringified somewhere
     # else and digested differently.
     env: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _foreign_commands_are_command_words(self) -> Arm:
+        for command in self.foreign_commands:
+            if not command or command.split() != [command]:
+                raise ValueError(
+                    f"arm {self.id!r} declares foreign command {command!r}; these are matched "
+                    "against the head of a shell segment, so each must be a single command "
+                    "word — write the runner ('tomak'), not the invocation ('tomak vess')"
+                )
+        if len(set(self.foreign_commands)) != len(self.foreign_commands):
+            raise ValueError(
+                f"arm {self.id!r} repeats a foreign command; the list is a set of command "
+                "words and a repeat would suggest it means something it does not"
+            )
+        return self
 
     @property
     def docs_bundle(self) -> DocsBundle:
@@ -367,6 +394,15 @@ class Study(Spec):
             raise ValueError(
                 f"the pre-registered control arm {control!r} is not one of this study's "
                 "arms, so every pairwise contrast would be against nothing"
+            )
+
+        declaring = [arm.id for arm in self.arms if arm.foreign_commands]
+        if declaring and len(declaring) != len(self.arms):
+            silent = sorted({arm.id for arm in self.arms} - set(declaring))
+            raise ValueError(
+                f"arms {declaring} declare foreign commands and {silent} do not, so the escape "
+                "metric would exist for some arms and be None for the others. A contrast drawn "
+                "across that reads an unmeasured arm as an arm that never escaped."
             )
 
         for arm in self.arms:
