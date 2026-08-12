@@ -423,3 +423,64 @@ def test_mentioning_a_command_is_not_invoking_it() -> None:
         foreign_commands=("make", "pytest"),
     )
     assert invoked.escape_calls == 2
+
+
+def test_naming_a_foreign_command_in_an_argument_is_not_invoking_it() -> None:
+    """The cases the first version of this detector got wrong.
+
+    Every one of these was scored as an escape by a whole-word match after a
+    shell separator, because a space is a shell separator and an argument
+    follows one. At the pilot's effect size — six events out of twenty — a
+    single `grep` would have moved the headline.
+    """
+    metrics = compute(
+        [
+            _bash("grep -rn pytest ."),
+            _bash('echo "do not use pytest here" >> NOTES'),
+            _bash("ls | grep make"),
+            _bash("cat README # mentions make"),
+            _bash("find . -name 'pytest*'"),
+        ],
+        foreign_commands=("make", "pytest"),
+    )
+    assert metrics.escape_calls == 0
+    assert metrics.escaped is False
+
+
+def test_a_foreign_command_run_without_being_named_in_command_position_counts() -> None:
+    """And the case it got wrong in the other direction.
+
+    `python3 -m pytest` is the escape the 2026-08-11 pilot actually recorded —
+    four times in one trial — and a head-of-segment rule alone reads it as no
+    escape at all. An absolute path is an invocation too.
+    """
+    for command in (
+        "python3 -m pytest -q",
+        "bash -c 'pytest tests/'",
+        'sh -lc "cd /workspace && pytest"',
+        "/usr/local/bin/pytest -q",
+        "PYTHONPATH=src pytest -q",
+        "env PYTHONPATH=src pytest",
+    ):
+        metrics = compute([_bash(command)], foreign_commands=("make", "pytest"))
+        assert metrics.escape_calls == 1, command
+        assert metrics.escaped_commands == ("pytest",), command
+
+
+def test_asking_whether_a_foreign_tool_exists_is_a_probe_not_an_escape() -> None:
+    """Looking a tool up and then not using it is the opposite of reaching for it."""
+    metrics = compute(
+        [_bash("which pytest"), _bash("command -v make"), _bash("tomak vess")],
+        foreign_commands=("make", "pytest"),
+    )
+    assert metrics.escape_calls == 0
+    assert metrics.escaped is False
+    assert metrics.probe_calls == 2
+    assert metrics.probed_commands == ("make", "pytest")
+
+
+def test_probes_are_uncomputed_when_nothing_foreign_is_declared() -> None:
+    """Same discipline as the escape rate: no vocabulary, no number."""
+    metrics = compute([_bash("which pytest")])
+    assert metrics.probe_calls is None
+    assert metrics.probed_commands == ()

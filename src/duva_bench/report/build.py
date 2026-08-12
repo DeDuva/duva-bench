@@ -50,14 +50,22 @@ from duva_bench.study.models import Study
 BOOTSTRAP_SEED = 20260807
 
 # Process metrics that are ranked like an axis. For Study A the first of these
-# is the *primary* metric, which is why they are first-class rather than a
-# footnote under the grader axes.
+# is the *primary* metric, and for Study B after its 2026-08-11 amendment it is
+# `escaped` — which is why they are first-class rather than a footnote under the
+# grader axes.
 PROCESS_AXES: tuple[str, ...] = (
+    "escaped",
+    "escape_to_familiar_rate",
     "hallucinated_call_rate",
     "tool_error_rate",
     "metaprogramming_rate",
     "retry_rate",
 )
+
+# The one process metric that is a per-trial yes/no rather than a rate, so it is
+# the one that can carry a discordance table. Everything else here is a rate,
+# where the interval is the inference and a p-value would be invented.
+BINARY_PROCESS_AXES: frozenset[str] = frozenset({"escaped"})
 
 
 @dataclass
@@ -116,8 +124,13 @@ def build_report(
     report.evidence = _evidence_block(outcomes, bands)
     report.warnings = _warnings(outcomes, bands)
 
+    foreign = _foreign_commands_from_study(study)
     metrics = {
-        trial.run_id: compute(trial.events, toolset=toolsets.get(trial.labels.get("toolset", "")))
+        trial.run_id: compute(
+            trial.events,
+            toolset=toolsets.get(trial.labels.get("toolset", "")),
+            foreign_commands=foreign.get(trial.arm_id),
+        )
         for trial in outcomes.trials
     }
     report.trials = [_trial_row(trial, metrics[trial.run_id]) for trial in outcomes.trials]
@@ -132,11 +145,16 @@ def build_report(
             binary=_grader_passed(axis),
         )
 
-    # Process metrics are rankable axes too, and for Study A one of them is the
-    # *primary* metric. They are computed from trajectories rather than from a
-    # grader, so they carry no pass/fail outcome and no McNemar test — the
-    # interval is the inference, and the report says so rather than inventing a
-    # p-value for a rate.
+    # Process metrics are rankable axes too, and one of them is the *primary*
+    # metric for both studies here. They are computed from trajectories rather
+    # than from a grader, so a rate carries no pass/fail outcome and gets no
+    # McNemar test — the interval is the inference, and the report says so
+    # rather than inventing a p-value.
+    #
+    # `escaped` is the exception and it is not a special case: it genuinely is a
+    # per-trial yes/no, so the same exact test the grader axes get applies to it
+    # unchanged. The 2×2 there reads "escaped", not "passed" — an arm winning
+    # this contrast is the arm that abandoned its toolchain more often.
     for name in PROCESS_AXES:
         report.axes[f"process:{name}"] = _axis_block(
             study,
@@ -144,7 +162,7 @@ def build_report(
             f"process:{name}",
             banded=bool(bands["split_arms"]),
             value=_process_value(name, metrics),
-            binary=None,
+            binary=_process_flag(name, metrics) if name in BINARY_PROCESS_AXES else None,
         )
 
     report.process = _process_block(study, outcomes, metrics)
@@ -267,12 +285,31 @@ def _process_value(
 ) -> Callable[[TrialOutcome], float | None]:
     def value(trial: TrialOutcome) -> float | None:
         found = metrics.get(trial.run_id)
-        # None when the rate is undefined — a trial with no tool calls has no
-        # tool-error rate — and None stays out of the numbers rather than
-        # entering them as a zero.
-        return getattr(found, name) if found is not None else None
+        if found is None:
+            return None
+        # None when the metric is undefined — a trial with no tool calls has no
+        # tool-error rate, and an arm that declares nothing foreign has no
+        # escape rate — and None stays out of the numbers rather than entering
+        # them as a zero.
+        measurement = getattr(found, name)
+        # `escaped` is a bool. Float here rather than in the JSON, so a cell's
+        # `values` reads [1.0, 0.0] and its mean is the escape *rate* of the
+        # cell, which is what an arm summary of a yes/no should be.
+        return float(measurement) if isinstance(measurement, bool) else measurement
 
     return value
+
+
+def _process_flag(
+    name: str, metrics: dict[str, ProcessMetrics]
+) -> Callable[[TrialOutcome], bool | None]:
+    """The yes/no reading of a binary process metric, for the discordance table."""
+
+    def flag(trial: TrialOutcome) -> bool | None:
+        found = metrics.get(trial.run_id)
+        return getattr(found, name) if found is not None else None
+
+    return flag
 
 
 def _axis_block(
@@ -470,6 +507,12 @@ def _majority_pass(
     An arm that solved a task twice and produced one unverifiable run has two
     passes and one non-pass — not two out of two. Counting an ERROR as absent
     would let an arm improve its record by failing to produce evidence.
+
+    For ``escaped`` the same arithmetic reads differently and still correctly:
+    an unverifiable trial counts toward the total and not toward the escapes, so
+    a cell can never reach an escape verdict on runs nobody can check. The rule
+    is "an ERROR is never evidence for the hypothesis", and here the hypothesis
+    is the one predicting *more* escaping.
     """
     passes = 0
     total = 0
@@ -509,8 +552,50 @@ def _process_block(
             ),
             "retry_rate": (sum(item.retries for item in collected) / calls if calls else None),
             "unknown_names": sorted({name for item in collected for name in item.unknown_names}),
+            **_escape_summary(collected, calls),
         }
     return per_arm
+
+
+def _escape_summary(collected: list[ProcessMetrics], calls: int) -> dict[str, Any]:
+    """The escape block for one arm, or an explicit "not measured".
+
+    ``escaped_trials`` over ``measured_trials`` is the primary metric of Study B
+    as amended: the unit is the trial, not the call, because the per-call rate is
+    diluted by however much other work a trial happened to do. The rate is here
+    too, beside it, since the amendment keeps both readings computable.
+    """
+    measured = [item for item in collected if item.escape_calls is not None]
+    if not measured:
+        return {
+            "escape": {
+                "unavailable": (
+                    "this arm declares no foreign commands, so nothing distinguishes reaching "
+                    "past its toolchain from using it"
+                )
+            }
+        }
+    escaped = sum(1 for item in measured if item.escaped)
+    escape_calls = sum(item.escape_calls or 0 for item in measured)
+    probe_calls = sum(item.probe_calls or 0 for item in measured)
+    return {
+        "escape": {
+            "measured_trials": len(measured),
+            "escaped_trials": escaped,
+            # The primary metric, per arm. Unmeasured trials are not in the
+            # denominator; they are counted as `trials - measured_trials`.
+            "escaped_rate": escaped / len(measured),
+            "escape_calls": escape_calls,
+            "escape_to_familiar_rate": escape_calls / calls if calls else None,
+            "escaped_commands": sorted(
+                {name for item in measured for name in item.escaped_commands}
+            ),
+            # Looking a tool up is not using it, and the difference is the
+            # difference between habit and deliberation.
+            "probe_calls": probe_calls,
+            "probed_commands": sorted({name for item in measured for name in item.probed_commands}),
+        }
+    }
 
 
 def _cost_block(outcomes: StudyOutcomes) -> dict[str, Any]:
@@ -586,6 +671,15 @@ def _toolsets_from_study(study: Study) -> dict[str, frozenset[str]]:
     the arm did not have.
     """
     return {arm.toolset.name: frozenset(arm.toolset.tools) for arm in study.arms}
+
+
+def _foreign_commands_from_study(study: Study) -> dict[str, tuple[str, ...] | None]:
+    """Per-arm foreign command words, from the study spec.
+
+    ``None`` where an arm declares none, so :func:`compute` leaves the escape
+    metric uncomputed rather than reporting a zero the study never measured.
+    """
+    return {arm.id: (arm.foreign_commands or None) for arm in study.arms}
 
 
 def write_report(report: Report, destination: Path) -> Path:

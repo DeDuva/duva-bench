@@ -68,7 +68,10 @@ still marked *code landed* carries exactly that risk.
   being re-measured). Details in
   [`studies/b-toolchain-distribution/README.md`](studies/b-toolchain-distribution/README.md).
 - **Next:** the pilot proper on the surviving tasks, with enough repetitions per cell for a
-  variance rather than a spread.
+  variance rather than a spread. Its primary measure is now `process:escaped` — amendment
+  §7.1, accepted and registered 2026-08-11 — so the spend goes on **more tasks rather than
+  more repetitions**: the effect the amendment rests on was four of six events in a single
+  cell, and the statistics resample tasks whole.
 - **Not next:** the factorial. The 2026-08-10 pilot exists to say when that is worth its
   money and it said not yet — every arm solved every task twice, pooled within-cell sd 0.0,
   and an aggregate cost ordering that turned out to be one task of four.
@@ -77,6 +80,33 @@ still marked *code landed* carries exactly that risk.
   pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
 
 ## Blockers and open decisions
+
+- **~~Study B's primary measure was an open decision~~ — settled 2026-08-11.** Amendment
+  §7.1 is accepted and registered: the primary metric is `process:escaped`, pass rate is
+  a gate reported as a stratification, and H5 is registered untested. The pre-amendment
+  reading recomputes to the digest pilot 2 ran under, pinned by a test. What accepting it
+  corrected is in the design document's §7.1.1 — chiefly that the power argument is
+  weaker than §7.1 claimed (H5's own leg needs ~120 trials/arm against pass rate's ~250,
+  a 40% saving rather than an order of magnitude), and that the durability argument is
+  the load-bearing one.
+
+- **The escape metric has no noise floor, and the twin↔oss contrast is not one.** §7.1
+  item 4 nominates it, but `oss` differs from the other arms in more than measurement
+  error, so that contrast bounds the effect from above rather than reading the floor.
+  A **second twin on a different rename seed** is the real floor — twin-A against twin-B
+  differ only in which nonsense names they drew — and the generator is mechanical and
+  seeded, so it costs one arm. Not built. Nothing on `escaped` should be interpreted
+  until it is.
+
+- **Pilot 2's evidence is not in this repository.** The only committed artifact,
+  `studies/b-toolchain-distribution/report/report.json`, is the pre-fix one: **120 of
+  120 axis scores are `null`**. The outcome axes quoted in the design document
+  (oss 0.850, twin 0.950, proprietary 0.850), the within-cell CV of 0.62 and the escape
+  table are from a local re-grade in a session whose scratch is gone, and the ADP evals
+  were never re-posted. So the amendment's rationale currently cites numbers nobody can
+  re-derive. Re-run `report` over the preserved artifacts and commit the result before
+  those numbers are cited anywhere further — and note the detector has changed since
+  they were counted, so the escape column will not come back identical.
 
 - **~~`task substrate` was a factor with nowhere to put it~~ — added 2026-08-10.** The
   README has named `model × harness × toolset × task substrate` since the first commit, and

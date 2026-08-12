@@ -232,6 +232,53 @@ def test_a_twin_without_a_seed_is_refused() -> None:
         parse_study(yaml.safe_dump(document))
 
 
+def test_a_multi_word_foreign_command_is_refused_with_the_fix() -> None:
+    """`tomak vess` is a runner and a subcommand; only the runner is matchable.
+
+    The detector judges the head of a shell segment, so a two-word entry would
+    match nothing and the arm would silently measure zero escapes — a flattering
+    number produced by a typo, on the metric this design now leads with.
+    """
+    document = yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    for arm in document["arms"]:
+        arm["foreign_commands"] = ["tomak vess"]
+    with pytest.raises(StudyFileError, match="single command word"):
+        parse_study(yaml.safe_dump(document))
+
+
+def test_declaring_foreign_commands_on_only_some_arms_is_refused() -> None:
+    """An arm with no declaration has no escape metric, not an escape rate of zero.
+
+    Contrasted against an arm that has one, it would read as the arm that never
+    reached outside its toolchain — which is the study's finding, arrived at by
+    forgetting a key.
+    """
+    document = yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    document["arms"][0]["foreign_commands"] = ["pytest"]
+    with pytest.raises(StudyFileError, match="escape metric would exist for some arms"):
+        parse_study(yaml.safe_dump(document))
+
+
+def test_foreign_commands_are_part_of_what_an_arm_is() -> None:
+    """Changing the escape definition changes the arm, and so the study digest.
+
+    Deliberate: it is the definition of the primary measure, and a definition
+    that could be retuned between a run and its analysis is a researcher degree
+    of freedom wearing a config key.
+    """
+    document = yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    for arm in document["arms"]:
+        arm["foreign_commands"] = ["pytest"]
+    declared = parse_study(yaml.safe_dump(document))
+
+    for arm in document["arms"]:
+        arm["foreign_commands"] = ["pytest", "make"]
+    retuned = parse_study(yaml.safe_dump(document))
+
+    assert declared.study_digest != retuned.study_digest
+    assert declared.arm("twin").arm_digest != retuned.arm("twin").arm_digest
+
+
 def test_a_study_is_frozen(study: Study) -> None:
     with pytest.raises(Exception, match=r"frozen|immutable"):
         study.title = "renamed"  # type: ignore[misc]

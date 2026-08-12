@@ -521,6 +521,12 @@ inference from a score. It requires the rename map, which the twin generator alr
 
 ## 7.1 Amendment 1 — the primary measure moves to behaviour (2026-08-11)
 
+**Accepted and registered 2026-08-11.** `studies/b-toolchain-distribution/study.yaml`
+carries it as three `Amendment` records; the pre-amendment reading recomputes to
+`sha256:4215f18f…`, which is the pre-registration digest pilot 2 actually ran under,
+and `tests/test_study_b_specs.py` pins that equality so the amendment stays checkable
+against the run it amends. §7.1.1 records what accepting it required.
+
 **Recorded before the trials that will test it, and after the trials that suggested
 it.** Both halves of that sentence matter, and §8's amendment discipline applies: the
 pre-amendment reading stays computable and any report prints both.
@@ -583,6 +589,66 @@ that data.** It is testable on fresh tasks and a fresh run; if it survives, it i
 most useful thing this study could produce, because it says something actionable about
 naming inside a private codebase. If it does not, the pilot found a coincidence in
 twenty trials, which is exactly what twenty trials are for.
+
+## 7.1.1 What accepting the amendment corrected in it
+
+The amendment stands. Four things in it were wrong or unbuilt, and are recorded here
+rather than quietly fixed, because §8's discipline applies to the amendment too.
+
+**1. The power argument is weaker than stated, and is not why to do this.** §7.1 offers
+`escaped` as the cheaper route to power. At the pilot's own rates that holds for the
+contrast that needs it least:
+
+| contrast | pilot 2 | Fisher two-sided | n/arm for 80% power |
+|---|---|---|---|
+| oss vs twin on `escaped` | 0/20 vs 6/20 | **p = 0.020** | ~21 |
+| proprietary vs twin on `escaped` — **the H5 leg** | 3/20 vs 6/20 | p = 0.45 | **~120** |
+| oss vs twin on pass rate, 0.85 → 0.75 | — | — | ~250 |
+
+H5's own ordering rests on `twin > proprietary`, and that leg costs ~120 trials per arm
+against pass rate's ~250 — a saving of about 40%, not an order of magnitude, and
+clustering by task makes it worse rather than better. **The real argument is
+durability**: `escaped` needs no failable task, which four calibration rounds and seven
+authored tasks established is the binding constraint (§6.3, §6.4), and it does not
+saturate when the model improves, which pass rate demonstrably will. That is the reason
+to accept, and it is the one to lead a write-up with.
+
+**2. The effect is concentrated in one cell, which is pilot 1's trap again.** Four of
+the twin arm's six escapes are the `strict-mode × twin` cell. The bootstrap resamples
+tasks whole and McNemar pairs on tasks, so the effective *n* behind H5 is **four tasks,
+not twenty trials** — the same shape as the cost ordering that turned out to be one
+task of four (§5.3.1). With a fixed budget, more tasks buys more here than more
+repetitions.
+
+**3. "Pass rate becomes a gate" must not be implemented as an exclusion.** Escaping
+causes flailing causes failing, so dropping failed trials conditions on a variable that
+escaping itself produces — a collider. It would preferentially delete escapers from
+exactly the arms H5 says escape most, biasing the primary metric toward the null by an
+amount that differs per arm. The registered rule therefore says *stratification, never
+exclusion*: the gate is reported beside the primary metric, not applied to it.
+
+**4. The metric did not exist.** `escape_calls` was a parameter of
+`analysis/process.py:compute` that the only call site never passed, so `escaped` was
+`None` on every trial ever reported, and it was absent from `PROCESS_AXES`. Every
+number in §7.1's escape table was read off trajectories by hand. It is wired now: the
+foreign command words are declared per arm in the study spec and ride inside the arm
+digest, `escaped` is a ranked axis, and — being the only genuinely binary process
+metric — it takes the same exact test the grader axes get.
+
+Fixing the detector changed what it counts. The first version matched a foreign word
+anywhere after a shell separator, which scored `grep -rn pytest .`, `which pytest` and
+`echo "no pytest here"` as escapes while missing `python3 -m pytest` — the form the
+pilot actually observed, four times in one trial. It now tokenizes with quoting
+respected, judges the head of each command, follows `-m` and `sh -c`, and counts a
+probe (`which pytest`) separately from a reach. **The pilot-2 escape counts predate all
+of that and have not been recomputed under it.**
+
+**What is still open.** The escape metric has no noise floor: §7.1 item 4 nominates the
+twin↔oss contrast, but `oss` differs from the others in more than measurement error, so
+that contrast is an upper bound on the effect rather than a floor. A **second twin on a
+different rename seed** would give the real one — twin-A against twin-B differ only in
+which nonsense names they drew, so any gap between them is instrument noise. The
+generator is mechanical and seeded, so it costs one arm. It is not built.
 
 ## 8. Pre-registration and analysis
 
