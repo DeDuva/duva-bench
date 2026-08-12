@@ -643,12 +643,52 @@ respected, judges the head of each command, follows `-m` and `sh -c`, and counts
 probe (`which pytest`) separately from a reach. **The pilot-2 escape counts predate all
 of that and have not been recomputed under it.**
 
-**What is still open.** The escape metric has no noise floor: §7.1 item 4 nominates the
-twin↔oss contrast, but `oss` differs from the others in more than measurement error, so
-that contrast is an upper bound on the effect rather than a floor. A **second twin on a
-different rename seed** would give the real one — twin-A against twin-B differ only in
-which nonsense names they drew, so any gap between them is instrument noise. The
-generator is mechanical and seeded, so it costs one arm. It is not built.
+**Superseded — the floor is built.** This paragraph previously said the escape metric had
+no noise floor and that a second twin would be the fix. It is now §7.1.2.
+
+## 7.1.2 The instrument's own floor — a second twin (2026-08-11)
+
+Amendment §7.1 item 4 says the twin-minus-`oss` contrast is the noise floor and that no
+contrast is interpreted which does not exceed it. **That is wrong for the measure the
+same amendment made primary.** `oss` differs from a twin in something real — it is the
+familiar toolchain, which is the treatment — so the gap between them is a mixture of
+effect and noise, and using it as a floor bounds the effect from above. On the outcome
+axis, where every arm can fail, the mixture was tolerable. On `escaped`, where the
+question is precisely whether familiar names pull an agent off its own runner, it is the
+effect itself.
+
+**A second twin is the floor that was wanted.** `twin` and `twin-b` are the `oss`
+toolchain with every user-visible name replaced, from two different seeds. They are the
+same treatment under two arbitrary vocabularies, so whatever separates them is the
+instrument. Registered as `instrument_arms: [twin, twin-b]`, reported per axis as
+`instrument_floor`, and every contrast carries `beyond_instrument_floor` — including the
+refusal to score a contrast that involves one of the two floor arms, since that contrast
+is partly the floor itself.
+
+Three things this cost, all of them worth having found before spending:
+
+1. **The first twin's vocabulary was hand-written.** §9 of this document has said since
+   it was written that the twin is "generated mechanically from a seed, not
+   hand-written". It was not: `kelvra`, `brivols`, `tomak`, `vess` were chosen by a
+   person. Two twins produced by two different processes are not a noise floor, so both
+   are now drawn by `arms/twin.py`'s own generator from a declared seed, and
+   `manifest.json` records the seeds beside the words so a reader can recompute them.
+
+2. **The twin generator emitted English words.** Its non-dictionary filter stopped at
+   three letters, and the second twin promptly drew `jibe` and `tape` for two of its four
+   names while the first drew none — an asymmetry in exactly the dimension the floor has
+   to hold still. The filter now covers the four- and five-letter words a strict
+   consonant-vowel alternation over an alphabet with no c, q, w, x or y can produce.
+
+3. **Adding a pre-registration field moved every historic pre-registration digest.** The
+   digest was taken over the full model dump, so declaring `instrument_arms` changed
+   pilot 2's `sha256:4215f18f…` without one pre-registered choice having changed —
+   silently voiding the guarantee §8 exists to make. Unset optional fields are now
+   omitted from that digest, `None` being absence in this spec, and pilot 2's number
+   recomputes exactly.
+
+The study is now 4 tasks × 4 arms × 5 repetitions = 80 trials, roughly $16.60 at pilot
+2's $0.208 per trial.
 
 ## 8. Pre-registration and analysis
 
@@ -668,6 +708,14 @@ execution and digested into the study spec:
 - **The noise floor is reported before any contrast.** With ≤ 8 tasks the study is small, and a
   difference smaller than the noise floor is not a finding no matter what the p-value says.
 - Amendments permitted, dated, with the pre-amendment reading kept computable and both printed.
+- **The instrument's own floor**, read between two arms that are the same treatment under
+  different arbitrary names (§7.1.2), reported per axis before any contrast and never
+  substituted for by the control contrast.
+- **A report that scored nothing says so.** Pilot 2 produced 60 verified trials and every
+  axis `null`, and its report carried no warnings at all: every individual rule was right
+  — unscored is not zero, an unscored trial stays out of the numbers, a mean over nothing
+  is absent — and nothing was responsible for noticing that the sum of those correct
+  refusals was a report about nothing.
 
 ---
 
@@ -679,7 +727,7 @@ execution and digested into the study spec:
 | Unfamiliarity confounded with difficulty | **High** | The twin arm (§5.3). Without it, do not run the study |
 | Bazel is public, so the "OOD" arm is partly in-distribution | Medium | Expected to *shrink* the observed effect — a conservative bias. Report Bazel-specific and layout-specific failures separately |
 | Cannot verify any model's training data | **High, unfixable** | Never claim a measured distribution; claim constructed novelty |
-| Author bias in constructing the unfamiliar arm | **High** | Twin arm is generated mechanically from a seed, not hand-written. `proprietary-style` conventions must each cite a public source. Consider having the arms built by someone who does not see the hypotheses |
+| Author bias in constructing the unfamiliar arm | **High** | Twin arms are generated mechanically from a declared seed — true since 2026-08-11 and *not* true when this row was first written, see §7.1.2. `proprietary-style` conventions must each cite a public source. Consider having the arms built by someone who does not see the hypotheses |
 | Small task count | Medium | Bootstrap over tasks; report the noise floor first; treat the pilot as a pilot |
 | Grader leniency (the SWE-bench failure) | Medium | Multi-axis graders, adversarial cases, oracle-must-pass admission |
 | Provider-side model changes mid-study | Medium | Pin model ids; record them in run labels; refuse to compare across a changed pin |

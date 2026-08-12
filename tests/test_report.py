@@ -240,6 +240,79 @@ def test_an_unscored_trial_renders_as_unscored_rather_than_zero(
     assert "unscored" in (rendered / "report.html").read_text(encoding="utf-8")
 
 
+def test_a_report_that_scored_nothing_says_so_loudly(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pilot 2, reproduced: 60 verified trials, $12.49, and every axis `null`.
+
+    That report carried **no warnings at all**. Every individual rule was right —
+    unscored is not zero, an unscored trial stays out of the numbers, a mean over
+    nothing is `None` — and nothing was responsible for noticing that the sum of
+    those correct refusals was a report about nothing. A reader skimming it saw
+    empty columns and no reason to distrust them.
+    """
+    from duva_bench.grading.runner import AxisResult, GraderResult, GraderRunner
+
+    # Exactly pilot 2's shape: the grader *ran*, posted its axes, and every score
+    # was null. Not a crash — a crash is loud, and this was not.
+    monkeypatch.setattr(
+        GraderRunner,
+        "run",
+        lambda self, *args, **kwargs: GraderResult(
+            spec={"axes": ["acceptance"]},
+            axes=(AxisResult(name="acceptance", score=None, passed=False),),
+        ),
+    )
+
+    state = StateDir(tmp_path)
+    _run(study, client, state, SmokeExecutor())
+    report = build_report(study, state=state, client=client).as_dict()
+
+    assert report["evidence"]["verified"] == 8, "the trials themselves were fine"
+    assert all(row["n"] == 0 for row in report["axes"]["acceptance"]["arms"])
+    assert any("no scored trial in any arm" in warning for warning in report["warnings"]), (
+        "a report about nothing announced nothing"
+    )
+
+    rendered = write_report(build_report(study, state=state, client=client), tmp_path / "report")
+    assert "no scored trial in any arm" in (rendered / "report.html").read_text(encoding="utf-8")
+
+
+def test_a_study_whose_graders_all_crashed_has_no_axes_and_says_that_instead(
+    study: Study, adp: FakeAdp, client: AdpClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The worse shape of the same failure: not an empty axis, no axis at all.
+
+    Per-axis warnings cannot fire when there are no axes to iterate, which is
+    precisely when the report is emptiest.
+    """
+    from duva_bench.grading.runner import GraderResult, GraderRunner
+
+    monkeypatch.setattr(
+        GraderRunner,
+        "run",
+        lambda self, *args, **kwargs: GraderResult(spec={}, error="no module named 'report'"),
+    )
+
+    state = StateDir(tmp_path)
+    _run(study, client, state, SmokeExecutor())
+    report = build_report(study, state=state, client=client).as_dict()
+
+    assert report["evidence"]["verified"] == 8
+    assert any("not one grader axis exists" in warning for warning in report["warnings"])
+
+
+def test_the_warning_does_not_fire_on_a_study_that_simply_has_not_run(
+    study: Study, client: AdpClient, tmp_path: Path
+) -> None:
+    """An empty study is already reported as never-run; two warnings for one fact is noise."""
+    state = StateDir(tmp_path).ensure()
+    report = build_report(study, state=state, client=client).as_dict()
+
+    assert not any("no scored trial" in warning for warning in report["warnings"])
+    assert any("never run" in warning for warning in report["warnings"])
+
+
 def test_a_tampered_run_is_an_error_excluded_from_statistics_and_counted(
     study: Study, adp: FakeAdp, client: AdpClient, executed: tuple[StateDir, Any]
 ) -> None:
@@ -500,6 +573,70 @@ def test_an_arm_declaring_nothing_foreign_reports_no_escape_rather_than_zero(
 
     assert "unavailable" in report["process"]["standard"]["escape"]
     assert report["axes"]["process:escaped"]["arms"][0]["mean"] is None
+
+
+def test_the_instrument_floor_is_the_gap_between_two_arms_that_should_not_differ(
+    study: Study, client: AdpClient, tmp_path: Path
+) -> None:
+    """The floor `oss` cannot supply, because `oss` differs in something real.
+
+    Here the two "twins" are the smoke study's own arms, which replay different
+    fixtures — so the floor is deliberately non-zero and the assertions are
+    about the shape of the reading rather than about a value.
+    """
+    payload = study.model_dump()
+    payload["pre_registration"]["instrument_arms"] = ["standard", "twin"]
+    amended = Study.model_validate(payload)
+
+    state = StateDir(tmp_path)
+    _run(amended, client, state, SmokeExecutor())
+    report = build_report(amended, state=state, client=client).as_dict()
+
+    floor = report["axes"]["acceptance"]["instrument_floor"]
+    assert floor["arms"] == ["standard", "twin"]
+    assert floor["magnitude"] == pytest.approx(abs(floor["delta"]))
+    assert floor["ci"]["low"] <= floor["delta"] <= floor["ci"]["high"]
+
+
+def test_without_a_declared_pair_the_instrument_floor_says_so_rather_than_reading_zero(
+    study: Study, client: AdpClient, executed: tuple[StateDir, Any]
+) -> None:
+    """Same discipline as every other refusal here: absent is not zero.
+
+    A floor of 0.0 would say "changing nothing but a name costs nothing", which
+    is the study's most interesting possible finding and not something a missing
+    config key gets to assert.
+    """
+    state, _ = executed
+    report = build_report(study, state=state, client=client).as_dict()
+
+    floor = report["axes"]["acceptance"]["instrument_floor"]
+    assert "unavailable" in floor
+    assert "magnitude" not in floor
+
+    contrast = report["axes"]["acceptance"]["contrasts"]["arms"]["twin"]
+    assert "no instrument floor" in contrast["beyond_instrument_floor"]
+
+
+def test_a_contrast_involving_a_floor_arm_is_not_scored_against_the_floor(
+    study: Study, client: AdpClient, tmp_path: Path
+) -> None:
+    """An instrument arm against the control is partly the floor itself.
+
+    Reporting `twin vs oss` as "clears the instrument floor" when `twin` is one
+    of the two arms the floor is measured between would be reporting the noise
+    as the signal.
+    """
+    payload = study.model_dump()
+    payload["pre_registration"]["instrument_arms"] = ["standard", "twin"]
+    amended = Study.model_validate(payload)
+
+    state = StateDir(tmp_path)
+    _run(amended, client, state, SmokeExecutor())
+    report = build_report(amended, state=state, client=client).as_dict()
+
+    contrast = report["axes"]["acceptance"]["contrasts"]["arms"]["twin"]
+    assert "is one of the arms the floor is measured between" in contrast["beyond_instrument_floor"]
 
 
 def test_a_grader_axis_still_carries_its_exact_test(

@@ -188,6 +188,23 @@ def _evidence(block: dict[str, Any]) -> str:
     return "".join(rows)
 
 
+def _instrument_floor(block: dict[str, Any]) -> str:
+    """The other floor: what it costs to change nothing but a name."""
+    if "magnitude" not in block:
+        return f'<h3>instrument floor</h3><p class="na">{esc(block["unavailable"])}</p>'
+    first, second = block["arms"]
+    return (
+        "<h3>instrument floor</h3>"
+        f'<p><span class="mono">{esc(first)}</span> and <span class="mono">{esc(second)}</span> '
+        "are the same treatment under two arbitrary vocabularies, so whatever separates them "
+        "is this instrument's own noise. The gap is "
+        f'<span class="mono">{block["magnitude"]:.4f}</span> over {block["tasks"]} task(s), '
+        f"95% CI {_interval(block['ci'])}. A contrast that does not exceed it is not "
+        "interpreted — and that includes either of these two against the control, which is "
+        "partly this measurement itself.</p>"
+    )
+
+
 def _axis(name: str, block: dict[str, Any]) -> str:
     rows = [f"<h2>Axis: {esc(name)}</h2>"]
 
@@ -210,6 +227,8 @@ def _axis(name: str, block: dict[str, Any]) -> str:
         )
     else:
         rows.append(f'<h3>noise floor</h3><p class="na">{esc(noise["unavailable"])}</p>')
+
+    rows.append(_instrument_floor(block["instrument_floor"]))
 
     header = '<tr><th>arm</th><th class="num">n</th><th class="num">mean</th>'
     header += '<th class="num">95% CI</th><th class="num">unscored</th></tr>'

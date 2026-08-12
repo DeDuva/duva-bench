@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# This project's build runner. Identical in behaviour to the usual
+# one; only its name, and the file it reads, are different.
+exec make -f tovefile "$@"

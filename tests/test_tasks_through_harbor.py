@@ -138,21 +138,16 @@ def test_the_oracle_runs_through_harbor_and_satisfies_the_grader(
     )
 
 
-# --- Study B: one problem, three toolchains ----------------------------------
+# --- Study B: one problem, four toolchains -----------------------------------
 
 STUDY_B = ROOT / "studies" / "b-toolchain-distribution" / "tasks"
-STUDY_B_VARIANTS = [
-    f"{slug}-{kind}"
-    for slug in (
-        "add-median",
-        "use-validator",
-        "fix-spread",
-        "strict-mode",
-        "topo-order",
-        "window-stats",
-        "merge-config",
-    )
-    for kind in ("oss", "twin", "proprietary")
+
+# Read from the generator's own manifest rather than listed here. A hand-written
+# list is a list that goes stale silently: adding the `twin-b` substrate in
+# 2026-08-11 left this suite still admitting three variants per task and saying
+# nothing about the fourth, which would have put an unadmitted arm into a study.
+STUDY_B_VARIANTS = json.loads((STUDY_B.parent / "manifest.json").read_text(encoding="utf-8"))[
+    "variants"
 ]
 
 
@@ -162,10 +157,13 @@ def test_every_toolchain_variant_is_solvable_by_its_own_oracle(
 ) -> None:
     """The admission criterion for Study B, and the reason it is strict.
 
-    The three variants pose one problem in three toolchains. If one of them is
+    The variants pose one problem in four toolchains. If one of them is
     unsolvable — an image that will not build, a driver that cannot run its own
     tests, a verifier that rejects a correct change — then that arm's failures
-    are the instrument's and the study would report them as the agent's.
+    are the instrument's and the study would report them as the agent's. That
+    matters most for the two twins: they are the study's noise floor, so a
+    difference between them caused by a broken image would be read as the
+    smallest effect this design can see.
 
     Run with the oracle, so admitting a task costs container time and no model
     spend at all.

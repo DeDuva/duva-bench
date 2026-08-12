@@ -279,6 +279,43 @@ def test_foreign_commands_are_part_of_what_an_arm_is() -> None:
     assert declared.arm("twin").arm_digest != retuned.arm("twin").arm_digest
 
 
+def test_an_unset_optional_field_is_not_part_of_a_pre_registration_digest() -> None:
+    """Adding an optional field must not move digests nobody's choices changed.
+
+    The whole promise of `original_digest` is that the reading a person would
+    have computed before a study ran stays recomputable afterwards. A digest
+    over the full model dump breaks that on the day the schema grows: adding
+    `instrument_arms` in 2026-08-11 moved every pre-registration digest ever
+    written, including ones recorded against completed runs, without one
+    pre-registered choice having changed.
+    """
+    from duva_bench.study.models import PreRegistration
+
+    unset = PreRegistration(primary_metric="acceptance", repetitions=5, control_arm="oss")
+    explicitly_null = PreRegistration(
+        primary_metric="acceptance", repetitions=5, control_arm="oss", instrument_arms=None
+    )
+    assert unset.digest == explicitly_null.digest
+    assert "instrument_arms" not in unset.digest_source()
+
+    # And setting it *does* move the digest — otherwise the omission would be
+    # hiding a real choice rather than an absent one.
+    declared = unset.model_copy(update={"instrument_arms": ("twin", "twin-b")})
+    assert declared.digest != unset.digest
+
+
+def test_instrument_arms_must_be_two_different_arms_of_this_study() -> None:
+    """A floor read between an arm and itself is zero by construction."""
+    document = yaml.safe_load(EXAMPLE.read_text(encoding="utf-8"))
+    document["pre_registration"]["instrument_arms"] = ["twin", "twin"]
+    with pytest.raises(StudyFileError, match="same arm twice"):
+        parse_study(yaml.safe_dump(document))
+
+    document["pre_registration"]["instrument_arms"] = ["twin", "nonexistent"]
+    with pytest.raises(StudyFileError, match="instrument arm"):
+        parse_study(yaml.safe_dump(document))
+
+
 def test_a_study_is_frozen(study: Study) -> None:
     with pytest.raises(Exception, match=r"frozen|immutable"):
         study.title = "renamed"  # type: ignore[misc]

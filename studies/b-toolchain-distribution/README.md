@@ -7,19 +7,26 @@ This directory is the instrument. **Nothing here has been executed against a mod
 ## What is built
 
 One problem — `summarize` must gain a median it takes from the statistics module
-rather than reimplementing — posed in three toolchains:
+rather than reimplementing — posed in four toolchains:
 
 | variant | the toolchain | what it is for |
 |---|---|---|
 | `add-median-oss` | `src/`, `tests/`, `pytest`, a `Makefile` | in-distribution: what a model has read a million times |
-| `add-median-twin` | identical behaviour, every user-visible name changed (`kelvra/`, `brivols/`, `tomak vess`) | **the control** |
+| `add-median-twin` | identical behaviour, every user-visible name changed (`fiz/`, `hulor/`, `mapu nuju`) | **the control** |
+| `add-median-twin-b` | the same again, from a different seed (`paj/`, `lodip/`, `tove reru`) | **the instrument's own floor** |
 | `add-median-proprietary` | a `depot/` monorepo, `BUILD` files with declared deps, `//depot/pkg:target` labels, `dbuild`, a presubmit gate | out of distribution by structure *and* name |
+
+Both twin vocabularies are drawn by `arms/twin.py`'s generator from the seeds in
+`manifest.json` — regenerate and they come back identical. Until 2026-08-11 the
+first twin's words were hand-written, which the design document already
+described as mechanical; two twins produced by two different processes would not
+have been a floor.
 
 The source files, the assertions and the acceptance criteria are shared. Only the
 toolchain around them differs, because a variant that is harder in *substance*
 would make the study measure difficulty instead of familiarity.
 
-## The twin is the point
+## The twins are the point, and the second one more than the first
 
 `add-median-proprietary` underperforming `add-median-oss` would prove very little
 on its own: a monorepo with declared dependencies and a presubmit gate is more
@@ -32,14 +39,27 @@ work, not just less familiar. `add-median-twin` separates the two. It is the
 Reporting the twin is not optional. It is what makes any claim about familiarity
 a claim rather than an assertion.
 
+**The second twin is what makes any of it readable.** A twin-versus-`oss` gap is
+not a noise floor, however tempting it is to use as one: `oss` is the familiar
+toolchain, which is the treatment, so that gap mixes effect with noise and bounds
+the effect from above. Two twins are the *same* treatment under two arbitrary
+vocabularies, so twin-versus-twin-b is noise and nothing else. It is declared as
+`instrument_arms` in `study.yaml`, printed per axis as `instrument_floor`, and a
+contrast that does not clear it is not interpreted — including either twin
+against `oss`, which is partly the floor itself.
+
 ## What is verified, and what is not
 
 Verified, and re-checkable by `pytest -m harbor`:
 
-- all three images build, and **all three variants are solved by their own
-  oracle** through Harbor (`tests/test_tasks_through_harbor.py`), which is the
-  admission criterion: an arm whose task is broken would report the
-  instrument's failures as the agent's;
+- all four images build, and **all 28 variants are solved by their own oracle**
+  through Harbor (`tests/test_tasks_through_harbor.py`), which is the admission
+  criterion: an arm whose task is broken would report the instrument's failures
+  as the agent's. Run in full on 2026-08-11 including both twins, at $0 — the
+  oracle runs the task's own solution rather than a model. That suite reads its
+  variant list from `manifest.json` rather than a literal, because a
+  hand-written list is one that goes stale silently: adding `twin-b` left it
+  admitting three variants per task and saying nothing about the fourth;
 - the depot's declaration rule **actually bites** — a target whose dependency is
   undeclared fails even though the bare import would work
   (`tests/test_study_b_dbuild.py`). Without that, the `proprietary` arm would be
@@ -373,18 +393,20 @@ Three notes that belong with the number rather than in a design document:
 
 ## Next
 
-- **Re-run `report` over the preserved pilot-2 artifacts and commit it.** The
-  report in `report/` is the pre-fix one — 120 of 120 axis scores are `null` —
-  so every number this directory and the design document quote from pilot 2 is
-  currently unre-derivable from anything checked in.
-- **A second twin, on a different rename seed.** Two twins differ only in which
-  nonsense names they drew, so the gap between them is the escape metric's noise
-  floor. Nothing on `escaped` should be interpreted before there is one, and
-  `oss` cannot serve: it differs from the others in more than measurement error.
-- The pilot, on `claude-haiku-4-5`, with `use-validator` carrying the outcome
-  axis and the ceiling tasks as matched controls — on **more tasks rather than
-  more repetitions**, since the effect behind the amendment was four of six
-  events in one cell and the statistics resample tasks whole.
+- **Pilot 3, and it is the only way to get a pilot-2 number back.** The report in
+  `report/` is the pre-fix one — 120 of 120 axis scores are `null` — the ADP
+  evals were left unscored, and the local artifacts the re-grade ran over are not
+  on this machine. Nothing quoted from pilot 2 anywhere in this repository can be
+  re-derived from anything checked in. That is not recoverable by re-reporting;
+  it needs the run. 4 tasks × 4 arms × 5 repetitions = **80 trials, ~$16.60** at
+  pilot 2's $0.208 per trial.
+
+  What has been fixed is the silence, not the loss: a report with no scored trial
+  on an axis, or with no grader axis at all, is now a loud warning in the JSON
+  and on the page, with two tests reproducing pilot 2's exact shape.
+- Spend the next increment on **more tasks rather than more repetitions**: the
+  effect behind the amendment was four of six events in one cell, and the
+  statistics resample tasks whole.
 - If a stronger model is wanted later, tasks have to grow in **scope** — many
   files, many constraints, integration rather than logic. Trickiness produces
   ambiguity, and the third round is what ambiguity costs.

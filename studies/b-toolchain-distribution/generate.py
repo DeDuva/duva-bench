@@ -43,6 +43,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from duva_bench.arms.twin import syllabic_name  # noqa: E402
+
 from hard_tasks import HARD_TASKS  # noqa: E402
 from tasks import TASKS as EASY_TASKS  # noqa: E402
 from tasks import Task  # noqa: E402
@@ -52,15 +54,46 @@ TASKS = EASY_TASKS + HARD_TASKS
 STUDY = Path(__file__).resolve().parent
 TASK_ROOT = STUDY / "tasks"
 
-# The `twin` vocabulary: pronounceable, non-dictionary, length-matched to what it
-# replaces, which is the twin generator's own rule (`arms/twin.py`).
-TWIN_WORDS = {
-    "src": "kelvra",
-    "tests": "brivols",
-    "runner": "tomak",
-    "verb": "vess",
-}
 OSS_WORDS = {"src": "src", "tests": "tests", "runner": "make", "verb": "test"}
+
+# Two twins, and the second one is the point.
+#
+# A twin is `oss` with every user-visible name changed and nothing else, so a
+# gap between a twin and `oss` is a familiarity effect. A gap between *two
+# twins* is neither: they are identical in behaviour and differ only in which
+# arbitrary strings the generator happened to draw, so whatever separates them
+# is the instrument's own noise. That is the floor every other contrast on this
+# study has to clear, and `oss` cannot supply it — `oss` differs from the twins
+# in something real.
+#
+# Both vocabularies are now drawn by `arms/twin.py`'s own generator from a
+# declared seed. Until 2026-08-11 the first twin's words were hand-written
+# (`kelvra`, `brivols`, `tomak`, `vess`), which the design document's §9 already
+# described as mechanical — it was not, and two twins produced by two different
+# processes would not have been a noise floor. Length is matched in characters,
+# which is that generator's stated rule and its stated approximation.
+TWIN_SEEDS = {
+    "twin": "duva-bench/study-b/twin/2026-08-11",
+    "twin-b": "duva-bench/study-b/twin-b/2026-08-11",
+}
+
+
+def twin_words(seed: str) -> dict[str, str]:
+    """The `oss` vocabulary renamed, deterministically in ``seed``.
+
+    ``taken`` is threaded through so two roles never draw the same string; the
+    twin would otherwise be able to collapse `tests/` onto `src/` and stop being
+    isomorphic to what it replaces.
+    """
+    taken: set[str] = set()
+    words: dict[str, str] = {}
+    for role, source in OSS_WORDS.items():
+        words[role] = syllabic_name(source, seed, length=len(source), taken=taken)
+        taken.add(words[role])
+    return words
+
+
+TWIN_WORDS = {name: twin_words(seed) for name, seed in TWIN_SEEDS.items()}
 
 OSS_TOOLCHAIN = """\
 ## Working here
@@ -862,12 +895,19 @@ def main() -> int:
     built: list[str] = []
     for task in TASKS:
         build_flat(task, TASK_ROOT / f"{task.slug}-oss", OSS_WORDS)
-        build_flat(task, TASK_ROOT / f"{task.slug}-twin", TWIN_WORDS)
+        for twin, words in TWIN_WORDS.items():
+            build_flat(task, TASK_ROOT / f"{task.slug}-{twin}", words)
         build_proprietary(task, TASK_ROOT / f"{task.slug}-proprietary")
-        built.extend(f"{task.slug}-{kind}" for kind in ("oss", "twin", "proprietary"))
+        built.extend(
+            f"{task.slug}-{kind}" for kind in ("oss", *TWIN_WORDS, "proprietary")
+        )
     manifest = {
         "tasks": [task.slug for task in TASKS],
         "variants": sorted(built),
+        # The seeds as well as the words: the words are recomputable from the
+        # seeds by anyone with this repository, and a recorded output nobody can
+        # re-derive is the thing this study keeps being bitten by.
+        "twin_seeds": TWIN_SEEDS,
         "twin_words": TWIN_WORDS,
     }
     write(STUDY / "manifest.json", json.dumps(manifest, indent=2) + "\n")

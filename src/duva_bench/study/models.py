@@ -281,6 +281,18 @@ class PreRegistration(Spec):
     # the arm, because which arm is the control is an analysis decision and
     # analysis decisions are what a pre-registration is.
     control_arm: Slug | None = None
+    # Two arms that are the *same treatment* and differ only in the instrument's
+    # arbitrary choices — two twins drawn from different seeds. Whatever
+    # separates them is measurement noise, so the gap between them is the floor
+    # every other contrast has to clear.
+    #
+    # This is not the pooled within-cell sd, which is the noise *within* a cell
+    # under one arm. A metric can be perfectly repeatable within a cell and still
+    # move when you change nothing but a name, and on a study about names that is
+    # the failure mode that matters. Nor can the control arm supply it: the
+    # control differs from the treatments in something real, so its contrast
+    # bounds the effect from above rather than reading the floor.
+    instrument_arms: tuple[Slug, Slug] | None = None
     exclusion_rules: tuple[str, ...] = ()
     metaprogramming_allowed: bool = False
     amendments: tuple[Amendment, ...] = ()
@@ -291,10 +303,21 @@ class PreRegistration(Spec):
             "secondary_metrics",
             "repetitions",
             "control_arm",
+            "instrument_arms",
             "exclusion_rules",
             "metaprogramming_allowed",
         }
     )
+
+    @model_validator(mode="after")
+    def _instrument_arms_are_two_different_arms(self) -> PreRegistration:
+        if self.instrument_arms is not None and len(set(self.instrument_arms)) != 2:
+            raise ValueError(
+                "instrument_arms names the same arm twice; the floor is the gap between "
+                "two arms that differ only in the instrument's arbitrary choices, and an "
+                "arm against itself is zero by construction"
+            )
+        return self
 
     @model_validator(mode="after")
     def _amendments_name_amendable_fields(self) -> PreRegistration:
@@ -305,6 +328,29 @@ class PreRegistration(Spec):
                     "pre-registered analysis choices, so only those can be amended"
                 )
         return self
+
+    def digest_source(self) -> dict[str, Any]:
+        """The digest payload, with unset optional fields omitted.
+
+        Every other spec here digests its full dump. This one cannot, and the
+        reason is the promise :meth:`original` makes: that the reading a person
+        would have computed *before* a study ran stays recomputable afterwards.
+        A dump includes every field the model declares, so adding one — even an
+        optional one that nobody sets — silently moved the digest of every
+        pre-registration ever written, including the ones already recorded
+        against completed runs. Found on 2026-08-11 by adding
+        ``instrument_arms``: pilot 2's ``sha256:4215f18f…`` became a different
+        number without a single pre-registered choice having changed.
+
+        Dropping `None` fixes it because in this spec `None` *is* absence:
+        `control_arm: null` and no `control_arm` key are the same study. So a
+        block that sets nothing new digests exactly as it did before the field
+        existed, and a block that sets it digests differently — which is the
+        distinction the digest is for.
+        """
+        return {
+            key: value for key, value in self.model_dump(mode="json").items() if value is not None
+        }
 
     def original(self) -> PreRegistration:
         """This block as it read before any amendment.
@@ -389,12 +435,20 @@ class Study(Spec):
                 "the analysis was designed around, and nothing here can tell which."
             )
 
+        known_arms = {arm.id for arm in self.arms}
         control = self.pre_registration.control_arm
-        if control is not None and control not in {arm.id for arm in self.arms}:
+        if control is not None and control not in known_arms:
             raise ValueError(
                 f"the pre-registered control arm {control!r} is not one of this study's "
                 "arms, so every pairwise contrast would be against nothing"
             )
+
+        for instrument in self.pre_registration.instrument_arms or ():
+            if instrument not in known_arms:
+                raise ValueError(
+                    f"the pre-registered instrument arm {instrument!r} is not one of this "
+                    "study's arms, so the noise floor would be read off a cell that never ran"
+                )
 
         declaring = [arm.id for arm in self.arms if arm.foreign_commands]
         if declaring and len(declaring) != len(self.arms):

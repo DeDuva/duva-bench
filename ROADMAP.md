@@ -127,13 +127,16 @@ deliberately different correct implementation must both satisfy each acceptance 
   a 40% saving rather than an order of magnitude), and that the durability argument is
   the load-bearing one.
 
-- **The escape metric has no noise floor, and the twin↔oss contrast is not one.** §7.1
-  item 4 nominates it, but `oss` differs from the other arms in more than measurement
-  error, so that contrast bounds the effect from above rather than reading the floor.
-  A **second twin on a different rename seed** is the real floor — twin-A against twin-B
-  differ only in which nonsense names they drew — and the generator is mechanical and
-  seeded, so it costs one arm. Not built. Nothing on `escaped` should be interpreted
-  until it is.
+- **~~The escape metric has no noise floor~~ — built 2026-08-11.** `twin` and `twin-b`
+  are the `oss` toolchain renamed from two different seeds: the same treatment under two
+  arbitrary vocabularies, so the gap between them is the instrument's own noise. Declared
+  as `instrument_arms`, reported per axis as `instrument_floor`, and every contrast now
+  carries `beyond_instrument_floor` — which refuses to score a contrast involving either
+  floor arm, that contrast being partly the floor itself. Design document §7.1.2 records
+  the three defects it surfaced: the first twin's vocabulary was hand-written while §9
+  claimed it was seeded, the generator's non-dictionary filter stopped at three letters
+  and promptly emitted `jibe` and `tape`, and adding a pre-registration field moved every
+  historic pre-registration digest. **The study is now 80 trials, ~$16.60.**
 
 - **Pilot 2's evidence is gone, and every number this ledger quotes from it is
   currently unverifiable.** Three things were each true and are no longer jointly
@@ -158,6 +161,16 @@ deliberately different correct implementation must both satisfy each acceptance 
   only where it is committed. A study's report belongs under `studies/<id>/report/`,
   written from the run rather than from a session's scratch, and written *after* the
   scores are known to be real.
+
+  **What has been done about it, 2026-08-11.** The recovery cannot be done — nothing
+  short of re-running the pilot produces those numbers — but the failure that made them
+  worthless is now caught. Pilot 2's report carried **no warnings at all** beside 60
+  verified trials and 120 null scores: every rule behaved correctly and nothing was
+  responsible for noticing that the sum of those correct refusals was a report about
+  nothing. A grader axis with no scored trial in any arm, and a study with no grader axis
+  at all, are both loud warnings now, in the JSON and on the page. Two tests in
+  `tests/test_report.py` reproduce pilot 2's exact shape — graders that ran, posted their
+  axes, and scored `null`.
 
 - **~~`task substrate` was a factor with nowhere to put it~~ — added 2026-08-10.** The
   README has named `model × harness × toolset × task substrate` since the first commit, and

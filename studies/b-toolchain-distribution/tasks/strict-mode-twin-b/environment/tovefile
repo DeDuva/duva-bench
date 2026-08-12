@@ -1,0 +1,2 @@
+reru:
+	PYTHONPATH=paj python3 -m pytest -q --import-mode=importlib lodip

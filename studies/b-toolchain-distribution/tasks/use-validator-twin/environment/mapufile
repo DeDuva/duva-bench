@@ -1,0 +1,2 @@
+nuju:
+	PYTHONPATH=fiz python3 -m pytest -q --import-mode=importlib hulor

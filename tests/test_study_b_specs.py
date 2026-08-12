@@ -335,21 +335,98 @@ def test_the_amendment_keeps_the_pre_amendment_reading_computable() -> None:
     assert registration.digest != registration.original_digest
 
 
+def _runners() -> dict[str, str]:
+    """Each substrate's own test runner, read from what the generator produced.
+
+    Not written down here: the twin vocabularies come from a seed, so a literal
+    would be a copy that can go stale against the tasks the study actually runs.
+    """
+    manifest = json.loads((STUDY / "manifest.json").read_text(encoding="utf-8"))
+    runners = {"oss": "make", "proprietary": "dbuild"}
+    for twin, words in manifest["twin_words"].items():
+        runners[twin] = words["runner"]
+    return runners
+
+
 def test_every_arm_declares_the_toolchains_it_was_not_given() -> None:
     """The escape metric's vocabulary, pinned in the spec rather than in an analysis script.
 
     An arm's own runner must not be in its own foreign list — that would score
     every ordinary trial as an escape — and every other toolchain's runner must
     be, or an arm reaching for it would go unmeasured. `pytest` is foreign to
-    all three: no toolchain here names it as its runner, and it is what the
+    all of them: no toolchain here names it as its runner, and it is what the
     2026-08-11 pilot actually saw the twin arm reach for.
     """
     from duva_bench.study.load import load_study
 
-    runners = {"oss": "make", "twin": "tomak", "proprietary": "dbuild"}
+    runners = _runners()
     arms = {arm.id: set(arm.foreign_commands) for arm in load_study(STUDY / "study.yaml").arms}
 
     assert set(arms) == set(runners)
     for arm, own in runners.items():
         assert own not in arms[arm], f"{arm} declares its own runner foreign"
         assert arms[arm] == (set(runners.values()) - {own}) | {"pytest"}
+
+
+def test_the_two_twins_are_symmetric_in_everything_but_their_names() -> None:
+    """The noise floor is only a floor if the twins differ in nothing else.
+
+    Same substrate treatment, same model, same harness, same toolset, same
+    environment, and foreign vocabularies of the same shape — each naming the
+    other's runner, `make`, `dbuild` and `pytest`. A twin that also differed in,
+    say, its docs grade would put a real effect in the floor and hide everything
+    smaller than it.
+    """
+    from duva_bench.study.load import load_study
+
+    study = load_study(STUDY / "study.yaml")
+    first, second = (study.arm(name) for name in study.pre_registration.instrument_arms or ())
+
+    assert first.model == second.model
+    assert first.harness == second.harness
+    assert first.toolset == second.toolset
+    assert first.env == second.env
+    assert len(first.foreign_commands) == len(second.foreign_commands)
+
+    runners = _runners()
+    assert set(first.foreign_commands) - {runners[second.id]} == set(second.foreign_commands) - {
+        runners[first.id]
+    }
+
+
+def test_the_twin_vocabularies_are_recomputable_from_their_seeds() -> None:
+    """A recorded output nobody can re-derive is what this study keeps being bitten by.
+
+    The words in `manifest.json` are what the tasks were built with; the seeds
+    beside them are what a reader has to be able to turn back into those words.
+    Until 2026-08-11 the first twin's vocabulary was hand-written while §9 of the
+    design document described it as mechanical — two twins produced by two
+    different processes would not have been a noise floor.
+    """
+    from duva_bench.arms.twin import syllabic_name
+
+    manifest = json.loads((STUDY / "manifest.json").read_text(encoding="utf-8"))
+    sources = {"src": "src", "tests": "tests", "runner": "make", "verb": "test"}
+
+    for twin, seed in manifest["twin_seeds"].items():
+        taken: set[str] = set()
+        for role, source in sources.items():
+            name = syllabic_name(source, seed, length=len(source), taken=taken)
+            taken.add(name)
+            assert manifest["twin_words"][twin][role] == name, f"{twin}/{role}"
+
+
+def test_no_twin_name_is_an_english_word() -> None:
+    """A twin renames things the model knows; a rename onto another word it knows is not that.
+
+    Checked across both twins because the asymmetry is what matters: the second
+    twin drew `jibe` and `tape` on its first attempt while the first drew
+    neither, which would have put a real difference into the one contrast that
+    is supposed to contain none.
+    """
+    from duva_bench.arms.twin import DICTIONARY
+
+    manifest = json.loads((STUDY / "manifest.json").read_text(encoding="utf-8"))
+    for twin, words in manifest["twin_words"].items():
+        for role, name in words.items():
+            assert name not in DICTIONARY, f"{twin}/{role} is {name!r}"

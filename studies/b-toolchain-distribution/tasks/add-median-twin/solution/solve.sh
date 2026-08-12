@@ -2,12 +2,12 @@
 set -euo pipefail
 python3 - <<'PY'
 from pathlib import Path
-p = Path('/workspace/kelvra/report/__init__.py')
+p = Path('/workspace/fiz/report/__init__.py')
 body = p.read_text()
 body = body.replace('from stats import mean', 'from stats import mean, median')
 body = body.replace('"mean": mean(readings)}', '"mean": mean(readings), "median": median(readings)}')
 p.write_text(body)
-p = Path('/workspace/brivols/test_report.py')
+p = Path('/workspace/hulor/test_report.py')
 body = p.read_text()
 body = body.replace('{"count": 3, "mean": 4.0}', '{"count": 3, "mean": 4.0, "median": 4.0}')
 p.write_text(body)

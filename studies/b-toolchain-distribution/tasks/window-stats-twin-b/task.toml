@@ -1,0 +1,12 @@
+version = "1.0"
+
+[metadata]
+author_name = "duva-bench"
+difficulty = "hard"
+tags = ["study-b", "toolchain"]
+
+[agent]
+timeout_sec = 900
+
+[verifier]
+timeout_sec = 180
