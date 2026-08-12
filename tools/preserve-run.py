@@ -3,11 +3,11 @@
 
     make preserve STUDY=studies/b-toolchain-distribution/study.yaml INTO=.../pilot-3
 
-`state.py` says local state holds "pointers and progress ... no trajectories",
-and that is true of the parts it documents. It is not true of `work/`, where
-Harbor's job directories sit — and those hold the one thing nothing else can
-reproduce once the ADP instance is gone, which on this machine is at the next
-`make down`.
+Local state holds Harbor's job directories under `work/`, and those hold the one
+thing nothing else can reproduce once the ADP instance is gone — which on this
+machine is the next `make down`. `state.py` used to describe the directory as
+carrying "no trajectories"; see its docstring for why that reading is what this
+target exists to correct.
 
 Pilot 2 is why this exists as a target rather than a habit. Its numbers survived
 only because its `.duva-bench/` happened to still be in a git worktree on an
