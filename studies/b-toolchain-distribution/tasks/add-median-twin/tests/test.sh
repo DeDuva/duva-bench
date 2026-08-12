@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/kelvra"]:
+for root in ["/workspace/fiz"]:
     sys.path.insert(0, root)
 try:
     from report import summarize
@@ -30,7 +30,7 @@ for readings, expected in cases:
         print(f"FAIL: summarize({readings}) == {got}, expected {expected}", file=sys.stderr)
         raise SystemExit(1)
 
-source = open("/workspace/kelvra/report/__init__.py").read()
+source = open("/workspace/fiz/report/__init__.py").read()
 if "median" not in source:
     print("FAIL: the entry module does not mention median", file=sys.stderr)
     raise SystemExit(1)

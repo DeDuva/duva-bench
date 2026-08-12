@@ -613,8 +613,17 @@ authored tasks established is the binding constraint (§6.3, §6.4), and it does
 saturate when the model improves, which pass rate demonstrably will. That is the reason
 to accept, and it is the one to lead a write-up with.
 
-**2. The effect is concentrated in one cell, which is pilot 1's trap again.** Four of
-the twin arm's six escapes are the `strict-mode × twin` cell. The bootstrap resamples
+**2. The effect is concentrated in one cell, which is pilot 1's trap again.** Measured,
+not inferred, from the recovered trajectories (§7.1.3):
+
+| task | oss | twin | proprietary |
+|---|---|---|---|
+| `add-median` | 0/5 | 1/5 | 0/5 |
+| `fix-spread` | 0/5 | 0/5 | 2/5 |
+| `strict-mode` | 0/5 | **4/5** | 0/5 |
+| `use-validator` | 0/5 | 1/5 | 1/5 |
+
+Four of the twin arm's six escapes are `strict-mode × twin`. The bootstrap resamples
 tasks whole and McNemar pairs on tasks, so the effective *n* behind H5 is **four tasks,
 not twenty trials** — the same shape as the cost ordering that turned out to be one
 task of four (§5.3.1). With a fixed budget, more tasks buys more here than more
@@ -643,12 +652,91 @@ respected, judges the head of each command, follows `-m` and `sh -c`, and counts
 probe (`which pytest`) separately from a reach. **The pilot-2 escape counts predate all
 of that and have not been recomputed under it.**
 
-**What is still open.** The escape metric has no noise floor: §7.1 item 4 nominates the
-twin↔oss contrast, but `oss` differs from the others in more than measurement error, so
-that contrast is an upper bound on the effect rather than a floor. A **second twin on a
-different rename seed** would give the real one — twin-A against twin-B differ only in
-which nonsense names they drew, so any gap between them is instrument noise. The
-generator is mechanical and seeded, so it costs one arm. It is not built.
+**Superseded — the floor is built.** This paragraph previously said the escape metric had
+no noise floor and that a second twin would be the fix. It is now §7.1.2.
+
+## 7.1.2 The instrument's own floor — a second twin (2026-08-11)
+
+Amendment §7.1 item 4 says the twin-minus-`oss` contrast is the noise floor and that no
+contrast is interpreted which does not exceed it. **That is wrong for the measure the
+same amendment made primary.** `oss` differs from a twin in something real — it is the
+familiar toolchain, which is the treatment — so the gap between them is a mixture of
+effect and noise, and using it as a floor bounds the effect from above. On the outcome
+axis, where every arm can fail, the mixture was tolerable. On `escaped`, where the
+question is precisely whether familiar names pull an agent off its own runner, it is the
+effect itself.
+
+**A second twin is the floor that was wanted.** `twin` and `twin-b` are the `oss`
+toolchain with every user-visible name replaced, from two different seeds. They are the
+same treatment under two arbitrary vocabularies, so whatever separates them is the
+instrument. Registered as `instrument_arms: [twin, twin-b]`, reported per axis as
+`instrument_floor`, and every contrast carries `beyond_instrument_floor` — including the
+refusal to score a contrast that involves one of the two floor arms, since that contrast
+is partly the floor itself.
+
+Three things this cost, all of them worth having found before spending:
+
+1. **The first twin's vocabulary was hand-written.** §9 of this document has said since
+   it was written that the twin is "generated mechanically from a seed, not
+   hand-written". It was not: `kelvra`, `brivols`, `tomak`, `vess` were chosen by a
+   person. Two twins produced by two different processes are not a noise floor, so both
+   are now drawn by `arms/twin.py`'s own generator from a declared seed, and
+   `manifest.json` records the seeds beside the words so a reader can recompute them.
+
+2. **The twin generator emitted English words.** Its non-dictionary filter stopped at
+   three letters, and the second twin promptly drew `jibe` and `tape` for two of its four
+   names while the first drew none — an asymmetry in exactly the dimension the floor has
+   to hold still. The filter now covers the four- and five-letter words a strict
+   consonant-vowel alternation over an alphabet with no c, q, w, x or y can produce.
+
+3. **Adding a pre-registration field moved every historic pre-registration digest.** The
+   digest was taken over the full model dump, so declaring `instrument_arms` changed
+   pilot 2's `sha256:4215f18f…` without one pre-registered choice having changed —
+   silently voiding the guarantee §8 exists to make. Unset optional fields are now
+   omitted from that digest, `None` being absence in this spec, and pilot 2's number
+   recomputes exactly.
+
+The study is now 4 tasks × 4 arms × 5 repetitions = 80 trials, roughly $16.60 at pilot
+2's $0.208 per trial.
+
+## 7.1.3 The evidence, nearly lost and now committed (2026-08-11)
+
+Everything §7.1 argues from came out of a session's scratch directory. Three things were
+separately true: the committed report has **120 of 120** axis scores `null` (the grader
+searched for `report.py` after packages had become `report/__init__.py`); the ADP evals
+were deliberately left unscored against an instance that dies with `make down`; and the
+local artifacts the re-grade ran over lived in a gitignored `.duva-bench/` inside a git
+worktree on an **already-merged** branch — one `git worktree remove` from gone.
+
+For a day this project recorded them as destroyed, on the strength of a search that did
+not go deep enough to find them. That is worth keeping in the record beside the rest:
+evidence that lives only in a gitignored scratch directory has a countdown on it, and a
+claim that evidence is *gone* deserves exactly the scepticism a claim that it is fine
+would get.
+
+The trajectories and trial records are now committed under
+`studies/b-toolchain-distribution/pilot-2/`, with a `recover.py` that recomputes the
+numbers from them and two tests that pin the results. **Everything reproduces:**
+
+| arm | acceptance | escaped | escape calls | reached for |
+|---|---|---|---|---|
+| `oss` | 0.850 | 0/20 | 0 | — |
+| `twin` | 0.950 | **6/20** | 29 | `pytest` |
+| `proprietary` | 0.850 | 3/20 | 3 | `pytest` |
+
+The escape row is the one that most needed this. It was counted **by hand**, under the
+matcher §7.1.1 describes as broken in both directions, and it comes back identical under
+the rewritten detector — which is evidence the rewrite did not move the finding it was
+written to protect. The new detector also finds zero probes and no false positives, and
+`pytest` is the only foreign command invoked in any arm: nobody typed `tomak` in `oss` or
+`make` in the depot, so the effect is one habit rather than a scatter. Note `twin`'s 29
+escape *calls* against `proprietary`'s 3 — the twin arm did not merely reach for `pytest`,
+it reached repeatedly.
+
+**Still not recovered, and it does not matter for the above:** the collected workspaces a
+grader reads (6.2 MB, uncommitted). All 60 were re-graded on 2026-08-11 and the graders
+agreed with the verifier on every one, which is why the verifier's own verdict reproduces
+the acceptance means exactly.
 
 ## 8. Pre-registration and analysis
 
@@ -668,6 +756,14 @@ execution and digested into the study spec:
 - **The noise floor is reported before any contrast.** With ≤ 8 tasks the study is small, and a
   difference smaller than the noise floor is not a finding no matter what the p-value says.
 - Amendments permitted, dated, with the pre-amendment reading kept computable and both printed.
+- **The instrument's own floor**, read between two arms that are the same treatment under
+  different arbitrary names (§7.1.2), reported per axis before any contrast and never
+  substituted for by the control contrast.
+- **A report that scored nothing says so.** Pilot 2 produced 60 verified trials and every
+  axis `null`, and its report carried no warnings at all: every individual rule was right
+  — unscored is not zero, an unscored trial stays out of the numbers, a mean over nothing
+  is absent — and nothing was responsible for noticing that the sum of those correct
+  refusals was a report about nothing.
 
 ---
 
@@ -679,7 +775,7 @@ execution and digested into the study spec:
 | Unfamiliarity confounded with difficulty | **High** | The twin arm (§5.3). Without it, do not run the study |
 | Bazel is public, so the "OOD" arm is partly in-distribution | Medium | Expected to *shrink* the observed effect — a conservative bias. Report Bazel-specific and layout-specific failures separately |
 | Cannot verify any model's training data | **High, unfixable** | Never claim a measured distribution; claim constructed novelty |
-| Author bias in constructing the unfamiliar arm | **High** | Twin arm is generated mechanically from a seed, not hand-written. `proprietary-style` conventions must each cite a public source. Consider having the arms built by someone who does not see the hypotheses |
+| Author bias in constructing the unfamiliar arm | **High** | Twin arms are generated mechanically from a declared seed — true since 2026-08-11 and *not* true when this row was first written, see §7.1.2. `proprietary-style` conventions must each cite a public source. Consider having the arms built by someone who does not see the hypotheses |
 | Small task count | Medium | Bootstrap over tasks; report the noise floor first; treat the pilot as a pilot |
 | Grader leniency (the SWE-bench failure) | Medium | Multi-axis graders, adversarial cases, oracle-must-pass admission |
 | Provider-side model changes mid-study | Medium | Pin model ids; record them in run labels; refuse to compare across a changed pin |

@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/kelvra"]:
+for root in ["/workspace/fiz"]:
     sys.path.insert(0, root)
 try:
     from config import merge
@@ -51,7 +51,7 @@ check("effective-three", effective([{"a": 1, "b": 1}, {"b": 2}, {"c": 3}]),
 check("effective-empty", effective([]), {})
 check("effective-nested", effective([{"a": {"x": 1}}, {"a": {"y": 2}}]), {"a": {"x": 1, "y": 2}})
 
-source = open("/workspace/kelvra/report/__init__.py").read()
+source = open("/workspace/fiz/report/__init__.py").read()
 if "merge" not in source:
     print("FAIL: the entry module does not use merge", file=sys.stderr)
     raise SystemExit(1)

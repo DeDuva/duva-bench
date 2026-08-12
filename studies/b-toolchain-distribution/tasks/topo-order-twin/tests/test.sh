@@ -11,7 +11,7 @@ cp -a /workspace /logs/artifacts/workspace 2>/dev/null || true
 
 python3 - <<'PY'
 import sys
-for root in ["/workspace/kelvra"]:
+for root in ["/workspace/fiz"]:
     sys.path.insert(0, root)
 try:
     import graph
@@ -59,7 +59,7 @@ for name, bad, expected in (
         print(f"FAIL: {name} was accepted", file=sys.stderr)
         raise SystemExit(1)
 
-source = open("/workspace/kelvra/report/__init__.py").read()
+source = open("/workspace/fiz/report/__init__.py").read()
 if "resolve" not in source:
     print("FAIL: the entry module does not use resolve", file=sys.stderr)
     raise SystemExit(1)

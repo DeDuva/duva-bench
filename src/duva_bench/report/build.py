@@ -122,7 +122,6 @@ def build_report(
         pre_registration=_pre_registration_block(study),
     )
     report.evidence = _evidence_block(outcomes, bands)
-    report.warnings = _warnings(outcomes, bands)
 
     foreign = _foreign_commands_from_study(study)
     metrics = {
@@ -167,6 +166,9 @@ def build_report(
 
     report.process = _process_block(study, outcomes, metrics)
     report.cost = _cost_block(outcomes)
+    # After the axes, because the loudest thing a report can fail to say is that
+    # it scored nothing — and that is only knowable once they are built.
+    report.warnings = _warnings(outcomes, bands, report.axes)
     return report
 
 
@@ -216,8 +218,37 @@ def _evidence_block(outcomes: StudyOutcomes, bands: dict[str, Any]) -> dict[str,
     }
 
 
-def _warnings(outcomes: StudyOutcomes, bands: dict[str, Any]) -> list[str]:
+def _warnings(outcomes: StudyOutcomes, bands: dict[str, Any], axes: dict[str, Any]) -> list[str]:
     warnings: list[str] = []
+
+    # A grader axis on which nothing scored at all. Pilot 2 produced exactly
+    # this — 60 verified trials, $12.49, and every axis `null` because the
+    # grader looked for a module that had become a package — and the report of
+    # it carried **no warnings**. Every individual rule behaved correctly:
+    # unscored is not zero, an unscored trial stays out of the numbers, a mean
+    # over nothing is None. Nothing was responsible for noticing that the sum of
+    # those correct refusals was a report about nothing.
+    #
+    # Grader axes only: a process axis is legitimately uncomputed whenever the
+    # study declares no vocabulary for it, which is a configuration choice
+    # rather than a failure.
+    grader_axes = {name: block for name, block in axes.items() if not name.startswith("process:")}
+    if outcomes.included and not grader_axes:
+        warnings.append(
+            f"{len(outcomes.included)} trial(s) verified and **not one grader axis exists** — "
+            "every grader either crashed or produced nothing. This report has no outcome in "
+            "it at all; the trials ran and were paid for."
+        )
+    for name, block in grader_axes.items():
+        if not outcomes.included or any(row["n"] for row in block["arms"]):
+            continue
+        unscored = sum(block["unscored_trials"].values())
+        warnings.append(
+            f"axis {name!r} has no scored trial in any arm — {unscored} trial(s) reached a "
+            "grader and none produced a score. Every number below it is therefore absent "
+            "rather than low, and the likely cause is the grader rather than the arms."
+        )
+
     for cell in bands["split_cells"]:
         warnings.append(
             f"{cell} was scored under more than one grader spec digest, so two arms on the "
@@ -342,12 +373,16 @@ def _axis_block(
             scored[(task_id, arm_id)] = values
 
     noise = pooled_within_cell_sd(list(scored.values()))
+    floor = _instrument_floor(study, tasks, scored)
     block: dict[str, Any] = {
         "axis": axis,
         "banded": banded,
         # The noise floor comes before any contrast, deliberately: it is the
         # answer to "is this difference worth a sentence".
         "noise_floor": noise.as_dict(),
+        # And the other floor, which is not the same thing: two arms that are
+        # the same treatment under different arbitrary names.
+        "instrument_floor": floor,
         "cells": {
             f"{task}/{arm}": {
                 "n": len(scored.get((task, arm), [])),
@@ -379,9 +414,54 @@ def _axis_block(
         }
     else:
         block["contrasts"] = _contrasts(
-            study, outcomes, axis, tasks, control, scored, noise, binary=binary
+            study, outcomes, axis, tasks, control, scored, noise, floor, binary=binary
         )
     return block
+
+
+def _instrument_floor(
+    study: Study, tasks: list[str], scored: dict[tuple[str, str], list[float]]
+) -> dict[str, Any]:
+    """The gap between two arms that differ only in the instrument's arbitrary choices.
+
+    On Study B those are the two twins: identical in behaviour, different only in
+    which nonsense names their seed drew. Whatever separates them is measurement
+    noise of a kind the pooled within-cell sd cannot see — that one is the
+    variation *within* a cell of one arm, and a metric can be perfectly
+    repeatable there and still move when nothing changes but a name.
+
+    Reported as a magnitude, because the sign of a gap between two arbitrary
+    labellings means nothing: which twin is "first" is a coin flip.
+    """
+    pair = study.pre_registration.instrument_arms
+    if pair is None:
+        return {
+            "unavailable": (
+                "the pre-registration names no pair of instrument arms, so this study has "
+                "no reading of what it costs to change nothing but a name"
+            )
+        }
+    first, second = pair
+    paired = [task for task in tasks if (task, first) in scored and (task, second) in scored]
+    if not paired:
+        return {
+            "arms": [first, second],
+            "unavailable": f"no task has scored trials in both {first!r} and {second!r}",
+        }
+
+    left = [scored[(task, first)] for task in paired]
+    right = [scored[(task, second)] for task in paired]
+    delta = sum(sum(b) / len(b) - sum(a) / len(a) for a, b in zip(left, right, strict=True)) / len(
+        paired
+    )
+    low, high = paired_difference_ci(left, right, seed=BOOTSTRAP_SEED)
+    return {
+        "arms": [first, second],
+        "tasks": len(paired),
+        "delta": delta,
+        "magnitude": abs(delta),
+        "ci": {"low": low, "high": high, "confidence": 0.95},
+    }
 
 
 def _arm_summaries(
@@ -430,11 +510,13 @@ def _contrasts(
     control: str,
     scored: dict[tuple[str, str], list[float]],
     noise: NoiseFloor,
+    floor: dict[str, Any],
     *,
     binary: Callable[[TrialOutcome], bool | None] | None,
 ) -> dict[str, Any]:
     raw_p: dict[str, float] = {}
     rows: dict[str, dict[str, Any]] = {}
+    instrument_arms = set(floor.get("arms") or ())
 
     for arm in [a.id for a in study.arms if a.id != control]:
         paired_tasks = [
@@ -464,6 +546,11 @@ def _contrasts(
             # difference smaller than one noise floor is a difference the study
             # cannot distinguish from a rerun.
             "delta_in_sd": noise.in_sd_units(delta),
+            # And whether it clears the *other* floor: the gap between two arms
+            # that differ only in arbitrary naming. Stated as a fact about the
+            # numbers rather than as a verdict, but the pre-registration's rule
+            # is that a contrast which does not clear it is not interpreted.
+            "beyond_instrument_floor": _beyond_floor(delta, floor, arm, instrument_arms),
         }
 
         if binary is None:
@@ -494,6 +581,19 @@ def _contrasts(
     for arm, adjusted in holm(raw_p).items():
         rows[arm]["holm_p"] = adjusted
     return {"control": control, "correction": "holm", "arms": rows}
+
+
+def _beyond_floor(
+    delta: float, floor: dict[str, Any], arm: str, instrument_arms: set[str]
+) -> bool | str:
+    """Whether a contrast exceeds the instrument floor, or why that cannot be said."""
+    if "magnitude" not in floor:
+        return "no instrument floor was measured, so nothing says how big a gap has to be"
+    if arm in instrument_arms:
+        # One instrument arm against the control is partly the floor itself.
+        # Reporting it as clearing the floor would be reporting noise as signal.
+        return f"{arm!r} is one of the arms the floor is measured between"
+    return abs(delta) > float(floor["magnitude"])
 
 
 def _majority_pass(

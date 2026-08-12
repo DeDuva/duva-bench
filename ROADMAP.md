@@ -102,12 +102,16 @@ The twin arm differs from `oss` only in names, so **twin-minus-oss reads measure
 directly** — 0.10 on the outcome axis and ~50% on cost, both larger than the
 oss-to-proprietary difference. Only the behavioural measure separated the arms at n=20.
 
-**Two caveats travel with that last row, and neither is small.** Four of the twin arm's six
-escapes are one cell (`strict-mode × twin`), so the effective *n* behind it is four tasks
+Every figure above is recomputable from `studies/b-toolchain-distribution/pilot-2/`, which
+holds the run's trajectories and trial records; two tests pin the results. The escape row
+was originally counted by hand under a matcher that scored `grep -rn pytest .` as an escape
+and missed `python3 -m pytest` — recomputed under the rewritten detector on 2026-08-11 it
+comes back **identical**, with zero probes and no false positives.
+
+**One caveat travels with that last row and it is not small.** Four of the twin arm's six
+escapes are the `strict-mode × twin` cell, so the effective *n* behind it is four tasks
 rather than twenty trials — the same shape as pilot 1's cost ordering that turned out to be
-one task of four. And the counts were read off trajectories by hand under a matcher that
-scored `grep -rn pytest .` as an escape and missed `python3 -m pytest`; the detector has
-since been rewritten and **the row has not been recomputed under it**.
+one task of four.
 
 Seven tasks were authored, three built specifically to be failable, and on `sonnet-4-5` none
 discriminates. Across four calibration rounds **every point of apparent difficulty turned out
@@ -127,37 +131,51 @@ deliberately different correct implementation must both satisfy each acceptance 
   a 40% saving rather than an order of magnitude), and that the durability argument is
   the load-bearing one.
 
-- **The escape metric has no noise floor, and the twin↔oss contrast is not one.** §7.1
-  item 4 nominates it, but `oss` differs from the other arms in more than measurement
-  error, so that contrast bounds the effect from above rather than reading the floor.
-  A **second twin on a different rename seed** is the real floor — twin-A against twin-B
-  differ only in which nonsense names they drew — and the generator is mechanical and
-  seeded, so it costs one arm. Not built. Nothing on `escaped` should be interpreted
-  until it is.
+- **~~The escape metric has no noise floor~~ — built 2026-08-11.** `twin` and `twin-b`
+  are the `oss` toolchain renamed from two different seeds: the same treatment under two
+  arbitrary vocabularies, so the gap between them is the instrument's own noise. Declared
+  as `instrument_arms`, reported per axis as `instrument_floor`, and every contrast now
+  carries `beyond_instrument_floor` — which refuses to score a contrast involving either
+  floor arm, that contrast being partly the floor itself. Design document §7.1.2 records
+  the three defects it surfaced: the first twin's vocabulary was hand-written while §9
+  claimed it was seeded, the generator's non-dictionary filter stopped at three letters
+  and promptly emitted `jibe` and `tape`, and adding a pre-registration field moved every
+  historic pre-registration digest. **The study is now 80 trials, ~$16.60.**
 
-- **Pilot 2's evidence is gone, and every number this ledger quotes from it is
-  currently unverifiable.** Three things were each true and are no longer jointly
-  survivable:
+- **~~Pilot 2's evidence is gone~~ — recovered and committed 2026-08-11.** It is in
+  `studies/b-toolchain-distribution/pilot-2/`: 60 ATIF trajectories, 60 trial records,
+  a `recover.py` that recomputes the numbers from them, and the output beside it. Two
+  tests pin the results.
 
-  1. the committed artifact `studies/b-toolchain-distribution/report/report.json` is the
-     **pre-fix** one — 120 of 120 axis scores are `null`;
-  2. the ADP evals for that study were left unscored deliberately and never re-posted,
-     and that ADP instance is ephemeral;
-  3. the local artifacts the re-grade ran over — recorded here on 2026-08-11 as
-     "preserved under `.duva-bench/`" — **are not on this machine.** `.duva-bench/` is
-     gitignored and exists nowhere under `/`; verified 2026-08-11.
+  Everything reproduces exactly, including the row that most needed it — the escape
+  table was counted **by hand** under a detector since rewritten, and comes back
+  `0/20 · 6/20 · 3/20` unchanged. Acceptance comes back 0.850 / 0.950 / 0.850. The
+  rewritten detector finds zero probes and no false positives, and `pytest` is the only
+  foreign command invoked in any arm.
 
-  So oss 0.850 / twin 0.950 / proprietary 0.850, the within-cell CV of 0.62, and the
-  0/20 · 6/20 · 3/20 escape row have no artifact behind them anywhere. They are the
-  stated rationale for amendment §7.1. **Recovering them means re-running the pilot
-  (~$12.49), not re-running `report`** — and the escape row would not come back
-  identical in any case, because the detector has been rewritten since it was counted
-  by hand.
+  It also settles a caveat that was inference until now: **four of the twin arm's six
+  escapes are the `strict-mode` cell**, so the effective *n* behind H5 is four tasks
+  rather than twenty trials — pilot 1's "one task of four" in a new coat, and pinned by
+  its own test so it cannot quietly stop being true.
 
-  The lesson is one this ledger has now paid for twice: a run's evidence is durable
-  only where it is committed. A study's report belongs under `studies/<id>/report/`,
-  written from the run rather than from a session's scratch, and written *after* the
-  scores are known to be real.
+  **How close this came to being untrue.** The three facts that made the run
+  unverifiable were all real: the committed report is the pre-fix one with 120 of 120
+  axis scores `null`; the ADP evals were deliberately left unscored and that instance is
+  ephemeral; and the artifacts lived in a gitignored `.duva-bench/` inside a worktree on
+  an **already-merged** branch, one `git worktree remove` from gone. This ledger recorded
+  them as *lost* for a day on the strength of a search that did not go deep enough to
+  find them. Both halves are the lesson: evidence in a gitignored scratch directory has a
+  countdown on it, and a claim that evidence is gone deserves the same scepticism as a
+  claim that it is fine.
+
+  What is separately fixed is the silence that let it happen. Pilot 2's report carried
+  **no warnings at all** beside 60 verified trials and 120 null scores: every rule behaved
+  correctly — unscored is not zero, an unscored trial stays out of the numbers, a mean
+  over nothing is absent — and nothing was responsible for noticing that the sum of those
+  correct refusals was a report about nothing. An axis with no scored trial in any arm,
+  and a study with no grader axis at all, are both loud now. Two tests in
+  `tests/test_report.py` reproduce pilot 2's exact shape: graders that ran, posted their
+  axes, and scored `null`.
 
 - **~~`task substrate` was a factor with nowhere to put it~~ — added 2026-08-10.** The
   README has named `model × harness × toolset × task substrate` since the first commit, and
@@ -208,10 +226,10 @@ deliberately different correct implementation must both satisfy each acceptance 
   `report/__init__.py`. The trials were re-graded locally and **the evals recorded in ADP
   for that study remain unscored**, having deliberately not been quietly re-posted.
   `tests/test_study_b_specs.py` now runs a grader against the tree a finished trial
-  leaves, in all three layouts. **Correction, 2026-08-11:** this bullet previously said
-  the artifacts were preserved under `.duva-bench/` and so the re-graded numbers were
-  still real. They are not on this machine — see the entry above. A claim that evidence
-  is preserved is worth exactly as much as a check that it still is.
+  leaves, in all three layouts. The artifacts this bullet said were preserved *were*
+  preserved, and are now committed under `studies/b-toolchain-distribution/pilot-2/`
+  rather than left in a worktree — see the entry above for the day this ledger spent
+  claiming otherwise.
 - **The local ADP is ephemeral, so a cited run id is reproducible rather than durable.**
   G1's evidence lives in the `adp-test-*` stack that `make down` destroys, and this
   machine's `/tmp` is cleared between sessions. Anyone re-checking a run id in

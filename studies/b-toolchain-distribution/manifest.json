@@ -12,29 +12,48 @@
     "add-median-oss",
     "add-median-proprietary",
     "add-median-twin",
+    "add-median-twin-b",
     "fix-spread-oss",
     "fix-spread-proprietary",
     "fix-spread-twin",
+    "fix-spread-twin-b",
     "merge-config-oss",
     "merge-config-proprietary",
     "merge-config-twin",
+    "merge-config-twin-b",
     "strict-mode-oss",
     "strict-mode-proprietary",
     "strict-mode-twin",
+    "strict-mode-twin-b",
     "topo-order-oss",
     "topo-order-proprietary",
     "topo-order-twin",
+    "topo-order-twin-b",
     "use-validator-oss",
     "use-validator-proprietary",
     "use-validator-twin",
+    "use-validator-twin-b",
     "window-stats-oss",
     "window-stats-proprietary",
-    "window-stats-twin"
+    "window-stats-twin",
+    "window-stats-twin-b"
   ],
+  "twin_seeds": {
+    "twin": "duva-bench/study-b/twin/2026-08-11",
+    "twin-b": "duva-bench/study-b/twin-b/2026-08-11"
+  },
   "twin_words": {
-    "src": "kelvra",
-    "tests": "brivols",
-    "runner": "tomak",
-    "verb": "vess"
+    "twin": {
+      "src": "fiz",
+      "tests": "hulor",
+      "runner": "mapu",
+      "verb": "nuju"
+    },
+    "twin-b": {
+      "src": "paj",
+      "tests": "lodip",
+      "runner": "tove",
+      "verb": "reru"
+    }
   }
 }

@@ -16,8 +16,8 @@ test suite pass.
 
 This is a standard Python project.
 
-- Each package is a directory under `kelvra/`.
-- A package's module is imported by its own name: the code in `kelvra/stats/` is
+- Each package is a directory under `fiz/`.
+- A package's module is imported by its own name: the code in `fiz/stats/` is
   reached with `from stats import ...`, not `from stats.stats import ...`.
-- Tests are in `brivols/`.
-- Run the tests with `tomak vess`.
+- Tests are in `hulor/`.
+- Run the tests with `mapu nuju`.
