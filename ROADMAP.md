@@ -61,20 +61,45 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** building Study B a task set whose outcome axis actually varies, and measuring
-  difficulty rather than asserting it. `calibrate.py` runs a candidate on the `oss`
-  substrate alone and reports its pass rate; a task is admitted on that number.
-  First results: `topo-order` 2/3, `merge-config` 1/3, `window-stats` 3/3 (hardened and
-  being re-measured). Details in
-  [`studies/b-toolchain-distribution/README.md`](studies/b-toolchain-distribution/README.md).
-- **Next:** the pilot proper on the surviving tasks, with enough repetitions per cell for a
-  variance rather than a spread.
-- **Not next:** the factorial. The 2026-08-10 pilot exists to say when that is worth its
-  money and it said not yet — every arm solved every task twice, pooled within-cell sd 0.0,
-  and an aggregate cost ordering that turned out to be one task of four.
-- **Later:** Study A, whose axis turned out to be reachable through MCP after all — decide it
-  on Study B's evidence rather than on convenience, since a sibling project has a
-  pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
+- **Now:** nothing in flight. Gates G1 and G2 are closed and the machinery below a study —
+  substrates, arm materialization, graders, the dedicated ADP — is finished and is no longer
+  the risk. Two Study B pilots have run.
+- **Next — a decision, not a task.** Study B's design document carries
+  [**amendment §7.1**](docs/studies/b-toolchain-distribution.md), which moves the primary
+  measure from pass rate to **behaviour** (`escaped`: did a trial invoke a toolchain its arm
+  was not given), demotes pass rate to a gate, and registers **H5 — partial unfamiliarity
+  costs more than total unfamiliarity**. Accepting it changes what the factorial measures, so
+  it should be decided rather than defaulted into. The alternative is to keep pass rate
+  primary and buy power instead: ~200 trials per arm to detect ten points at a base rate of
+  0.85, roughly $120 per model × harness cell.
+- **Then:** whichever is chosen, the next spend is a run on **fresh tasks**. H5 was generated
+  by looking at pilot 2 after the fact and cannot be tested on the data that suggested it.
+- **Not next:** the factorial. Both pilots exist to say when it is worth its money and
+  neither says yet.
+- **Later:** Study A, whose toolset axis turned out to be reachable through MCP task config
+  after all — decide it on Study B's evidence rather than on convenience, since the squad
+  track has a pre-registered hypothesis waiting on it. Then G3. Post-M8, squad-as-an-arm.
+
+## What the two pilots established
+
+Recorded here because it is the reason the next step is a decision rather than more trials.
+
+| | pilot 1 (`sonnet-4-5`, 24 trials, $2.16) | pilot 2 (`haiku-4-5`, 60 trials, $12.49) |
+|---|---|---|
+| outcome axis | every arm solved every task — pooled sd `0.0` | oss 0.850, twin **0.950**, proprietary 0.850 |
+| aggregate cost | ordering matched the hypothesis, and was one task of four | within-cell CV **0.62**; twin 50% above oss |
+| behaviour | not measured | oss escaped 0/20, twin **6/20**, proprietary 3/20 |
+
+The twin arm differs from `oss` only in names, so **twin-minus-oss reads measurement noise
+directly** — 0.10 on the outcome axis and ~50% on cost, both larger than the
+oss-to-proprietary difference. Only the behavioural measure separated the arms at n=20.
+
+Seven tasks were authored, three built specifically to be failable, and on `sonnet-4-5` none
+discriminates. Across four calibration rounds **every point of apparent difficulty turned out
+to be an authoring defect** — see `docs/studies/b-toolchain-distribution.md` §6.2–§6.4. The
+tooling that now prevents a repeat is `studies/b-toolchain-distribution/calibrate.py` (pass
+rate *with the reason for every failure*) and `tests/test_study_b_specs.py` (the oracle and a
+deliberately different correct implementation must both satisfy each acceptance check).
 
 ## Blockers and open decisions
 
@@ -122,6 +147,12 @@ still marked *code landed* carries exactly that risk.
   `definition_path`, or stop declaring tools it does not supply so the metric renders
   not-applicable. Deferred because it moves the study digest and would supersede G2's
   evidence again.
+- **Study B pilot 2's ADP evals are unscored.** All 60 trials verified and every axis came
+  back `null`: the grader searched for `report.py` after packages had become
+  `report/__init__.py`. The artifacts are preserved under `.duva-bench/`, so the trials were
+  re-graded locally for nothing and the numbers above are real — but **the evals recorded in
+  ADP for that study remain unscored**, and were not quietly re-posted. `tests/test_study_b_specs.py`
+  now runs a grader against the tree a finished trial leaves, in all three layouts.
 - **The local ADP is ephemeral, so a cited run id is reproducible rather than durable.**
   G1's evidence lives in the `adp-test-*` stack that `make down` destroys, and this
   machine's `/tmp` is cleared between sessions. Anyone re-checking a run id in
@@ -160,7 +191,8 @@ for twice.
 | MCP spike (toolset axis reachable) | ~$0.20 |
 | Study B first task, three toolchains | $0.21 |
 | Study B pilot, 24 trials | $2.156 |
-| Task calibration, first pass | $1.434 |
+| Task calibration, four rounds | $11.13 |
+| Study B pilot 2, 60 trials on `haiku-4-5` | $12.486 |
 
 Oracle runs — every task admitted, every variant checked — cost **$0** by construction:
 the oracle agent runs the task's own solution instead of a model.
