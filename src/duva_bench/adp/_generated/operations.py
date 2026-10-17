@@ -39,7 +39,7 @@ class Operation(NamedTuple):
 
 
 SPEC_VERSION: Final = "0.2.0"
-SPEC_DIGEST: Final = "sha256:3b6b726122219dc4388ca91f332c60a12ab2a55419a590ff799b61e32b3b4a50"
+SPEC_DIGEST: Final = "sha256:9ead1d2db8b69393f333884b763a24b73486402688b66a1c975e691cf2a6ed55"
 
 OPERATIONS: Final[dict[str, Operation]] = {
     "compat_get_repos_by_owner_by_repo_git_refs": Operation(
