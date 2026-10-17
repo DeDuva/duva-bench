@@ -206,9 +206,13 @@ deliberately different correct implementation must both satisfy each acceptance 
   13,297 were cache reads, so getting it wrong would inflate input by 60% and worsen with
   exactly the caching that makes long studies affordable. **This does not clear
   `claude-code`**, whose zero-token defect started this; it clears the agent Study A uses.
-- **The ADP contract suite has never run in CI.** It passes locally against a live server;
-  `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
-  pinned by a suite one person runs by hand.
+- **~~The ADP contract suite has never run in CI~~ — fixed 2026-10-17.** The workflow had
+  failed every scheduled run since it was written: ADP refused to load its config without
+  `GIT_ROOT`/`SIGNING_KEY`/`PUBLIC_URL`/`MIRROR_CREDENTIAL_KEY`, and `npm start` expected an
+  unbuilt `dist/`; GitHub had then disabled it for inactivity. It now boots ADP the way
+  adp-replay's CI does, pins the same `ADP_REF` (`3404ed4a`, contract `0.2.0`), and passed
+  13/13 (one study-state test skips by design) in run
+  [39048464123](https://github.com/DeDuva/duva-bench/actions/runs/39048464123).
 - **~~Studies cannot share the ADP dev stack~~ — fixed 2026-08-10.** Three G2 runs were
   destroyed by another workstream's `make up` in `~/dev/adp`. Studies now record into their
   own instance: `make adp-stack` (`tools/adp-stack.sh`) — its own worktree, a compose
