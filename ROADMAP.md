@@ -61,9 +61,15 @@ still marked *code landed* carries exactly that risk.
 
 ## Now / Next / Later
 
-- **Now:** wiring and evidence for Study B's amended primary measure. The decision is
+- **Now: paused 2026-11-15.** Hibernating with the rest of the agent-research program
+  (`adp`, `adp-replay`). **Resume condition:** a burst whose goal is a new ADP / duva-bench research question. squad-lab is not part of it: `squad` was archived 2026-11-15 and its M15 scope decision closed with it. Where it
+  stopped: wiring and evidence for Study B's amended primary measure. The decision is
   settled (below); what is left is the noise floor it needs and a report artifact its
-  numbers can be re-derived from.
+  numbers can be re-derived from. Pilot 3 is on `feat/study-b-pilot-3` (open PR,
+  unmerged). On 2026-11-15 `adp-contract` was fixed (#14) and passed a manual run at
+  13 passed / **1 skipped**. Before relying on it again, give that skip a strict-mode flag
+  that turns it into a failure, so it can't silently stop running. The squad track and
+  "squad-as-an-arm" (Later) lost their host when `squad` was archived.
 - **~~Next — a decision, not a task~~ — settled 2026-08-11.** Study B's
   [**amendment §7.1**](docs/studies/b-toolchain-distribution.md) is **accepted and
   registered**: the primary measure is `process:escaped` (did a trial invoke a toolchain
