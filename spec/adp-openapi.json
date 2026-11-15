@@ -191,6 +191,54 @@
         ],
         "type": "object"
       },
+      "EventAppendResult": {
+        "properties": {
+          "accepted_through": {
+            "description": "The highest producer_seq durably stored for this session, and the mark an emitter trims its spool against. Null when the session is untracked — an emitter that does not count is untracked, not incomplete.\n",
+            "nullable": true,
+            "type": "integer"
+          },
+          "appended": {
+            "description": "How many events this call actually stored. A **count**.",
+            "type": "integer"
+          },
+          "count": {
+            "description": "The session's total event count after this append.",
+            "type": "integer"
+          },
+          "duplicates": {
+            "description": "**A list of `client_event_id`s, not a count** — the ids that were already present and therefore skipped. Reported rather than silently absorbed: an emitter re-sending a landed batch has a bug, and silence would let it stay one. Note that `if duplicates:` behaves the same whether this is a list or a count, so a client that assumed a count breaks only when a duplicate actually occurs — during a retry, which is exactly when the recorder is already in trouble.\n",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TrajectoryEvent"
+            },
+            "type": "array"
+          },
+          "head": {
+            "description": "The new chain head. **Named `head`, not `chain_head`** — this is the value a checkpoint or run attestation commits to.\n",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "appended",
+          "duplicates",
+          "count",
+          "head",
+          "accepted_through",
+          "events"
+        ],
+        "type": "object"
+      },
       "ReportGateRequest": {
         "properties": {
           "git_sha": {
@@ -220,6 +268,144 @@
           "git_sha",
           "name",
           "status"
+        ],
+        "type": "object"
+      },
+      "SessionTrajectory": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TrajectoryEvent"
+            },
+            "type": "array"
+          },
+          "session_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "events"
+        ],
+        "type": "object"
+      },
+      "TrajectoryEvent": {
+        "description": "One event in a session's hash-chained trajectory.",
+        "properties": {
+          "client_event_id": {
+            "description": "The emitter's own id, which makes a retried batch idempotent.",
+            "nullable": true,
+            "type": "string"
+          },
+          "cost_micro_usd": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "duration_ms": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "git_sha": {
+            "nullable": true,
+            "type": "string"
+          },
+          "hash": {
+            "description": "This event's chain hash, covering every field above and the previous hash.",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "message",
+              "model_call",
+              "tool_call",
+              "handoff",
+              "commit",
+              "test_result",
+              "custom"
+            ],
+            "type": "string"
+          },
+          "model": {
+            "nullable": true,
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "description": "Opaque to ADP, and never parsed by it. Defaults to `{}` when the event carried none — the endpoint declares only `kind` as required.\n",
+            "type": "object"
+          },
+          "prev_hash": {
+            "type": "string"
+          },
+          "producer_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "producer_seq": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "related_session_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "seq": {
+            "description": "ADP's own position in this session's chain, assigned server-side.",
+            "type": "integer"
+          },
+          "session_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "success",
+              "failure",
+              "error",
+              "rejected",
+              "skipped"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "tokens_in": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "tokens_out": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "type": {
+            "description": "The harness's own name within that kind. Free-form; never branched on.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "session_id",
+          "seq",
+          "kind",
+          "type",
+          "payload",
+          "occurred_at",
+          "hash",
+          "prev_hash",
+          "created_at"
         ],
         "type": "object"
       },
@@ -635,6 +821,7 @@
                     "type": "string"
                   },
                   "intent_id": {
+                    "description": "The intent this run works towards. **Nothing under `/api/adp` mints one**: intents are created as a side effect of filing an issue on the compatibility plane, and `POST /api/v3/repos/{owner}/{repo}/issues` returns the `intent_id` it created. Repositories are likewise created via `POST /api/v3/user/repos`. A client generated from the native plane alone therefore cannot open a run — see \"Plane dependencies\" in docs/api-compatibility.md.\n",
                     "format": "uuid",
                     "type": "string"
                   },
@@ -1280,6 +1467,13 @@
         ],
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionTrajectory"
+                }
+              }
+            },
             "description": "Events"
           },
           "404": {
@@ -1405,9 +1599,32 @@
         },
         "responses": {
           "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventAppendResult"
+                }
+              }
+            },
             "description": "Appended, with the new chain head, any duplicates that were skipped, and `accepted_through` — the highest producer_seq durably stored for this session, which is the mark an emitter trims its spool against (null when the session is untracked).\n"
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "expected_next_seq": {
+                      "description": "The producer_seq this session is waiting for. Present only on a contiguity rejection, which is the case a spool needs it for; absent when the session is simply closed.\n",
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
             "description": "The session is closed, or the batch skips the emitter's numbering. In the latter case the body carries `expected_next_seq`, the producer_seq the session is waiting for, so a spool knows where to replay from rather than guessing.\n"
           },
           "422": {
@@ -3212,6 +3429,51 @@
           }
         },
         "summary": "Readiness probe (checks DB connectivity)"
+      }
+    },
+    "/version": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "builtAt": {
+                      "format": "date-time",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "ref": {
+                      "example": "main",
+                      "type": "string"
+                    },
+                    "sha": {
+                      "example": "60be968f0a4a2a4f5f7c0f9e1d2c3b4a5968ab01",
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "uptimeSeconds": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "sha",
+                    "ref",
+                    "startedAt",
+                    "uptimeSeconds"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Build and process identity"
+          }
+        },
+        "summary": "What commit this process is running, captured at deploy time rather than read per request. Unauthenticated for the same reason as the probes and /metrics. `builtAt` is null when the deploy left no stamp.\n"
       }
     }
   },

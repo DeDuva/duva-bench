@@ -6,10 +6,12 @@
 # test is knowing which contract it passed against, and "whatever main was that
 # morning" is not an answer.
 #
-# NOTE: this workflow has never run. It was written from ADP's own Makefile and
-# server/src/bootstrap.ts and is the plan's stated CI shape, but nothing in the
-# environment this repository was built in could execute it. See
-# docs/blockers.md.
+# It failed every run from its creation until 2026-10: ADP's config refuses to
+# load without GIT_ROOT, SIGNING_KEY, PUBLIC_URL and MIRROR_CREDENTIAL_KEY, so
+# even `migrate` exited before touching the database. The ADP env block below is
+# the one DeDuva/adp-replay's ci.yml `contract` job uses, and ADP is started the
+# same way (`npx tsx src/main.ts`) — `npm start` runs `node dist/main.js`, and
+# nothing here builds dist/.
 name: adp-contract
 
 on:
@@ -24,12 +26,25 @@ permissions:
 
 env:
   # The contract this checkout's client was generated against. Moving it means
-  # re-vendoring the spec and regenerating (make sync-spec generate).
-  ADP_COMMIT: b3a455e8b0100cfce6809236c99edab160d402f8
+  # re-vendoring the spec and regenerating (make sync-spec generate). Kept equal
+  # to DeDuva/adp-replay's ADP_REF so the two clients are tested against one ADP.
+  ADP_REF: 3404ed4a8b6bc3d47ec48e41bcb1b93427d37cda
 
 jobs:
   contract:
     runs-on: ubuntu-latest
+    env:
+      # Every ADP entry point (migrate, bootstrap, main) loads the same config,
+      # so the whole block is job-level rather than repeated per step.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
+      GIT_ROOT: ${{ github.workspace }}/.adp-git
+      PORT: "3000"
+      PUBLIC_URL: http://localhost:3000
+      # Throwaway keys for a throwaway instance. They have to be *present*
+      # because ADP refuses to start unsigned, which is the right default;
+      # nothing here outlives the job.
+      SIGNING_KEY: ci-contract-signing-key
+      MIRROR_CREDENTIAL_KEY: ci-contract-mirror-key
     services:
       postgres:
         image: postgres:16
@@ -47,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: DeDuva/adp
-          ref: ${{ env.ADP_COMMIT }}
+          ref: ${{ env.ADP_REF }}
           path: adp
 
       - uses: actions/setup-node@v4
@@ -63,26 +78,26 @@ jobs:
 
       - name: Migrate
         working-directory: adp/server
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
-        run: npm run migrate
+        run: |
+          mkdir -p "$GIT_ROOT"
+          npx tsx src/db/migrate.ts
 
       - name: Start ADP
         working-directory: adp/server
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
-          PORT: "3000"
         run: |
-          npm start &
+          npx tsx src/main.ts > "$RUNNER_TEMP/adp.log" 2>&1 &
           for _ in $(seq 1 60); do
-            curl -sf http://localhost:3000/readyz && break
+            curl -sf http://localhost:3000/readyz && exit 0
             sleep 1
           done
+          # A loop that falls through silently leaves every later step to fail
+          # with "connection refused" and no clue why.
+          echo "::error::ADP did not become ready within 60s"
+          cat "$RUNNER_TEMP/adp.log"
+          exit 1
 
       - name: Bootstrap two principals
         working-directory: adp/server
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/adp
         run: |
           # Two principals, not one principal with two tokens: ADP decides
           # `separately_authorized` by comparing principals, so a second token

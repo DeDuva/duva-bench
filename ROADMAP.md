@@ -51,7 +51,7 @@ still marked *code landed* carries exactly that risk.
 | *Track pause* | *lifted 2026-08-08* | A probe ran Harbor end to end on the development machine twice (oracle + a real `claude-code` trial, $0.28) — see the plan's probe section |
 | M0 — scaffold | code landed | Package, CLI, `make check`, CI on 3.11 + 3.12 |
 | M1 — study spec and digest | code landed | `examples/smoke/study.yaml` validates; digest `sha256:d1a38ec0…` |
-| M2 — ADP recording core | code landed, **contract suite passes** | 13/13 against a live ADP at contract `0.2.0` (2026-08-10, first ever run — 5 failed initially). `adp/models.py` is hand-written from ADP's *source*; `tests/fakes.py` reproduced the same misreading and now enforces the server's rules |
+| M2 — ADP recording core | code landed, **contract suite passes** | 13/13 against a live ADP at contract `0.2.0` (2026-08-10, first ever run — 5 failed initially); **in CI since 2026-10-17** at ADP `3404ed4a` ([run 39048464123](https://github.com/DeDuva/duva-bench/actions/runs/39048464123)). `adp/models.py` is hand-written from ADP's *source*; `tests/fakes.py` reproduced the same misreading and now enforces the server's rules |
 | M3 — one Harbor trial end to end | **gate G1 PASSED 2026-08-10** | Run `a5c20876-d5ff-41af-95b5-114c9a8fddb6`: `ok`, `envelope_verified`, `trajectory_digest_matches` all true; 13 labels round-trip; **17 bridged `tool_call` events**. Took seven real defects to get there — see [`docs/blockers.md`](docs/blockers.md) |
 | M4 — arms and twin instruments | code landed, **wired 2026-08-10** | Twin generator, doc bundles, grader runner. Materialization now installs an arm's toolset into the task image and declares it in `task.toml`, which is the only place Harbor reads tools from; a spike proved an agent calls the renamed tools under the names the arm chose. Not yet exercised by a study — see [`docs/blockers.md`](docs/blockers.md) |
 | M5 — factorial scheduler | code landed | Budget cap, per-provider pacing, resumable via `progress.jsonl` |
@@ -206,9 +206,13 @@ deliberately different correct implementation must both satisfy each acceptance 
   13,297 were cache reads, so getting it wrong would inflate input by 60% and worsen with
   exactly the caching that makes long studies affordable. **This does not clear
   `claude-code`**, whose zero-token defect started this; it clears the agent Study A uses.
-- **The ADP contract suite has never run in CI.** It passes locally against a live server;
-  `.github/workflows/adp-contract.yml` has not executed. Until it does, the contract is
-  pinned by a suite one person runs by hand.
+- **~~The ADP contract suite has never run in CI~~ — fixed 2026-10-17.** The workflow had
+  failed every scheduled run since it was written: ADP refused to load its config without
+  `GIT_ROOT`/`SIGNING_KEY`/`PUBLIC_URL`/`MIRROR_CREDENTIAL_KEY`, and `npm start` expected an
+  unbuilt `dist/`; GitHub had then disabled it for inactivity. It now boots ADP the way
+  adp-replay's CI does, pins the same `ADP_REF` (`3404ed4a`, contract `0.2.0`), and passed
+  13/13 (one study-state test skips by design) in run
+  [39048464123](https://github.com/DeDuva/duva-bench/actions/runs/39048464123).
 - **~~Studies cannot share the ADP dev stack~~ — fixed 2026-08-10.** Three G2 runs were
   destroyed by another workstream's `make up` in `~/dev/adp`. Studies now record into their
   own instance: `make adp-stack` (`tools/adp-stack.sh`) — its own worktree, a compose

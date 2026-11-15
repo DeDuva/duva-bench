@@ -159,7 +159,7 @@ Nothing in it has been executed. Its `report/` directory is deliberately absent:
 look like a study that produced nothing, and a populated one would have to be populated with
 something invented.
 
-## The live-ADP contract suite · **PASSES as of 2026-08-10**
+## The live-ADP contract suite · **PASSES, locally since 2026-08-10 and in CI since 2026-10-17**
 
 All 13 tests in `tests/contract/` pass against a live ADP at contract `0.2.0`. They had never
 executed before that date, and the first run failed 5 of 13 — which was the point of writing them.
@@ -177,7 +177,11 @@ tamper-evidence test that quietly does not run on the machine where somebody is 
 evidence is worse than no test.
 
 `.github/workflows/adp-contract.yml` was written from ADP's own Makefile and `server/src/bootstrap.ts`
-at commit `b3a455e8` and **has still not run in CI**.
+at commit `b3a455e8` and failed every run until 2026-10-17, because ADP would not load its config
+without `GIT_ROOT`, `SIGNING_KEY`, `PUBLIC_URL` and `MIRROR_CREDENTIAL_KEY` (and `npm start` needs a
+`dist/` nothing built). It now boots ADP as adp-replay's CI does, at adp-replay's pin `3404ed4a`, and
+**passes in CI**: 13 passed, 1 skipped (the smoke-study test, which needs local study state) in
+[run 39048464123](https://github.com/DeDuva/duva-bench/actions/runs/39048464123).
 
 ## Playwright walk (M7) · **PASSES, against the ADP double**
 
